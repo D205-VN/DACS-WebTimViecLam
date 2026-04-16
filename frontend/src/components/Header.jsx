@@ -22,9 +22,8 @@ export default function Header() {
               <Briefcase className="w-5 h-5 text-white" />
             </div>
             <span className="text-xl font-extrabold tracking-tight">
-              <span className="text-navy-700">Viec</span>
-              <span className="text-success-500">Lam</span>
-              <span className="text-navy-400">.vn</span>
+              <span className="text-navy-700">Aptertek</span>
+              <span className="text-success-500">Work</span>
             </span>
           </Link>
 
@@ -84,9 +83,8 @@ export default function Header() {
 
       {/* Mobile Menu */}
       <div
-        className={`md:hidden overflow-hidden transition-all duration-300 ease-in-out ${
-          mobileMenuOpen ? 'max-h-80 opacity-100' : 'max-h-0 opacity-0'
-        }`}
+        className={`md:hidden overflow-hidden transition-all duration-300 ease-in-out ${mobileMenuOpen ? 'max-h-80 opacity-100' : 'max-h-0 opacity-0'
+          }`}
       >
         <div className="px-4 pb-4 pt-2 space-y-1 bg-white border-t border-gray-50">
           {navLinks.map((link) => (

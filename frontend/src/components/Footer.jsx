@@ -12,9 +12,8 @@ export default function Footer() {
                 <Briefcase className="w-5 h-5 text-white" />
               </div>
               <span className="text-xl font-extrabold">
-                <span className="text-white">Viec</span>
-                <span className="text-emerald-400">Lam</span>
-                <span className="text-navy-400">.vn</span>
+                <span className="text-white">Aptertek</span>
+                <span className="text-emerald-400">Work</span>
               </span>
             </div>
             <p className="text-sm text-navy-300 leading-relaxed mb-4">
@@ -78,7 +77,7 @@ export default function Footer() {
         </div>
 
         <div className="border-t border-navy-800 mt-10 pt-6 flex flex-col sm:flex-row items-center justify-between gap-3">
-          <p className="text-xs text-navy-400">© 2026 ViecLam.vn — Bản quyền thuộc về D205-VN</p>
+          <p className="text-xs text-navy-400">© 2026 AptertekWork — Bản quyền thuộc về D205-VN</p>
           <div className="flex gap-4">
             <a href="#" className="text-xs text-navy-400 hover:text-navy-200 transition-colors">Điều khoản</a>
             <a href="#" className="text-xs text-navy-400 hover:text-navy-200 transition-colors">Chính sách</a>
