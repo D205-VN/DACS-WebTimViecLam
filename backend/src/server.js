@@ -10,7 +10,9 @@ app.use(express.json());
 
 // Routes
 const jobRoutes = require('./routes/jobRoutes');
+const authRoutes = require('./routes/authRoutes');
 app.use('/api/jobs', jobRoutes);
+app.use('/api/auth', authRoutes);
 
 app.get('/api', (req, res) => {
     res.json({ message: 'Chào mừng đến với WebTimViec API' });
