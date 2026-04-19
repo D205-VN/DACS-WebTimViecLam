@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { Send, MapPin, DollarSign, Clock, Briefcase, ArrowLeft, Loader2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
-const API = 'http://localhost:5001/api/jobs';
+const API = '/api/jobs';
 
 const statusMap = {
   pending: { label: 'Đang chờ', color: 'bg-amber-50 text-amber-600 border-amber-200' },

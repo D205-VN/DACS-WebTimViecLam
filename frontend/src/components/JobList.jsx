@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { MapPin, DollarSign, Clock, Bookmark, BookmarkCheck, Briefcase } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
-const API = 'http://localhost:5001/api/jobs';
+const API = '/api/jobs';
 
 export default function JobList() {
   const navigate = useNavigate();

@@ -3,7 +3,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { MapPin, DollarSign, Clock, Bookmark, BookmarkCheck, Briefcase, Building2, Users, ArrowLeft, Send, CheckCircle2, Loader2, GraduationCap, Calendar } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
-const API = 'http://localhost:5001/api/jobs';
+const API = '/api/jobs';
 
 export default function JobDetailPage() {
   const { id } = useParams();

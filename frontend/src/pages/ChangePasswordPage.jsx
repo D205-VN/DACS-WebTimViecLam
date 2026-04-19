@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { Lock, Eye, EyeOff, Shield, ArrowLeft, CheckCircle2, Loader2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
-const API_BASE = 'http://localhost:5001/api/auth';
+const API_BASE = '/api/auth';
 
 export default function ChangePasswordPage() {
   const { token } = useAuth();

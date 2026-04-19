@@ -1,14 +1,15 @@
 import { useState, useEffect, useRef } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Mail, Lock, Eye, EyeOff, Briefcase, ArrowRight, User, Phone, Building2, MapPin, ChevronDown, Loader2, CheckCircle2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
-const API_BASE = 'http://localhost:5001/api/auth';
+const API_BASE = '/api/auth';
 
 export default function RegisterPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { login } = useAuth();
-  const [step, setStep] = useState(1); // 1=form, 2=OTP
+  const [step, setStep] = useState(location.state?.pendingEmail ? 2 : 1); // 1=form, 2=OTP
   const [formData, setFormData] = useState({
     fullName: '', email: '', phone: '', password: '', confirmPassword: '',
     role: 'seeker', agreeTerms: false,
@@ -48,7 +49,10 @@ export default function RegisterPage() {
 
   const handleChange = (field, value) => setFormData(p => ({ ...p, [field]: value }));
   const isEmployer = formData.role === 'employer';
-  const emailForOTP = isEmployer ? formData.companyEmail : formData.email;
+  
+  // Use pendingEmail if navigating from login, otherwise use form data
+  const pendingEmail = location.state?.pendingEmail;
+  const emailForOTP = pendingEmail || (isEmployer ? formData.companyEmail : formData.email);
 
   const handleSubmit = async (e) => {
     e.preventDefault();

@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { Bookmark, BookmarkX, MapPin, DollarSign, Clock, Briefcase, ArrowLeft, Loader2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
-const API = 'http://localhost:5001/api/jobs';
+const API = '/api/jobs';
 
 export default function SavedJobsPage() {
   const { token } = useAuth();
