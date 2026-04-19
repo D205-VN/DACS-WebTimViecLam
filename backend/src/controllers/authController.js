@@ -263,4 +263,39 @@ async function getMe(req, res) {
   }
 }
 
-module.exports = { register, verifyOTP, resendOTP, login, googleAuth, getMe };
+/**
+ * POST /api/auth/change-password
+ * Đổi mật khẩu (cần JWT)
+ */
+async function changePassword(req, res) {
+  const { currentPassword, newPassword } = req.body;
+
+  try {
+    const result = await pool.query('SELECT * FROM users WHERE id = $1', [req.user.id]);
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Không tìm thấy người dùng' });
+    }
+
+    const user = result.rows[0];
+
+    if (!user.password_hash) {
+      return res.status(400).json({ error: 'Tài khoản đăng ký qua Google không có mật khẩu để đổi' });
+    }
+
+    const isMatch = await bcrypt.compare(currentPassword, user.password_hash);
+    if (!isMatch) {
+      return res.status(401).json({ error: 'Mật khẩu hiện tại không đúng' });
+    }
+
+    const salt = await bcrypt.genSalt(10);
+    const newHash = await bcrypt.hash(newPassword, salt);
+    await pool.query('UPDATE users SET password_hash = $1 WHERE id = $2', [newHash, req.user.id]);
+
+    res.json({ message: 'Đổi mật khẩu thành công!' });
+  } catch (err) {
+    console.error('Change password error:', err);
+    res.status(500).json({ error: 'Đã xảy ra lỗi khi đổi mật khẩu' });
+  }
+}
+
+module.exports = { register, verifyOTP, resendOTP, login, googleAuth, getMe, changePassword };

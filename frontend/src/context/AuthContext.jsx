@@ -1,15 +1,19 @@
-import { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 
 const AuthContext = createContext(null);
 
 const API_BASE = 'http://localhost:5001/api/auth';
 
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null);
-  const [token, setToken] = useState(localStorage.getItem('token'));
+  const [user, setUser] = useState(() => {
+    // Khôi phục user ngay lập tức từ localStorage để tránh flash
+    const saved = localStorage.getItem('user');
+    return saved ? JSON.parse(saved) : null;
+  });
+  const [token, setToken] = useState(() => localStorage.getItem('token'));
   const [loading, setLoading] = useState(true);
 
-  // Auto-load user on mount if token exists
+  // Verify token & refresh user data on mount
   useEffect(() => {
     if (token) {
       fetch(`${API_BASE}/me`, {
@@ -21,11 +25,13 @@ export function AuthProvider({ children }) {
         })
         .then(data => {
           setUser(data.user);
+          localStorage.setItem('user', JSON.stringify(data.user));
           setLoading(false);
         })
         .catch(() => {
-          // Token expired or invalid
+          // Token expired or invalid — clear everything
           localStorage.removeItem('token');
+          localStorage.removeItem('user');
           setToken(null);
           setUser(null);
           setLoading(false);
@@ -33,19 +39,21 @@ export function AuthProvider({ children }) {
     } else {
       setLoading(false);
     }
-  }, [token]);
+  }, []); // Chỉ chạy 1 lần khi mount
 
-  const login = (newToken, userData) => {
+  const login = useCallback((newToken, userData) => {
     localStorage.setItem('token', newToken);
+    localStorage.setItem('user', JSON.stringify(userData));
     setToken(newToken);
     setUser(userData);
-  };
+  }, []);
 
-  const logout = () => {
+  const logout = useCallback(() => {
     localStorage.removeItem('token');
+    localStorage.removeItem('user');
     setToken(null);
     setUser(null);
-  };
+  }, []);
 
   return (
     <AuthContext.Provider value={{ user, token, loading, login, logout, isAuthenticated: !!user }}>
