@@ -113,7 +113,7 @@ export default function Header() {
                     )}
                     <div className="text-left hidden lg:block">
                       <p className="text-sm font-semibold text-gray-800 leading-tight max-w-[120px] truncate">{user?.full_name}</p>
-                      <p className="text-[11px] text-gray-400 leading-tight">{user?.role === 'employer' ? 'Nhà tuyển dụng' : 'Người tìm việc'}</p>
+                      <p className="text-[11px] text-gray-400 leading-tight">{user?.role_name}</p>
                     </div>
                     <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${dropdownOpen ? 'rotate-180' : ''}`} />
                   </button>

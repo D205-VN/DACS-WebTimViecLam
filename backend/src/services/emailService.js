@@ -16,9 +16,9 @@ const transporter = nodemailer.createTransport({
  */
 async function sendOTPEmail(to, otp) {
   const mailOptions = {
-    from: `"ViecLam.vn" <${process.env.SMTP_EMAIL}>`,
+    from: `"AptertekWork.vn" <${process.env.SMTP_EMAIL}>`,
     to,
-    subject: `[ViecLam.vn] Mã xác thực tài khoản: ${otp}`,
+    subject: `[AptertekWork.vn] Mã xác thực tài khoản: ${otp}`,
     html: `
       <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 480px; margin: 0 auto; background: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 24px rgba(0,0,0,0.08);">
         <!-- Header -->
@@ -33,7 +33,7 @@ async function sendOTPEmail(to, otp) {
         <div style="padding: 32px 24px;">
           <h2 style="margin: 0 0 8px; font-size: 20px; color: #1f2937;">Xác thực tài khoản</h2>
           <p style="margin: 0 0 24px; color: #6b7280; font-size: 14px; line-height: 1.6;">
-            Cảm ơn bạn đã đăng ký tài khoản tại ViecLam.vn. Vui lòng sử dụng mã OTP bên dưới để xác thực email của bạn:
+            Cảm ơn bạn đã đăng ký tài khoản tại AptertekWork.vn. Vui lòng sử dụng mã OTP bên dưới để xác thực email của bạn:
           </p>
 
           <!-- OTP Code -->
@@ -54,7 +54,7 @@ async function sendOTPEmail(to, otp) {
         <!-- Footer -->
         <div style="background: #f9fafb; padding: 16px 24px; text-align: center; border-top: 1px solid #e5e7eb;">
           <p style="margin: 0; color: #9ca3af; font-size: 11px;">
-            © 2025 ViecLam.vn — Email được gửi tự động, vui lòng không trả lời.
+            © 2025 AptertekWork.vn — Email được gửi tự động, vui lòng không trả lời.
           </p>
         </div>
       </div>

@@ -15,7 +15,7 @@ function generateOTP() {
 // Helper: create JWT token
 function createToken(user) {
   return jwt.sign(
-    { id: user.id, email: user.email, role: user.role },
+    { id: user.id, email: user.email, role: user.role_code, role_name: user.role_name },
     process.env.JWT_SECRET,
     { expiresIn: '7d' }
   );
@@ -44,12 +44,15 @@ async function register(req, res) {
     const salt = await bcrypt.genSalt(10);
     const passwordHash = await bcrypt.hash(password, salt);
 
+    // Map role string to role_id
+    const roleId = role === 'employer' ? 2 : 3;
+
     // Insert user
     const result = await pool.query(
-      `INSERT INTO users (full_name, email, phone, password_hash, role, company_name, company_email, company_city, company_ward)
+      `INSERT INTO users (full_name, email, phone, password_hash, role_id, company_name, company_email, company_city, company_ward)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-       RETURNING id, email, role`,
-      [fullName, email, phone, passwordHash, role || 'seeker', companyName || null, companyEmail || null, companyCity || null, companyWard || null]
+       RETURNING id, email, role_id`,
+      [fullName, email, phone, passwordHash, roleId, companyName || null, companyEmail || null, companyCity || null, companyWard || null]
     );
 
     // Generate and save OTP
@@ -97,7 +100,10 @@ async function verifyOTP(req, res) {
     await pool.query('DELETE FROM email_otps WHERE email = $1', [email]);
 
     // Get user and return token
-    const user = await pool.query('SELECT id, full_name, email, role, avatar_url FROM users WHERE email = $1', [email]);
+    const user = await pool.query(`
+      SELECT u.id, u.full_name, u.email, u.avatar_url, r.code as role_code, r.name as role_name 
+      FROM users u JOIN roles r ON u.role_id = r.id 
+      WHERE email = $1`, [email]);
     const token = createToken(user.rows[0]);
 
     res.json({
@@ -152,7 +158,10 @@ async function login(req, res) {
   const { email, password } = req.body;
 
   try {
-    const result = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
+    const result = await pool.query(`
+      SELECT u.*, r.code as role_code, r.name as role_name 
+      FROM users u JOIN roles r ON u.role_id = r.id 
+      WHERE email = $1`, [email]);
     if (result.rows.length === 0) {
       return res.status(401).json({ error: 'Email hoặc mật khẩu không đúng' });
     }
@@ -181,7 +190,8 @@ async function login(req, res) {
         id: user.id,
         full_name: user.full_name,
         email: user.email,
-        role: user.role,
+        role_code: user.role_code,
+        role_name: user.role_name,
         avatar_url: user.avatar_url,
       },
     });
@@ -207,16 +217,22 @@ async function googleAuth(req, res) {
     const { sub: googleId, email, name, picture } = payload;
 
     // Check if user exists
-    let user = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
+    let user = await pool.query(`
+      SELECT u.*, r.code as role_code, r.name as role_name 
+      FROM users u JOIN roles r ON u.role_id = r.id 
+      WHERE email = $1`, [email]);
 
     if (user.rows.length === 0) {
       // Create new user (auto-verified via Google)
-      user = await pool.query(
-        `INSERT INTO users (full_name, email, google_id, avatar_url, is_verified, role)
-         VALUES ($1, $2, $3, $4, TRUE, 'seeker')
-         RETURNING id, full_name, email, role, avatar_url`,
+      await pool.query(
+        `INSERT INTO users (full_name, email, google_id, avatar_url, is_verified, role_id)
+         VALUES ($1, $2, $3, $4, TRUE, 3)`,
         [name, email, googleId, picture]
       );
+      user = await pool.query(`
+        SELECT u.id, u.full_name, u.email, u.avatar_url, r.code as role_code, r.name as role_name 
+        FROM users u JOIN roles r ON u.role_id = r.id 
+        WHERE email = $1`, [email]);
     } else {
       // Update Google info if missing
       if (!user.rows[0].google_id) {
@@ -225,7 +241,10 @@ async function googleAuth(req, res) {
           [googleId, picture, email]
         );
       }
-      user = await pool.query('SELECT id, full_name, email, role, avatar_url FROM users WHERE email = $1', [email]);
+      user = await pool.query(`
+        SELECT u.id, u.full_name, u.email, u.avatar_url, r.code as role_code, r.name as role_name 
+        FROM users u JOIN roles r ON u.role_id = r.id 
+        WHERE email = $1`, [email]);
     }
 
     const token = createToken(user.rows[0]);
@@ -248,7 +267,10 @@ async function googleAuth(req, res) {
 async function getMe(req, res) {
   try {
     const result = await pool.query(
-      'SELECT id, full_name, email, phone, role, avatar_url, company_name, company_email, company_city, company_ward, created_at FROM users WHERE id = $1',
+      `SELECT u.id, u.full_name, u.email, u.phone, u.avatar_url, u.company_name, u.company_email, 
+              u.company_city, u.company_ward, u.created_at, r.code as role_code, r.name as role_name 
+       FROM users u JOIN roles r ON u.role_id = r.id 
+       WHERE u.id = $1`,
       [req.user.id]
     );
 
