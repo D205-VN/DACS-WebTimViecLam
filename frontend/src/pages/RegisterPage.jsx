@@ -112,7 +112,7 @@ export default function RegisterPage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
       login(data.token, data.user);
-      navigate('/');
+      navigate(data.user.role_code === 'employer' ? '/employer/dashboard' : '/');
     } catch (err) { setError(err.message); } finally { setLoading(false); }
   };
 
@@ -153,7 +153,7 @@ export default function RegisterPage() {
             const data = await res.json();
             if (!res.ok) throw new Error(data.error);
             login(data.token, data.user);
-            navigate('/');
+            navigate(data.user.role_code === 'employer' ? '/employer/dashboard' : '/');
           } catch (err) { setError(err.message); }
         },
       });
