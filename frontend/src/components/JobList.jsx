@@ -71,7 +71,7 @@ export default function JobList() {
       ) : (
         <>
           <div className="space-y-3">
-            {jobsData.map((job) => {
+            {jobsData?.map((job) => {
               const tags = job.industry && typeof job.industry === 'string'
                 ? job.industry.split(/[,/]/).map(t => t.trim()).filter(Boolean).slice(0, 3) : [];
               const isSaved = savedIds.has(job.id);
@@ -111,7 +111,7 @@ export default function JobList() {
               );
             })}
           </div>
-          {jobsData.length < totalJobs && (
+          {jobsData?.length < totalJobs && (
             <div className="mt-6 text-center">
               <button onClick={handleLoadMore} disabled={loadingMore} className="px-8 py-2.5 text-sm font-semibold text-navy-700 bg-navy-50 rounded-xl hover:bg-navy-100 transition-colors disabled:opacity-50">
                 {loadingMore ? 'Đang tải thêm...' : 'Xem thêm việc làm'}
