@@ -66,7 +66,7 @@ export default function FilterSidebar({ value, options, onApply }) {
         </button>
       </div>
 
-      <div className="min-h-0 flex-1 overflow-y-auto px-5 pb-4">
+      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pb-5">
         {/* Salary Filter */}
         <div className="mb-4">
           <button
@@ -147,8 +147,8 @@ export default function FilterSidebar({ value, options, onApply }) {
             Ngành nghề
             <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${expandedSections.industry ? 'rotate-180' : ''}`} />
           </button>
-          <div className={`overflow-hidden transition-all duration-300 ${expandedSections.industry ? 'max-h-80' : 'max-h-0'}`}>
-            <div className="space-y-1 pt-1">
+          <div className={`overflow-hidden transition-all duration-300 ${expandedSections.industry ? 'max-h-[26rem]' : 'max-h-0'}`}>
+            <div className={`space-y-1 pt-1 ${industries.length > 7 ? 'max-h-[22rem] overflow-y-auto pr-1' : ''}`}>
               {industries.map((industry) => (
                 <label
                   key={typeof industry === 'string' ? industry : industry.value}

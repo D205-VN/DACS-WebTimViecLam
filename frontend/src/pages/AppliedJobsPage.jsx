@@ -59,15 +59,15 @@ export default function AppliedJobsPage() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-start justify-between gap-2">
                       <Link to={`/jobs/${job.id}`} className="block">
-                        <h3 className="text-base font-bold text-gray-800 group-hover:text-navy-700 transition-colors uppercase">{job.job_title}</h3>
+                        <h3 className="text-base font-bold text-gray-800 group-hover:text-navy-700 transition-colors uppercase">{job.title}</h3>
                         <p className="text-sm text-gray-500 mt-0.5">{job.company_name || 'Đang cập nhật'}</p>
                       </Link>
                       <span className={`px-3 py-1 text-xs font-semibold rounded-lg border shrink-0 ${st.color}`}>{st.label}</span>
                     </div>
                     <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-2">
-                      <span className="flex items-center gap-1 text-sm text-gray-500"><MapPin className="w-3.5 h-3.5" />{job.job_address || 'Chưa rõ'}</span>
+                      <span className="flex items-center gap-1 text-sm text-gray-500"><MapPin className="w-3.5 h-3.5" />{job.location || 'Chưa rõ'}</span>
                       <span className="flex items-center gap-1 text-sm font-semibold text-success-600"><DollarSign className="w-3.5 h-3.5" />{job.salary || 'Thỏa thuận'}</span>
-                      <span className="flex items-center gap-1 text-sm text-gray-500"><Clock className="w-3.5 h-3.5" />{new Date(job.applied_at).toLocaleDateString('vi-VN')}</span>
+                      <span className="flex items-center gap-1 text-sm text-gray-500"><Clock className="w-3.5 h-3.5" />{new Date(job.applied_at).toLocaleString('vi-VN')}</span>
                     </div>
                   </div>
                 </div>

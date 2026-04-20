@@ -286,7 +286,7 @@ exports.getCompanies = async (req, res) => {
 exports.getSavedJobs = async (req, res) => {
   try {
     const result = await pool.query(
-      `SELECT j.id, j.job_title as title, j.job_address as location, j.salary, j.job_type,
+      `SELECT j.id, j.job_title as title, j.company_name, j.job_address as location, j.salary, j.job_type,
               sj.created_at as saved_at
        FROM saved_jobs sj
        JOIN jobs j ON j.id = sj.job_id
@@ -305,7 +305,7 @@ exports.getSavedJobs = async (req, res) => {
 exports.getAppliedJobs = async (req, res) => {
   try {
     const result = await pool.query(
-      `SELECT j.id, j.job_title as title, j.job_address as location, j.salary,
+      `SELECT j.id, j.job_title as title, j.company_name, j.job_address as location, j.salary,
               aj.status, aj.created_at as applied_at
        FROM applied_jobs aj
        JOIN jobs j ON j.id = aj.job_id

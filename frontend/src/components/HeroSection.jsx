@@ -1,12 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
-import { Search, MapPin, Briefcase, ChevronDown, Sparkles, TrendingUp, Users } from 'lucide-react';
-
-function normalizeProvinceName(name = '') {
-  return name
-    .replace(/^(Thành phố|Tỉnh)\s+/i, '')
-    .replace(/\s+/g, ' ')
-    .trim();
-}
+import { Search, MapPin, Briefcase, ChevronDown, Sparkles, TrendingUp, Users, Loader2, LocateFixed } from 'lucide-react';
+import { findNearestProvince, normalizeProvinceName } from '../data/provinceCoordinates';
 
 const jobTypes = [
   { value: '', label: 'Tất cả' },
@@ -31,6 +25,10 @@ export default function HeroSection({ onSearch }) {
   const [jobTypeOpen, setJobTypeOpen] = useState(false);
   const [locations, setLocations] = useState([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [detectingLocation, setDetectingLocation] = useState(false);
+  const [locationNotice, setLocationNotice] = useState(null);
+  const [selectedCoordinates, setSelectedCoordinates] = useState(null);
+  const [locationSource, setLocationSource] = useState('manual');
   const locationBoxRef = useRef(null);
 
   useEffect(() => {
@@ -68,12 +66,81 @@ export default function HeroSection({ onSearch }) {
       .slice(0, 8);
   }, [location, locations]);
 
+  const resolveNextValue = (next, key, currentValue) =>
+    Object.prototype.hasOwnProperty.call(next, key) ? next[key] : currentValue;
+
   const triggerSearch = (next = {}) => {
     onSearch?.({
       keyword: (next.keyword ?? keyword).trim(),
       location: normalizeProvinceName(next.location ?? location),
       jobType: next.jobType ?? jobType,
+      userCoordinates: resolveNextValue(next, 'userCoordinates', selectedCoordinates),
+      locationSource: resolveNextValue(next, 'locationSource', locationSource),
     });
+  };
+
+  const handleUseCurrentLocation = () => {
+    if (!navigator.geolocation) {
+      setLocationNotice({
+        type: 'error',
+        message: 'Trình duyệt hiện tại không hỗ trợ lấy vị trí.',
+      });
+      return;
+    }
+
+    setDetectingLocation(true);
+    setLocationNotice(null);
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const coords = {
+          lat: position.coords.latitude,
+          lng: position.coords.longitude,
+        };
+        const nearestProvince = findNearestProvince(coords);
+
+        if (!nearestProvince) {
+          setDetectingLocation(false);
+          setLocationNotice({
+            type: 'error',
+            message: 'Không xác định được tỉnh/thành gần bạn. Hãy nhập địa điểm thủ công.',
+          });
+          return;
+        }
+
+        const nextLocation = normalizeProvinceName(nearestProvince.name);
+        setSelectedCoordinates(coords);
+        setLocationSource('geolocation');
+        setLocation(nextLocation);
+        setShowSuggestions(false);
+        setDetectingLocation(false);
+        setLocationNotice({
+          type: 'success',
+          message: `Đã lấy vị trí gần bạn: ${nextLocation}. Danh sách việc làm sẽ ưu tiên khu vực này.`,
+        });
+        triggerSearch({
+          location: nextLocation,
+          userCoordinates: coords,
+          locationSource: 'geolocation',
+        });
+      },
+      (error) => {
+        let message = 'Không thể lấy vị trí hiện tại. Vui lòng kiểm tra lại quyền truy cập vị trí.';
+        if (error.code === error.PERMISSION_DENIED) {
+          message = 'Bạn đang chặn quyền vị trí. Hãy cho phép vị trí rồi thử lại.';
+        } else if (error.code === error.TIMEOUT) {
+          message = 'Hết thời gian lấy vị trí. Vui lòng thử lại.';
+        }
+
+        setDetectingLocation(false);
+        setLocationNotice({ type: 'error', message });
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 300000,
+      }
+    );
   };
 
   return (
@@ -125,7 +192,10 @@ export default function HeroSection({ onSearch }) {
                 <input
                   type="text"
                   value={keyword}
-                  onChange={(e) => setKeyword(e.target.value)}
+                  onChange={(e) => {
+                    setKeyword(e.target.value);
+                    setLocationNotice(null);
+                  }}
                   onKeyDown={(e) => e.key === 'Enter' && triggerSearch({ keyword: e.currentTarget.value })}
                   placeholder="Chức danh, từ khóa..."
                   className="w-full text-sm text-gray-700 placeholder:text-gray-400 focus:outline-none bg-transparent"
@@ -142,13 +212,25 @@ export default function HeroSection({ onSearch }) {
                   value={location}
                   onChange={(e) => {
                     setLocation(e.target.value);
+                    setSelectedCoordinates(null);
+                    setLocationSource('manual');
+                    setLocationNotice(null);
                     setShowSuggestions(true);
                   }}
                   onFocus={() => setShowSuggestions(true)}
                   onKeyDown={(e) => e.key === 'Enter' && triggerSearch({ location: e.currentTarget.value })}
                   placeholder="Địa điểm..."
-                  className="w-full text-sm text-gray-700 placeholder:text-gray-400 focus:outline-none bg-transparent"
+                  className="w-full pr-2 text-sm text-gray-700 placeholder:text-gray-400 focus:outline-none bg-transparent"
                 />
+                <button
+                  type="button"
+                  onClick={handleUseCurrentLocation}
+                  disabled={detectingLocation}
+                  className="rounded-lg p-1.5 text-navy-600 transition-colors hover:bg-navy-50 hover:text-navy-800 disabled:cursor-not-allowed disabled:opacity-60"
+                  title="Lấy vị trí hiện tại"
+                >
+                  {detectingLocation ? <Loader2 className="w-4 h-4 animate-spin" /> : <LocateFixed className="w-4 h-4" />}
+                </button>
                 {showSuggestions && filteredLocations.length > 0 && (
                   <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-gray-100 rounded-xl shadow-xl shadow-gray-200/50 py-2 z-20">
                     {filteredLocations.map((item) => (
@@ -157,8 +239,11 @@ export default function HeroSection({ onSearch }) {
                         type="button"
                         onClick={() => {
                           setLocation(item);
+                          setSelectedCoordinates(null);
+                          setLocationSource('manual');
+                          setLocationNotice(null);
                           setShowSuggestions(false);
-                          triggerSearch({ location: item });
+                          triggerSearch({ location: item, userCoordinates: null, locationSource: 'manual' });
                         }}
                         className="w-full text-left px-4 py-2.5 text-sm text-gray-600 hover:bg-gray-50 hover:text-gray-800 transition-colors"
                       >
@@ -171,6 +256,7 @@ export default function HeroSection({ onSearch }) {
 
               <div className="relative flex-1">
                 <button
+                  type="button"
                   onClick={() => setJobTypeOpen(!jobTypeOpen)}
                   className="flex items-center justify-between gap-2 w-full px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 rounded-lg transition-colors"
                 >
@@ -187,6 +273,7 @@ export default function HeroSection({ onSearch }) {
                     {jobTypes.map((type) => (
                       <button
                         key={type.value}
+                        type="button"
                         onClick={() => {
                           setJobType(type.value);
                           setJobTypeOpen(false);
@@ -214,6 +301,14 @@ export default function HeroSection({ onSearch }) {
               </button>
             </form>
           </div>
+          {locationNotice ? (
+            <div className={`mt-3 flex items-center justify-center gap-2 text-sm ${
+              locationNotice.type === 'error' ? 'text-rose-100' : 'text-emerald-200'
+            }`}>
+              {locationNotice.type === 'error' ? <MapPin className="w-4 h-4" /> : <LocateFixed className="w-4 h-4" />}
+              <span>{locationNotice.message}</span>
+            </div>
+          ) : null}
         </div>
 
         <div className="flex flex-wrap items-center justify-center gap-2 mb-12">
@@ -224,6 +319,7 @@ export default function HeroSection({ onSearch }) {
               type="button"
               onClick={() => {
                 setKeyword(tag);
+                setLocationNotice(null);
                 triggerSearch({ keyword: tag });
               }}
               className="px-3 py-1 text-xs font-medium text-navy-200 bg-white/8 border border-white/10 rounded-full hover:bg-white/15 hover:text-white transition-all duration-200"

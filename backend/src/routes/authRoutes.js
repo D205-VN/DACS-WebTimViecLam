@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { register, verifyOTP, resendOTP, login, googleAuth, getMe, changePassword } = require('../controllers/authController');
+const { register, verifyOTP, resendOTP, login, googleAuth, getMe, updateProfile, changePassword } = require('../controllers/authController');
 const { authenticateToken } = require('../middlewares/authMiddleware');
 
 // Public routes
@@ -12,6 +12,7 @@ router.post('/google', googleAuth);
 
 // Protected routes
 router.get('/me', authenticateToken, getMe);
+router.put('/profile', authenticateToken, updateProfile);
 router.post('/change-password', authenticateToken, changePassword);
 
 module.exports = router;

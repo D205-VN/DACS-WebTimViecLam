@@ -54,8 +54,22 @@ export function AuthProvider({ children }) {
     setLoading(false);
   }, []);
 
+  const updateUser = useCallback((nextUser) => {
+    setUser((prevUser) => {
+      const resolvedUser = typeof nextUser === 'function' ? nextUser(prevUser) : nextUser;
+
+      if (resolvedUser) {
+        localStorage.setItem('user', JSON.stringify(resolvedUser));
+      } else {
+        localStorage.removeItem('user');
+      }
+
+      return resolvedUser;
+    });
+  }, []);
+
   return (
-    <AuthContext.Provider value={{ user, token, loading, login, logout, isAuthenticated: !!user }}>
+    <AuthContext.Provider value={{ user, token, loading, login, logout, updateUser, isAuthenticated: !!user }}>
       {children}
     </AuthContext.Provider>
   );

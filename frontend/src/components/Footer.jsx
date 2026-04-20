@@ -1,87 +1,125 @@
-import { Briefcase, Globe, Tv, Mail, Phone, MapPin } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { ArrowRight, Briefcase, Mail, MapPin, Phone, Sparkles } from 'lucide-react';
+
+const navigationLinks = [
+  { label: 'Tìm việc', to: '/' },
+  { label: 'Công ty', to: '/companies' },
+  { label: 'Blog nghề nghiệp', to: '/blog' },
+  { label: 'Việc đã lưu', to: '/saved-jobs' },
+];
+
+const candidateLinks = [
+  { label: 'Tạo CV bằng AI', to: '/seeker/cv-builder' },
+  { label: 'Quản lý hồ sơ CV', to: '/seeker/my-cvs' },
+  { label: 'Cập nhật thông tin', to: '/profile' },
+  { label: 'Đổi mật khẩu', to: '/change-password' },
+];
+
+const employerLinks = [
+  { label: 'Bảng điều khiển NTD', to: '/employer/dashboard' },
+  { label: 'Đăng tin tuyển dụng', to: '/employer/post-job' },
+  { label: 'Danh sách công ty', to: '/companies' },
+];
+
+function FooterLink({ to, label }) {
+  return (
+    <Link to={to} className="group inline-flex items-center gap-2 text-sm text-slate-300 transition-colors hover:text-white">
+      <span>{label}</span>
+      <ArrowRight className="h-3.5 w-3.5 opacity-0 transition-all group-hover:translate-x-0.5 group-hover:opacity-100" />
+    </Link>
+  );
+}
 
 export default function Footer() {
   return (
-    <footer className="bg-navy-900 text-navy-200">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-12">
-          {/* Brand */}
-          <div className="sm:col-span-2 lg:col-span-1">
-            <div className="flex items-center gap-2 mb-4">
-              <div className="w-9 h-9 bg-gradient-to-br from-navy-500 to-navy-700 rounded-xl flex items-center justify-center">
-                <Briefcase className="w-5 h-5 text-white" />
+    <footer className="relative overflow-hidden bg-[#071421] text-slate-200">
+      <div className="absolute inset-0 overflow-hidden">
+        <div className="absolute -left-28 top-8 h-64 w-64 rounded-full bg-emerald-500/10 blur-3xl" />
+        <div className="absolute bottom-0 right-0 h-80 w-80 rounded-full bg-cyan-500/10 blur-3xl" />
+      </div>
+
+      <div className="relative mx-auto max-w-7xl px-4 py-14 sm:px-6 lg:px-8">
+        <div className="grid gap-10 border-b border-white/10 pb-10 lg:grid-cols-[1.35fr_repeat(3,minmax(0,1fr))]">
+          <div>
+            <div className="flex items-center gap-3">
+              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-navy-500 to-cyan-500 shadow-lg shadow-cyan-900/20">
+                <Briefcase className="h-5 w-5 text-white" />
               </div>
-              <span className="text-xl font-extrabold">
-                <span className="text-white">Aptertek</span>
-                <span className="text-emerald-400">Work</span>
-              </span>
+              <div>
+                <p className="text-xl font-extrabold tracking-tight text-white">
+                  <span className="text-white">Aptertek</span>
+                  <span className="text-emerald-400">Work</span>
+                </p>
+                <p className="text-xs uppercase tracking-[0.22em] text-slate-400">Career Platform</p>
+              </div>
             </div>
-            <p className="text-sm text-navy-300 leading-relaxed mb-4">
-              Nền tảng tìm kiếm việc làm hàng đầu Việt Nam. Kết nối ứng viên tài năng với các nhà tuyển dụng uy tín.
+
+            <p className="mt-5 max-w-md text-sm leading-7 text-slate-300">
+              Nền tảng kết nối ứng viên và doanh nghiệp với luồng tìm việc, quản lý CV, công ty nổi bật và blog nghề nghiệp trong cùng một hệ thống.
             </p>
-            <div className="flex gap-3">
-              <a href="#" className="w-9 h-9 bg-white/10 rounded-lg flex items-center justify-center hover:bg-white/20 transition-colors">
-                <Globe className="w-4 h-4" />
-              </a>
-              <a href="#" className="w-9 h-9 bg-white/10 rounded-lg flex items-center justify-center hover:bg-white/20 transition-colors">
-                <Tv className="w-4 h-4" />
-              </a>
-              <a href="#" className="w-9 h-9 bg-white/10 rounded-lg flex items-center justify-center hover:bg-white/20 transition-colors">
-                <Mail className="w-4 h-4" />
-              </a>
+
+            <div className="mt-6 flex flex-wrap gap-3">
+              <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 backdrop-blur-sm">
+                <p className="text-lg font-bold text-white">12,500+</p>
+                <p className="text-xs text-slate-400">Việc làm mới mỗi ngày</p>
+              </div>
+              <div className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 backdrop-blur-sm">
+                <p className="text-lg font-bold text-white">8,200+</p>
+                <p className="text-xs text-slate-400">Nhà tuyển dụng đang hoạt động</p>
+              </div>
             </div>
           </div>
 
-          {/* For Job Seekers */}
           <div>
-            <h4 className="text-sm font-bold text-white uppercase tracking-wider mb-4">Ứng viên</h4>
-            <ul className="space-y-2.5">
-              {['Tìm việc làm', 'Tạo CV', 'Công ty hàng đầu', 'Mức lương', 'Blog nghề nghiệp'].map(item => (
-                <li key={item}>
-                  <a href="#" className="text-sm text-navy-300 hover:text-white transition-colors">{item}</a>
-                </li>
+            <h4 className="text-sm font-bold uppercase tracking-[0.18em] text-white">Khám phá</h4>
+            <div className="mt-5 space-y-3">
+              {navigationLinks.map((item) => (
+                <FooterLink key={item.label} {...item} />
               ))}
-            </ul>
+            </div>
           </div>
 
-          {/* For Employers */}
           <div>
-            <h4 className="text-sm font-bold text-white uppercase tracking-wider mb-4">Nhà tuyển dụng</h4>
-            <ul className="space-y-2.5">
-              {['Đăng tin tuyển dụng', 'Tìm ứng viên', 'Dịch vụ HR', 'Bảng giá', 'Liên hệ hỗ trợ'].map(item => (
-                <li key={item}>
-                  <a href="#" className="text-sm text-navy-300 hover:text-white transition-colors">{item}</a>
-                </li>
+            <h4 className="text-sm font-bold uppercase tracking-[0.18em] text-white">Công cụ ứng viên</h4>
+            <div className="mt-5 space-y-3">
+              {candidateLinks.map((item) => (
+                <FooterLink key={item.label} {...item} />
               ))}
-            </ul>
+            </div>
           </div>
 
-          {/* Contact */}
           <div>
-            <h4 className="text-sm font-bold text-white uppercase tracking-wider mb-4">Liên hệ</h4>
-            <ul className="space-y-3">
-              <li className="flex items-start gap-2">
-                <MapPin className="w-4 h-4 mt-0.5 shrink-0 text-navy-400" />
-                <span className="text-sm text-navy-300">Tầng 12, Toà nhà Landmark 81, TP.HCM</span>
-              </li>
-              <li className="flex items-center gap-2">
-                <Phone className="w-4 h-4 shrink-0 text-navy-400" />
-                <span className="text-sm text-navy-300">1900 6868</span>
-              </li>
-              <li className="flex items-center gap-2">
-                <Mail className="w-4 h-4 shrink-0 text-navy-400" />
-                <span className="text-sm text-navy-300">support@AptertekWork.vn</span>
-              </li>
-            </ul>
+            <h4 className="text-sm font-bold uppercase tracking-[0.18em] text-white">Hỗ trợ & liên hệ</h4>
+            <div className="mt-5 space-y-3">
+              {employerLinks.map((item) => (
+                <FooterLink key={item.label} {...item} />
+              ))}
+              <a href="mailto:support@aptertekwork.vn" className="flex items-center gap-2 text-sm text-slate-300 transition-colors hover:text-white">
+                <Mail className="h-4 w-4 text-emerald-400" />
+                support@aptertekwork.vn
+              </a>
+              <a href="tel:19006868" className="flex items-center gap-2 text-sm text-slate-300 transition-colors hover:text-white">
+                <Phone className="h-4 w-4 text-emerald-400" />
+                1900 6868
+              </a>
+              <div className="flex items-start gap-2 text-sm text-slate-300">
+                <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-emerald-400" />
+                <span>Tầng 12, Landmark 81, Bình Thạnh, Thành phố Hồ Chí Minh</span>
+              </div>
+            </div>
           </div>
         </div>
 
-        <div className="border-t border-navy-800 mt-10 pt-6 flex flex-col sm:flex-row items-center justify-between gap-3">
-          <p className="text-xs text-navy-400">© 2026 AptertekWork — Bản quyền thuộc về D205-VN</p>
-          <div className="flex gap-4">
-            <a href="#" className="text-xs text-navy-400 hover:text-navy-200 transition-colors">Điều khoản</a>
-            <a href="#" className="text-xs text-navy-400 hover:text-navy-200 transition-colors">Chính sách</a>
-            <a href="#" className="text-xs text-navy-400 hover:text-navy-200 transition-colors">Trợ giúp</a>
+        <div className="flex flex-col gap-4 pt-6 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-2 text-xs text-slate-400">
+            <Sparkles className="h-3.5 w-3.5 text-emerald-400" />
+            Hệ thống được tối ưu cho tìm việc, quản lý CV và theo dõi ứng tuyển theo thời gian thực.
+          </div>
+          <div className="flex items-center gap-4 text-xs text-slate-400">
+            <Link to="/blog" className="transition-colors hover:text-white">Blog</Link>
+            <Link to="/companies" className="transition-colors hover:text-white">Công ty</Link>
+            <Link to="/" className="transition-colors hover:text-white">Tìm việc</Link>
+            <span>© {new Date().getFullYear()} AptertekWork</span>
           </div>
         </div>
       </div>

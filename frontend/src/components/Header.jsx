@@ -7,7 +7,6 @@ import {
   Briefcase,
   Building2,
   ChevronDown,
-  Clock3,
   FileText,
   Hash,
   Loader2,
@@ -107,18 +106,30 @@ function getInitials(name) {
     .toUpperCase();
 }
 
-function formatRelativeDate(value) {
-  if (!value) return 'Vừa xong';
+const applicationStatusLabels = {
+  pending: 'Đang chờ phản hồi',
+  viewed: 'Nhà tuyển dụng đã xem',
+  invited: 'Được mời phỏng vấn',
+  rejected: 'Hồ sơ chưa phù hợp',
+};
+
+function formatNotificationTime(value) {
+  if (!value) return '';
 
   const date = new Date(value);
-  const diffMs = date.getTime() - Date.now();
-  const diffHours = Math.round(diffMs / (1000 * 60 * 60));
+  if (Number.isNaN(date.getTime())) return '';
 
-  if (Math.abs(diffHours) < 24) {
-    return new Intl.RelativeTimeFormat('vi', { numeric: 'auto' }).format(diffHours, 'hour');
-  }
+  return date.toLocaleString('vi-VN', {
+    hour: '2-digit',
+    minute: '2-digit',
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+  });
+}
 
-  return date.toLocaleDateString('vi-VN');
+function sortNotificationsByTime(items) {
+  return [...items].sort((left, right) => new Date(right.timestamp || 0) - new Date(left.timestamp || 0));
 }
 
 function getTopNavClass(isActive) {
@@ -180,46 +191,40 @@ export default function Header() {
       .then(([appliedPayload, savedPayload, cvPayload]) => {
         if (cancelled) return;
 
-        const nextNotifications = [];
         const appliedJobs = appliedPayload?.data || [];
         const savedJobs = savedPayload?.data || [];
         const savedCVs = cvPayload?.cvs || [];
-
-        if (appliedJobs.length > 0) {
-          nextNotifications.push({
-            id: 'applied-jobs',
-            title: `Bạn đã ứng tuyển ${appliedJobs.length} vị trí`,
-            description: `Mới nhất: ${appliedJobs[0].title || 'Tin tuyển dụng gần đây'}`,
+        const nextNotifications = sortNotificationsByTime([
+          ...appliedJobs.map((job) => ({
+            id: `applied-${job.id}-${job.applied_at}`,
+            title: `Đã ứng tuyển: ${job.title || 'Tin tuyển dụng'}`,
+            description: [job.company_name, applicationStatusLabels[job.status] || 'Đã gửi hồ sơ']
+              .filter(Boolean)
+              .join(' • '),
             to: '/applied-jobs',
             icon: Send,
             iconClass: 'bg-green-50 text-green-500',
-            timestamp: appliedJobs[0].applied_at,
-          });
-        }
-
-        if (savedJobs.length > 0) {
-          nextNotifications.push({
-            id: 'saved-jobs',
-            title: `Bạn đang lưu ${savedJobs.length} việc làm`,
-            description: `Có thể quay lại ứng tuyển: ${savedJobs[0].title || 'Việc làm đã lưu'}`,
+            timestamp: job.applied_at,
+          })),
+          ...savedJobs.map((job) => ({
+            id: `saved-${job.id}-${job.saved_at}`,
+            title: `Đã lưu: ${job.title || 'Việc làm quan tâm'}`,
+            description: job.company_name || 'Bạn có thể quay lại ứng tuyển bất cứ lúc nào',
             to: '/saved-jobs',
             icon: Bookmark,
             iconClass: 'bg-red-50 text-red-500',
-            timestamp: savedJobs[0].saved_at,
-          });
-        }
-
-        if (savedCVs.length > 0) {
-          nextNotifications.push({
-            id: 'saved-cvs',
-            title: `Bạn đã lưu ${savedCVs.length} hồ sơ CV`,
-            description: `CV gần nhất: ${savedCVs[0].title || 'CV đã lưu'}`,
+            timestamp: job.saved_at,
+          })),
+          ...savedCVs.map((cv) => ({
+            id: `cv-${cv.id}-${cv.created_at}`,
+            title: `Đã lưu CV: ${cv.title || 'Hồ sơ CV'}`,
+            description: cv.target_role || 'CV của bạn đã được lưu vào thư viện hồ sơ',
             to: '/seeker/my-cvs',
             icon: FileText,
             iconClass: 'bg-indigo-50 text-indigo-500',
-            timestamp: savedCVs[0].created_at,
-          });
-        }
+            timestamp: cv.created_at,
+          })),
+        ]).slice(0, 6);
 
         if (nextNotifications.length === 0) {
           nextNotifications.push({
@@ -354,7 +359,7 @@ export default function Header() {
                             <div className="min-w-0 flex-1">
                               <div className="flex items-start justify-between gap-3">
                                 <p className="text-sm font-semibold text-gray-800">{item.title}</p>
-                                <span className="shrink-0 text-[11px] text-gray-400">{formatRelativeDate(item.timestamp)}</span>
+                                <span className="shrink-0 text-[11px] text-gray-400">{formatNotificationTime(item.timestamp)}</span>
                               </div>
                               <p className="mt-1 text-xs leading-5 text-gray-500">{item.description}</p>
                             </div>
@@ -540,6 +545,9 @@ export default function Header() {
                     >
                       <p className="text-sm font-medium text-gray-800">{item.title}</p>
                       <p className="mt-1 text-xs leading-5 text-gray-500">{item.description}</p>
+                      {item.timestamp ? (
+                        <p className="mt-1 text-[11px] text-gray-400">{formatNotificationTime(item.timestamp)}</p>
+                      ) : null}
                     </Link>
                   ))}
                 </div>

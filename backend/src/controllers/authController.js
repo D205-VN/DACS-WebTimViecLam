@@ -286,6 +286,80 @@ async function getMe(req, res) {
 }
 
 /**
+ * PUT /api/auth/profile
+ * Cập nhật thông tin tài khoản (cần JWT)
+ */
+async function updateProfile(req, res) {
+  const {
+    fullName,
+    phone,
+    avatarUrl,
+    companyName,
+    companyEmail,
+    companyCity,
+    companyWard,
+  } = req.body;
+
+  try {
+    const currentUserResult = await pool.query('SELECT * FROM users WHERE id = $1', [req.user.id]);
+    if (currentUserResult.rows.length === 0) {
+      return res.status(404).json({ error: 'Không tìm thấy người dùng' });
+    }
+
+    const currentUser = currentUserResult.rows[0];
+    const nextFullName = String(fullName ?? currentUser.full_name ?? '').trim();
+
+    if (!nextFullName) {
+      return res.status(400).json({ error: 'Họ và tên không được để trống' });
+    }
+
+    const resolveNextValue = (incomingValue, currentValue) => {
+      if (incomingValue === undefined) return currentValue;
+      const trimmed = String(incomingValue).trim();
+      return trimmed || null;
+    };
+
+    await pool.query(
+      `UPDATE users
+       SET full_name = $1,
+           phone = $2,
+           avatar_url = $3,
+           company_name = $4,
+           company_email = $5,
+           company_city = $6,
+           company_ward = $7
+       WHERE id = $8`,
+      [
+        nextFullName,
+        resolveNextValue(phone, currentUser.phone),
+        resolveNextValue(avatarUrl, currentUser.avatar_url),
+        resolveNextValue(companyName, currentUser.company_name),
+        resolveNextValue(companyEmail, currentUser.company_email),
+        resolveNextValue(companyCity, currentUser.company_city),
+        resolveNextValue(companyWard, currentUser.company_ward),
+        req.user.id,
+      ]
+    );
+
+    const updatedUser = await pool.query(
+      `SELECT u.id, u.full_name, u.email, u.phone, u.avatar_url, u.company_name, u.company_email, 
+              u.company_city, u.company_ward, u.created_at, r.code as role_code, r.name as role_name 
+       FROM users u JOIN roles r ON u.role_id = r.id 
+       WHERE u.id = $1`,
+      [req.user.id]
+    );
+
+    res.json({
+      message: 'Cập nhật thông tin thành công',
+      user: updatedUser.rows[0],
+    });
+  } catch (err) {
+    console.error('Update profile error:', err);
+    res.status(500).json({ error: 'Đã xảy ra lỗi khi cập nhật thông tin' });
+  }
+}
+
+/**
  * POST /api/auth/change-password
  * Đổi mật khẩu (cần JWT)
  */
@@ -320,4 +394,4 @@ async function changePassword(req, res) {
   }
 }
 
-module.exports = { register, verifyOTP, resendOTP, login, googleAuth, getMe, changePassword };
+module.exports = { register, verifyOTP, resendOTP, login, googleAuth, getMe, updateProfile, changePassword };
