@@ -114,6 +114,18 @@ export default function JobDetailPage() {
     setAlertIndustry(job.industry || '');
   }, [job]);
 
+  useEffect(() => {
+    if (job) {
+      document.title = `${job.title || job.job_title || 'Chi tiết việc làm'} | WebTimViec`;
+    } else {
+      document.title = 'WebTimViec';
+    }
+
+    return () => {
+      document.title = 'WebTimViec';
+    };
+  }, [job]);
+
   const handleSave = async () => {
     if (!isAuthenticated) { navigate('/login'); return; }
     setActionLoading('save');

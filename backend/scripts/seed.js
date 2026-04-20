@@ -5,7 +5,7 @@ const csv = require('csv-parser');
 const path = require('path');
 
 // Thay đổi nguồn file CSV sang thư mục data nội bộ của dự án
-const CSV_FILE_PATH = path.join(__dirname, '../data/JOB _DATA_FINAL.csv');
+const CSV_FILE_PATH = path.join(__dirname, '../data/JOB_DATA_FINAL.csv');
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,

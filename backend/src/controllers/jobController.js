@@ -335,7 +335,7 @@ exports.getSavedJobIds = async (req, res) => {
 exports.getJobById = async (req, res) => {
   try {
     const result = await pool.query(
-      `SELECT id, job_title as title, job_description as description, job_requirements as requirements,
+      `SELECT id, url_job, job_title as title, job_description as description, job_requirements as requirements,
               benefits, job_address as location, job_type, years_of_experience as experience,
               salary, submission_deadline as deadline, company_name, company_overview, company_size,
               company_address, industry, career_level, number_candidate, created_at
