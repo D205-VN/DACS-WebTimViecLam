@@ -1,60 +1,92 @@
 const pool = require('../config/db');
 
+function buildLocationLikePatterns(rawLocation) {
+  const input = (rawLocation || '').trim();
+  if (!input) return [];
+
+  const lower = input.toLowerCase();
+  const patterns = new Set([`%${input}%`]);
+
+  // Handle common Vietnam admin prefixes users may omit
+  const withoutPrefix = input.replace(/^(Thành phố|Tỉnh)\s+/i, '').trim();
+  if (withoutPrefix && withoutPrefix !== input) patterns.add(`%${withoutPrefix}%`);
+
+  // Special-case HCMC: data often stored as HCM / TP.HCM / Sai Gon
+  if (
+    /hồ\s*chí\s*minh/i.test(input) ||
+    /ho\s*chi\s*minh/i.test(lower) ||
+    /\bhcm\b/i.test(lower) ||
+    /sài\s*gòn/i.test(input) ||
+    /sai\s*gon/i.test(lower)
+  ) {
+    [
+      '%Hồ Chí Minh%',
+      '%Ho Chi Minh%',
+      '%HCM%',
+      '%TP.HCM%',
+      '%TP HCM%',
+      '%Sài Gòn%',
+      '%Sai Gon%',
+      '%SG%'
+    ].forEach((p) => patterns.add(p));
+  }
+
+  // Special-case Hanoi
+  if (/hà\s*nội/i.test(input) || /ha\s*noi/i.test(lower) || /\bhn\b/i.test(lower)) {
+    ['%Hà Nội%', '%Ha Noi%', '%HN%'].forEach((p) => patterns.add(p));
+  }
+
+  return Array.from(patterns);
+}
+
 // GET /api/jobs — Danh sách jobs (có phân trang)
 exports.getJobs = async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 20;
     const offset = (page - 1) * limit;
-    const q = req.query.q?.trim() || '';
-    const location = req.query.location?.trim() || '';
-    const jobType = req.query.job_type?.trim() || '';
-    const params = [];
-    const conditions = [];
 
-    if (q) {
-      params.push(`%${q}%`);
-      const index = params.length;
-      conditions.push(`(
-        job_title ILIKE $${index}
-        OR company_name ILIKE $${index}
-        OR job_description ILIKE $${index}
-        OR job_requirements ILIKE $${index}
-      )`);
+    const keyword = req.query.keyword || req.query.q || '';
+    const location = req.query.location || '';
+    const jobType = req.query.jobType || req.query.job_type || '';
+
+    let whereClause = '';
+    let params = [];
+    let paramIndex = 1;
+
+    if (keyword) {
+      whereClause += ` AND (job_title ILIKE $${paramIndex} OR company_name ILIKE $${paramIndex} OR industry ILIKE $${paramIndex} OR job_description ILIKE $${paramIndex} OR job_requirements ILIKE $${paramIndex})`;
+      params.push(`%${keyword}%`);
+      paramIndex++;
     }
 
     if (location) {
-      params.push(`%${location}%`);
-      conditions.push(`job_address ILIKE $${params.length}`);
+      const patterns = buildLocationLikePatterns(location);
+      if (patterns.length > 0) {
+        const placeholders = patterns.map((_, i) => `$${paramIndex + i}`).join(', ');
+        whereClause += ` AND job_address ILIKE ANY (ARRAY[${placeholders}]::text[])`;
+        params.push(...patterns);
+        paramIndex += patterns.length;
+      }
     }
 
     if (jobType) {
+      whereClause += ` AND job_type ILIKE $${paramIndex}`;
       params.push(`%${jobType}%`);
-      conditions.push(`job_type ILIKE $${params.length}`);
+      paramIndex++;
     }
 
-    const whereClause = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
-
-    const countResult = await pool.query(
-      `SELECT COUNT(*) FROM jobs ${whereClause}`,
-      params
-    );
-    const totalJobs = parseInt(countResult.rows[0].count, 10);
+    const countQuery = `SELECT COUNT(*) FROM jobs WHERE 1=1${whereClause}`;
+    const countResult = await pool.query(countQuery, params);
+    const totalJobs = parseInt(countResult.rows[0].count);
 
     params.push(limit, offset);
-    const limitIndex = params.length - 1;
-    const offsetIndex = params.length;
-
-    const result = await pool.query(
-      `SELECT id, job_title as title, job_description as description, job_requirements as requirements,
+    const query = `SELECT id, job_title as title, job_description as description, job_requirements as requirements,
               benefits, job_address as location, job_type, years_of_experience as experience,
-              salary, submission_deadline as deadline, company_name, industry, created_at
-       FROM jobs
-       ${whereClause}
-       ORDER BY id ASC
-       LIMIT $${limitIndex} OFFSET $${offsetIndex}`,
-      params
-    );
+              salary, submission_deadline as deadline, company_name, industry, created_at 
+              FROM jobs WHERE 1=1${whereClause} 
+              ORDER BY id ASC LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`;
+    const result = await pool.query(query, params);
     
     res.json({
       data: result.rows,

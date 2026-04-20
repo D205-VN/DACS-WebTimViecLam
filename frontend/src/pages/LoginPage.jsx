@@ -36,12 +36,6 @@ export default function LoginPage() {
     } catch (err) { setError(err.message); } finally { setLoading(false); }
   };
 
-  const handleGoogleLogin = () => {
-    if (window.google) {
-      window.google.accounts.id.prompt();
-    } else { setError('Google Sign-In chưa sẵn sàng.'); }
-  };
-
   useEffect(() => {
     const script = document.createElement('script');
     script.src = 'https://accounts.google.com/gsi/client';
@@ -69,6 +63,8 @@ export default function LoginPage() {
     };
     document.head.appendChild(script);
     return () => { document.head.removeChild(script); };
+    // Google SDK: init once; login/navigate are stable enough for callback closure
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (

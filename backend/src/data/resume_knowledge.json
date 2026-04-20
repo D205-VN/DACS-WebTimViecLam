@@ -1,40 +1,11 @@
 {
-  "Site Engineer": {
-    "objectives": [
-      "A highly experienced skilled graduate with Analytics degree with a very good experience in SAS, Web scraping, SQL, Predictive modelling and data visualization. Excellent ability in identifying data requirements for analysis, data cleaning, munging and model building; Ensures the organization uses it effectively to reach profit and growth objectives. Comfortable with data handling, modeling, and coding, and have an appreciation of what makes sense from a business standpoint. More than six years of experience working as a researcher, data analyst, and environmental science and Technology Instructor. Experience in SQL, data warehousing, maintaining, securing and stabilizing data layers and testing to identify data and product defects introduced in the system. Customer segmentation, product positioning and mapping and conjoint analysis Modelling: Design and implement statistical / predictive models and cutting edge algorithms utilizing diverse sources of data to predict Diversified experience with Engineering, Manufacturing, Retailing, Higher Education and IT /Data related companies Fascinated by learning cutting edge technologies, such as; Data Mining and Machine Learning Handled a team of 4 during my 3 years of Tech experience and managed more than 200 students and effectively evaluated the performance of each student and utilize assessment methods to judge overall progress during my teaching experience.",
-      "Financial and Accounting professional with expertise in financial analysis, audit, compliance, financial accounting, forecasting, budgeting, and procurement in the healthcare industry. Strong working knowledge of GAAP, FASB, SOX, and ASC 606 procedures. Exceptional analytical ability and problem-solving skills, analysis and solutions of complex problems in conjunction with managing financial outputs, managing teams to achieve defined outcomes with over 15 years' experience in a variety of organizational roles. Advanced knowledge of Microsoft toolsets. Results oriented with proven track record of quick learning ability, increased responsibilities and rapid advancement.",
-      "A practiced, professional Test Manager with over 20 years of success managing test and validation of next-generation software / hardware technologies across multiple concurrent projects and releases. Delivered effectively to time and budget on a variety of complex, large-scale, multiplatform projects including: complex network framework, IoT (Internet of Things), telecommunication and hosted services, business process tools, automation frameworks. Managed, trained and mentored multi-disciplinary, geographically dispersed teams including, software development, test and validation, planning, QA, configuration management, agile scrum master and product owner."
-    ],
-    "skills": [
-      "Python",
-      "Machine Learning",
-      "SQL",
-      "Excel",
-      "Data Analysis",
-      "Deep Learning",
-      "C++",
-      "Java",
-      "Artificial Intelligence",
-      "Natural Language Processing",
-      "Tableau",
-      "Data Science",
-      "Microsoft Office",
-      "Data Mining",
-      "documentation"
-    ],
-    "responsibilities": [
-      "Supervision",
-      "Construction",
-      "Material Management",
-      "Project Coordination",
-      "Quality Assurance"
-    ]
-  },
   "Project Coordinator (Civil)": {
     "objectives": [
-      "A highly experienced skilled graduate with Analytics degree with a very good experience in SAS, Web scraping, SQL, Predictive modelling and data visualization. Excellent ability in identifying data requirements for analysis, data cleaning, munging and model building; Ensures the organization uses it effectively to reach profit and growth objectives. Comfortable with data handling, modeling, and coding, and have an appreciation of what makes sense from a business standpoint. More than six years of experience working as a researcher, data analyst, and environmental science and Technology Instructor. Experience in SQL, data warehousing, maintaining, securing and stabilizing data layers and testing to identify data and product defects introduced in the system. Customer segmentation, product positioning and mapping and conjoint analysis Modelling: Design and implement statistical / predictive models and cutting edge algorithms utilizing diverse sources of data to predict Diversified experience with Engineering, Manufacturing, Retailing, Higher Education and IT /Data related companies Fascinated by learning cutting edge technologies, such as; Data Mining and Machine Learning Handled a team of 4 during my 3 years of Tech experience and managed more than 200 students and effectively evaluated the performance of each student and utilize assessment methods to judge overall progress during my teaching experience.",
-      "Financial and Accounting professional with expertise in financial analysis, audit, compliance, financial accounting, forecasting, budgeting, and procurement in the healthcare industry. Strong working knowledge of GAAP, FASB, SOX, and ASC 606 procedures. Exceptional analytical ability and problem-solving skills, analysis and solutions of complex problems in conjunction with managing financial outputs, managing teams to achieve defined outcomes with over 15 years' experience in a variety of organizational roles. Advanced knowledge of Microsoft toolsets. Results oriented with proven track record of quick learning ability, increased responsibilities and rapid advancement.",
-      "A practiced, professional Test Manager with over 20 years of success managing test and validation of next-generation software / hardware technologies across multiple concurrent projects and releases. Delivered effectively to time and budget on a variety of complex, large-scale, multiplatform projects including: complex network framework, IoT (Internet of Things), telecommunication and hosted services, business process tools, automation frameworks. Managed, trained and mentored multi-disciplinary, geographically dispersed teams including, software development, test and validation, planning, QA, configuration management, agile scrum master and product owner."
+      "Soon-to-be Computer Science graduate eager to continue exploring the inspiring, innovative field of Android Development. As a seasoned intern, I am looking to join an Android Development team with AT&T as a junior developer.",
+      "Collaborative computer science graduate. Eager to secure an internship using my experience with natural language processing and building web apps for non-technical users to further the mission of Coursera in democratizing education across the world.",
+      "Committed and motivated professional with exceptional customer service and decision making skills. Extensive experience working with a diverse client base and delivering results. High-achieving professional possessing excellent communication, organizational and analytical capabilities. Background in business development, customer service and project management.",
+      "Obtain a position in a professional organization where I can apply my skills and loyalty in exchange for career guidance, training and opportunity for advancement.",
+      "Dedicated and well-rounded software engineer with a passion for math, computer science, and elite education. Bringing 12+ years of teaching expertise to help Amazon's Career Fulfillment students feel the same joy and pride in my comprehensive JavaScript computer science program as my past 150+ high school students. Eager to teach the basics, get students the tools they need, and foster their passion to reach their goals."
     ],
     "skills": [
       "Python",
@@ -51,52 +22,28 @@
       "Data Science",
       "Microsoft Office",
       "Data Mining",
-      "documentation"
+      "documentation",
+      "Word",
+      "C",
+      "Data Analytics",
+      "processes",
+      "SAP"
     ],
     "responsibilities": [
-      "Project Design",
-      "Data Analysis",
       "ACCORD/Alliance Knowledge",
-      "BNBC Standards",
-      "Cost Estimation"
+      "Feasibility Studies",
+      "Policy Enforcement",
+      "Legal Compliance",
+      "Team Collaboration"
     ]
   },
-  "Civil Engineer": {
+  "HR Officer": {
     "objectives": [
-      "A highly experienced skilled graduate with Analytics degree with a very good experience in SAS, Web scraping, SQL, Predictive modelling and data visualization. Excellent ability in identifying data requirements for analysis, data cleaning, munging and model building; Ensures the organization uses it effectively to reach profit and growth objectives. Comfortable with data handling, modeling, and coding, and have an appreciation of what makes sense from a business standpoint. More than six years of experience working as a researcher, data analyst, and environmental science and Technology Instructor. Experience in SQL, data warehousing, maintaining, securing and stabilizing data layers and testing to identify data and product defects introduced in the system. Customer segmentation, product positioning and mapping and conjoint analysis Modelling: Design and implement statistical / predictive models and cutting edge algorithms utilizing diverse sources of data to predict Diversified experience with Engineering, Manufacturing, Retailing, Higher Education and IT /Data related companies Fascinated by learning cutting edge technologies, such as; Data Mining and Machine Learning Handled a team of 4 during my 3 years of Tech experience and managed more than 200 students and effectively evaluated the performance of each student and utilize assessment methods to judge overall progress during my teaching experience.",
-      "Financial and Accounting professional with expertise in financial analysis, audit, compliance, financial accounting, forecasting, budgeting, and procurement in the healthcare industry. Strong working knowledge of GAAP, FASB, SOX, and ASC 606 procedures. Exceptional analytical ability and problem-solving skills, analysis and solutions of complex problems in conjunction with managing financial outputs, managing teams to achieve defined outcomes with over 15 years' experience in a variety of organizational roles. Advanced knowledge of Microsoft toolsets. Results oriented with proven track record of quick learning ability, increased responsibilities and rapid advancement.",
-      "A practiced, professional Test Manager with over 20 years of success managing test and validation of next-generation software / hardware technologies across multiple concurrent projects and releases. Delivered effectively to time and budget on a variety of complex, large-scale, multiplatform projects including: complex network framework, IoT (Internet of Things), telecommunication and hosted services, business process tools, automation frameworks. Managed, trained and mentored multi-disciplinary, geographically dispersed teams including, software development, test and validation, planning, QA, configuration management, agile scrum master and product owner."
-    ],
-    "skills": [
-      "Python",
-      "Machine Learning",
-      "SQL",
-      "Data Analysis",
-      "Excel",
-      "Deep Learning",
-      "Java",
-      "C++",
-      "Artificial Intelligence",
-      "Natural Language Processing",
-      "Tableau",
-      "Data Science",
-      "Data Mining",
-      "Microsoft Office",
-      "Word"
-    ],
-    "responsibilities": [
-      "Design Review",
-      "Coordination",
-      "Proposal Preparation",
-      "Feasibility Analysis",
-      "Software Utilization"
-    ]
-  },
-  "Hr Officer": {
-    "objectives": [
-      "A highly experienced skilled graduate with Analytics degree with a very good experience in SAS, Web scraping, SQL, Predictive modelling and data visualization. Excellent ability in identifying data requirements for analysis, data cleaning, munging and model building; Ensures the organization uses it effectively to reach profit and growth objectives. Comfortable with data handling, modeling, and coding, and have an appreciation of what makes sense from a business standpoint. More than six years of experience working as a researcher, data analyst, and environmental science and Technology Instructor. Experience in SQL, data warehousing, maintaining, securing and stabilizing data layers and testing to identify data and product defects introduced in the system. Customer segmentation, product positioning and mapping and conjoint analysis Modelling: Design and implement statistical / predictive models and cutting edge algorithms utilizing diverse sources of data to predict Diversified experience with Engineering, Manufacturing, Retailing, Higher Education and IT /Data related companies Fascinated by learning cutting edge technologies, such as; Data Mining and Machine Learning Handled a team of 4 during my 3 years of Tech experience and managed more than 200 students and effectively evaluated the performance of each student and utilize assessment methods to judge overall progress during my teaching experience.",
-      "Financial and Accounting professional with expertise in financial analysis, audit, compliance, financial accounting, forecasting, budgeting, and procurement in the healthcare industry. Strong working knowledge of GAAP, FASB, SOX, and ASC 606 procedures. Exceptional analytical ability and problem-solving skills, analysis and solutions of complex problems in conjunction with managing financial outputs, managing teams to achieve defined outcomes with over 15 years' experience in a variety of organizational roles. Advanced knowledge of Microsoft toolsets. Results oriented with proven track record of quick learning ability, increased responsibilities and rapid advancement.",
-      "A practiced, professional Test Manager with over 20 years of success managing test and validation of next-generation software / hardware technologies across multiple concurrent projects and releases. Delivered effectively to time and budget on a variety of complex, large-scale, multiplatform projects including: complex network framework, IoT (Internet of Things), telecommunication and hosted services, business process tools, automation frameworks. Managed, trained and mentored multi-disciplinary, geographically dispersed teams including, software development, test and validation, planning, QA, configuration management, agile scrum master and product owner."
+      "I want to join a role where I can experiment and learn with new types of data and increase my ability to build more complex models in the future.",
+      "Business Analyst and a data engineer. I believe that data has the highest power when it comes to making informative decisions about business and therefore my objective is to always make sense from what a dataset is trying to convey.",
+      "Graduate database management engineer looking to join a role in data analytics or cloud-based machine learning solutions.",
+      "Leadership and team building oriented mentality. Working towards of being a better professional, someone on whom a company can easily rely on. Looking for roles where I can learn and grow my skillset.",
+      "strong willingness to exhibit my proficiency in Analytical tools, Statistics and Computing Methodologies in the professional environment."
     ],
     "skills": [
       "Python",
@@ -113,21 +60,29 @@
       "Data Science",
       "Microsoft Office",
       "Data Mining",
-      "C"
+      "C",
+      "Data Analytics",
+      "documentation",
+      "Word",
+      "SAP",
+      "processes"
     ],
     "responsibilities": [
       "Relationship Building",
       "HR Collaboration",
       "Policy Development",
       "Training Management",
-      "Record Keeping"
+      "Employee Development",
+      "Policy Enforcement"
     ]
   },
-  "Marketing Officer": {
+  "Civil Engineer": {
     "objectives": [
-      "A highly experienced skilled graduate with Analytics degree with a very good experience in SAS, Web scraping, SQL, Predictive modelling and data visualization. Excellent ability in identifying data requirements for analysis, data cleaning, munging and model building; Ensures the organization uses it effectively to reach profit and growth objectives. Comfortable with data handling, modeling, and coding, and have an appreciation of what makes sense from a business standpoint. More than six years of experience working as a researcher, data analyst, and environmental science and Technology Instructor. Experience in SQL, data warehousing, maintaining, securing and stabilizing data layers and testing to identify data and product defects introduced in the system. Customer segmentation, product positioning and mapping and conjoint analysis Modelling: Design and implement statistical / predictive models and cutting edge algorithms utilizing diverse sources of data to predict Diversified experience with Engineering, Manufacturing, Retailing, Higher Education and IT /Data related companies Fascinated by learning cutting edge technologies, such as; Data Mining and Machine Learning Handled a team of 4 during my 3 years of Tech experience and managed more than 200 students and effectively evaluated the performance of each student and utilize assessment methods to judge overall progress during my teaching experience.",
-      "Financial and Accounting professional with expertise in financial analysis, audit, compliance, financial accounting, forecasting, budgeting, and procurement in the healthcare industry. Strong working knowledge of GAAP, FASB, SOX, and ASC 606 procedures. Exceptional analytical ability and problem-solving skills, analysis and solutions of complex problems in conjunction with managing financial outputs, managing teams to achieve defined outcomes with over 15 years' experience in a variety of organizational roles. Advanced knowledge of Microsoft toolsets. Results oriented with proven track record of quick learning ability, increased responsibilities and rapid advancement.",
-      "A practiced, professional Test Manager with over 20 years of success managing test and validation of next-generation software / hardware technologies across multiple concurrent projects and releases. Delivered effectively to time and budget on a variety of complex, large-scale, multiplatform projects including: complex network framework, IoT (Internet of Things), telecommunication and hosted services, business process tools, automation frameworks. Managed, trained and mentored multi-disciplinary, geographically dispersed teams including, software development, test and validation, planning, QA, configuration management, agile scrum master and product owner."
+      "Dedicated and well-rounded software engineer with a passion for math, computer science, and elite education. Bringing 12+ years of teaching expertise to help Amazon's Career Fulfillment students feel the same joy and pride in my comprehensive JavaScript computer science program as my past 150+ high school students. Eager to teach the basics, get students the tools they need, and foster their passion to reach their goals.",
+      "Desires an accounting position in a positive working environment that encourages and supports continuing professional growth.",
+      "Interested in helping businesses take best decisions using Machine learning and Deep learning solutions.",
+      "Software developer focused in the areas of Machine learning application development. Motivated to learn, grow and excel my experience by challenging myself.",
+      "Graduating Ph.D. candidate with a research focus on developing large-scale computational models using statistics and machine learning approach. Interested in a career as a computational scientist or quantitative software developer."
     ],
     "skills": [
       "Python",
@@ -136,29 +91,190 @@
       "Data Analysis",
       "Excel",
       "Deep Learning",
-      "C++",
       "Java",
-      "Natural Language Processing",
+      "C++",
       "Artificial Intelligence",
+      "Natural Language Processing",
       "Tableau",
       "Data Science",
       "Data Mining",
       "Microsoft Office",
-      "documentation"
+      "Word",
+      "C",
+      "Data Analytics",
+      "documentation",
+      "processes",
+      "SAP"
     ],
     "responsibilities": [
-      "Digital Marketing Strategy",
-      "Brand Awareness",
-      "Online Traffic",
-      "Social Media Management",
-      "Google Analytics"
+      "Proposal Preparation",
+      "Feasibility Analysis",
+      "Software Utilization",
+      "Technical Support",
+      "Submission Review",
+      "Progress Reporting"
     ]
   },
-  "Manager- Human Resource Management (Hrm)": {
+  "Site Engineer": {
     "objectives": [
-      "A highly experienced skilled graduate with Analytics degree with a very good experience in SAS, Web scraping, SQL, Predictive modelling and data visualization. Excellent ability in identifying data requirements for analysis, data cleaning, munging and model building; Ensures the organization uses it effectively to reach profit and growth objectives. Comfortable with data handling, modeling, and coding, and have an appreciation of what makes sense from a business standpoint. More than six years of experience working as a researcher, data analyst, and environmental science and Technology Instructor. Experience in SQL, data warehousing, maintaining, securing and stabilizing data layers and testing to identify data and product defects introduced in the system. Customer segmentation, product positioning and mapping and conjoint analysis Modelling: Design and implement statistical / predictive models and cutting edge algorithms utilizing diverse sources of data to predict Diversified experience with Engineering, Manufacturing, Retailing, Higher Education and IT /Data related companies Fascinated by learning cutting edge technologies, such as; Data Mining and Machine Learning Handled a team of 4 during my 3 years of Tech experience and managed more than 200 students and effectively evaluated the performance of each student and utilize assessment methods to judge overall progress during my teaching experience.",
-      "Financial and Accounting professional with expertise in financial analysis, audit, compliance, financial accounting, forecasting, budgeting, and procurement in the healthcare industry. Strong working knowledge of GAAP, FASB, SOX, and ASC 606 procedures. Exceptional analytical ability and problem-solving skills, analysis and solutions of complex problems in conjunction with managing financial outputs, managing teams to achieve defined outcomes with over 15 years' experience in a variety of organizational roles. Advanced knowledge of Microsoft toolsets. Results oriented with proven track record of quick learning ability, increased responsibilities and rapid advancement.",
-      "A practiced, professional Test Manager with over 20 years of success managing test and validation of next-generation software / hardware technologies across multiple concurrent projects and releases. Delivered effectively to time and budget on a variety of complex, large-scale, multiplatform projects including: complex network framework, IoT (Internet of Things), telecommunication and hosted services, business process tools, automation frameworks. Managed, trained and mentored multi-disciplinary, geographically dispersed teams including, software development, test and validation, planning, QA, configuration management, agile scrum master and product owner."
+      "Experienced product development Engineer and manager able to collaborate with cross functional team as well as customers and sales to bring brand new offerings to new markets. Skilled at managing cross functional team for continuous improvements and meeting project deadlines. Offering 6 years of experience in the field.",
+      "I am a market research specialist with a grasp of machine learning and looking for a deeper dive into the career of being a professional machine learning engineer.",
+      "Financial Accountant specializing in financial planning, reporting and analysis in both private and public sectors. Capable Accountant successful at managing multiple projects and consistently meeting deadlines under pressure. Extensive knowledge of accounting software and processes.",
+      "Dedicated and well-rounded software engineer with a passion for math, computer science, and elite education. Bringing 12+ years of teaching expertise to help Amazon's Career Fulfillment students feel the same joy and pride in my comprehensive JavaScript computer science program as my past 150+ high school students. Eager to teach the basics, get students the tools they need, and foster their passion to reach their goals.",
+      "A highly disciplined and hard-working individual seeking challenging opportunity in the field of data science and data analytics where I can utilize my skills and knowledge to contribute for the growth of the organization"
+    ],
+    "skills": [
+      "Python",
+      "Machine Learning",
+      "SQL",
+      "Excel",
+      "Data Analysis",
+      "Deep Learning",
+      "C++",
+      "Java",
+      "Artificial Intelligence",
+      "Natural Language Processing",
+      "Tableau",
+      "Data Science",
+      "Microsoft Office",
+      "Data Mining",
+      "documentation",
+      "Word",
+      "C",
+      "Data Analytics",
+      "SAP",
+      "processes"
+    ],
+    "responsibilities": [
+      "Material Management",
+      "Project Coordination",
+      "Quality Assurance",
+      "Error Escalation",
+      "Miscellaneous Tasks"
+    ]
+  },
+  "Senior Software Engineer": {
+    "objectives": [
+      "Big data analytics working and database warehouse manager with robust experience in handling all kinds of data. I have also used multiple cloud infrastructure services and am well acquainted with them. Currently in search of role that offers more of development.",
+      "I am a Junior Machine Learning developer who focuses on data improvement and modelling, finding patterns in large databases and optimization of different models.",
+      "Graduate Looking for roles related to BU analyst and machine learning.",
+      "Passionate, motivated and highly conjugated towards a building mentality. Perfecting for a better code is always my ideology.",
+      "An enthusiast, with a Master's degree in Electronics & Telecommunication, very keen to learn & eagerly looking for opportunities."
+    ],
+    "skills": [
+      "Python",
+      "Machine Learning",
+      "SQL",
+      "Data Analysis",
+      "Excel",
+      "Deep Learning",
+      "Java",
+      "C++",
+      "Artificial Intelligence",
+      "Natural Language Processing",
+      "Tableau",
+      "Data Science",
+      "Microsoft Office",
+      "Data Mining",
+      "C",
+      "Data Analytics",
+      "documentation",
+      "Word",
+      "SAP",
+      "processes"
+    ],
+    "responsibilities": [
+      "Technical Support",
+      "System Monitoring",
+      "Software Deployment",
+      "Training & Mentorship"
+    ]
+  },
+  "AI Engineer": {
+    "objectives": [
+      "To secure an IT specialist, desktop support, network administration, database administrator, technical support specialist or related position with a growing organization where my Microsoft certification, technical aptitude, networking, Windows and Mac OS, Apple and Android IOS, web development, application development, Linux, Microsoft applications, managing, testing, client support, help desk, technical support, troubleshooting, and leadership skills can benefit those who I work for as well as myself.",
+      "Post Graduate Analyst experienced in Business Management and Statistical Analysis. I have a very good grasp on finding the best solution for a business and applying them.",
+      "I desire to work for a company that provides career advancement opportunities in a friendly environment. I would like to develop skills that make me proficient in my job and an asset to the company. I have a varied skill set and enjoy learning new techniques.",
+      "To obtain a position in a fast-paced business office environment, demanding a strong organizational, technical, and interpersonal position utilizing my skills and attributes.",
+      "To pursue excellence in the dynamic business world by obtaining a placement allowing me to perform in an environment where honesty, sincerity & a positive attitude would be valued. I would like to take up a challenging job to nourish my qualification, expertise & experience within a reputed organization & further enhance my performance."
+    ],
+    "skills": [
+      "Python",
+      "Machine Learning",
+      "SQL",
+      "Data Analysis",
+      "Excel",
+      "Deep Learning",
+      "Java",
+      "C++",
+      "Artificial Intelligence",
+      "Natural Language Processing",
+      "Tableau",
+      "Data Science",
+      "Data Mining",
+      "Microsoft Office",
+      "Word",
+      "documentation",
+      "Data Analytics",
+      "C",
+      "SAP",
+      "processes"
+    ],
+    "responsibilities": [
+      "Machine Learning Design",
+      "Cross-Functional Collaboration",
+      "Model Deployment",
+      "Analytical Skills",
+      "Team Collaboration"
+    ]
+  },
+  "Asst. Manager/ Manger (Administrative)": {
+    "objectives": [
+      "A curiosity-driven data scientist, eager to leverage machine learning and data analytics to extract meaningful insights, make informed decisions and solve challenging business problems. I ensure to contribute with my knowledge, logical thinking and analytical skills towards the consistent growth and development of the organization, and enhance my experience through continuous learning and teamwork.",
+      "To pursue excellence in the dynamic business world by obtaining a placement allowing me to perform in an environment where honesty, sincerity & a positive attitude would be valued. I would like to take up a challenging job to nourish my qualification, expertise & experience within a reputed organization & further enhance my performance.",
+      "Software developer focused in the areas of Machine learning application development. Motivated to learn, grow and excel my experience by challenging myself.",
+      "PhD cleanroom expert looking for an opportunity to work as a full-time module/process engineer in Lam Research",
+      "Professional accountant with an outstanding work ethic and integrity seeking to make a valuable contribution utilizing strong analytical, organizational, communication, and computer skills."
+    ],
+    "skills": [
+      "Python",
+      "Machine Learning",
+      "SQL",
+      "Data Analysis",
+      "Excel",
+      "Deep Learning",
+      "Java",
+      "C++",
+      "Artificial Intelligence",
+      "Natural Language Processing",
+      "Tableau",
+      "Data Science",
+      "Data Mining",
+      "Microsoft Office",
+      "documentation",
+      "C",
+      "Data Analytics",
+      "Word",
+      "processes",
+      "SAP"
+    ],
+    "responsibilities": [
+      "Administrative Support",
+      "Filing & Documentation",
+      "Equipment Maintenance",
+      "Information Provision",
+      "Inventory Management",
+      "Team Collaboration",
+      "OHS Policy Development"
+    ]
+  },
+  "Manager- Human Resource Management (HRM)": {
+    "objectives": [
+      "Recent Graduate testing and debugging machine learning models. I have worked on multiple projects and have contributed to the testing and quality control of models over time. I am looking to switch to a development role where I can exercise my skills.",
+      "Data Science Explorer with a keen interest in application models of Machine learning.",
+      "To obtain a position in a fast-paced business office environment, demanding a strong organizational, technical, and interpersonal position utilizing my skills and attributes.",
+      "To obtain a challenging career in Electronic Technology field. Extensive experience successfully testing and analyzing complex circuit packs and systems. *Takes the initiative to take on challenging problems and follows through to their resolution. *Capable of working independently or as a team player. *Worked with fiber optics receivers and transmitters since 1999.",
+      "Candidate with a fifteen months experience in production supervising and manufacturing seeking opportunity in field of Quality, Supply Chain and Manufacturing"
     ],
     "skills": [
       "Python",
@@ -175,392 +291,30 @@
       "Data Science",
       "Data Mining",
       "Microsoft Office",
-      "Data Analytics"
+      "Data Analytics",
+      "C",
+      "documentation",
+      "Word",
+      "processes",
+      "SAP"
     ],
     "responsibilities": [
       "Recruitment Coordination",
       "Appointment Management",
       "Selection Criteria",
       "Employee Orientation",
-      "Performance Evaluation"
-    ]
-  },
-  "Head Of Internal Control & Compliance (Icc) - Sevp/Dmd": {
-    "objectives": [
-      "A highly experienced skilled graduate with Analytics degree with a very good experience in SAS, Web scraping, SQL, Predictive modelling and data visualization. Excellent ability in identifying data requirements for analysis, data cleaning, munging and model building; Ensures the organization uses it effectively to reach profit and growth objectives. Comfortable with data handling, modeling, and coding, and have an appreciation of what makes sense from a business standpoint. More than six years of experience working as a researcher, data analyst, and environmental science and Technology Instructor. Experience in SQL, data warehousing, maintaining, securing and stabilizing data layers and testing to identify data and product defects introduced in the system. Customer segmentation, product positioning and mapping and conjoint analysis Modelling: Design and implement statistical / predictive models and cutting edge algorithms utilizing diverse sources of data to predict Diversified experience with Engineering, Manufacturing, Retailing, Higher Education and IT /Data related companies Fascinated by learning cutting edge technologies, such as; Data Mining and Machine Learning Handled a team of 4 during my 3 years of Tech experience and managed more than 200 students and effectively evaluated the performance of each student and utilize assessment methods to judge overall progress during my teaching experience.",
-      "Financial and Accounting professional with expertise in financial analysis, audit, compliance, financial accounting, forecasting, budgeting, and procurement in the healthcare industry. Strong working knowledge of GAAP, FASB, SOX, and ASC 606 procedures. Exceptional analytical ability and problem-solving skills, analysis and solutions of complex problems in conjunction with managing financial outputs, managing teams to achieve defined outcomes with over 15 years' experience in a variety of organizational roles. Advanced knowledge of Microsoft toolsets. Results oriented with proven track record of quick learning ability, increased responsibilities and rapid advancement.",
-      "A practiced, professional Test Manager with over 20 years of success managing test and validation of next-generation software / hardware technologies across multiple concurrent projects and releases. Delivered effectively to time and budget on a variety of complex, large-scale, multiplatform projects including: complex network framework, IoT (Internet of Things), telecommunication and hosted services, business process tools, automation frameworks. Managed, trained and mentored multi-disciplinary, geographically dispersed teams including, software development, test and validation, planning, QA, configuration management, agile scrum master and product owner."
-    ],
-    "skills": [
-      "Python",
-      "Machine Learning",
-      "SQL",
-      "Data Analysis",
-      "Excel",
-      "Deep Learning",
-      "C++",
-      "Java",
-      "Natural Language Processing",
-      "Artificial Intelligence",
-      "Tableau",
-      "Data Science",
-      "Microsoft Office",
-      "Data Mining",
-      "C"
-    ],
-    "responsibilities": [
-      "15+ Years Banking Experience",
-      "Audit/Inspection/ICC Leadership",
-      "Internal Audit & Compliance",
-      "Risk-Based Operational Reviews",
-      "System-Based Audit Expertise"
-    ]
-  },
-  "Management Trainee - Mechanical": {
-    "objectives": [
-      "A highly experienced skilled graduate with Analytics degree with a very good experience in SAS, Web scraping, SQL, Predictive modelling and data visualization. Excellent ability in identifying data requirements for analysis, data cleaning, munging and model building; Ensures the organization uses it effectively to reach profit and growth objectives. Comfortable with data handling, modeling, and coding, and have an appreciation of what makes sense from a business standpoint. More than six years of experience working as a researcher, data analyst, and environmental science and Technology Instructor. Experience in SQL, data warehousing, maintaining, securing and stabilizing data layers and testing to identify data and product defects introduced in the system. Customer segmentation, product positioning and mapping and conjoint analysis Modelling: Design and implement statistical / predictive models and cutting edge algorithms utilizing diverse sources of data to predict Diversified experience with Engineering, Manufacturing, Retailing, Higher Education and IT /Data related companies Fascinated by learning cutting edge technologies, such as; Data Mining and Machine Learning Handled a team of 4 during my 3 years of Tech experience and managed more than 200 students and effectively evaluated the performance of each student and utilize assessment methods to judge overall progress during my teaching experience.",
-      "Financial and Accounting professional with expertise in financial analysis, audit, compliance, financial accounting, forecasting, budgeting, and procurement in the healthcare industry. Strong working knowledge of GAAP, FASB, SOX, and ASC 606 procedures. Exceptional analytical ability and problem-solving skills, analysis and solutions of complex problems in conjunction with managing financial outputs, managing teams to achieve defined outcomes with over 15 years' experience in a variety of organizational roles. Advanced knowledge of Microsoft toolsets. Results oriented with proven track record of quick learning ability, increased responsibilities and rapid advancement.",
-      "A practiced, professional Test Manager with over 20 years of success managing test and validation of next-generation software / hardware technologies across multiple concurrent projects and releases. Delivered effectively to time and budget on a variety of complex, large-scale, multiplatform projects including: complex network framework, IoT (Internet of Things), telecommunication and hosted services, business process tools, automation frameworks. Managed, trained and mentored multi-disciplinary, geographically dispersed teams including, software development, test and validation, planning, QA, configuration management, agile scrum master and product owner."
-    ],
-    "skills": [
-      "Python",
-      "Machine Learning",
-      "SQL",
-      "Data Analysis",
-      "Excel",
-      "Deep Learning",
-      "C++",
-      "Java",
-      "Natural Language Processing",
-      "Artificial Intelligence",
-      "Tableau",
-      "Data Science",
-      "Data Mining",
-      "Microsoft Office",
-      "C"
-    ],
-    "responsibilities": [
-      "Management Trainee",
-      "Mechanical Systems",
-      "Maintenance & Troubleshooting",
-      "Performance Analysis",
-      "Project Support"
-    ]
-  },
-  "Sr.Officer / Executive - Internal Audit": {
-    "objectives": [
-      "A highly experienced skilled graduate with Analytics degree with a very good experience in SAS, Web scraping, SQL, Predictive modelling and data visualization. Excellent ability in identifying data requirements for analysis, data cleaning, munging and model building; Ensures the organization uses it effectively to reach profit and growth objectives. Comfortable with data handling, modeling, and coding, and have an appreciation of what makes sense from a business standpoint. More than six years of experience working as a researcher, data analyst, and environmental science and Technology Instructor. Experience in SQL, data warehousing, maintaining, securing and stabilizing data layers and testing to identify data and product defects introduced in the system. Customer segmentation, product positioning and mapping and conjoint analysis Modelling: Design and implement statistical / predictive models and cutting edge algorithms utilizing diverse sources of data to predict Diversified experience with Engineering, Manufacturing, Retailing, Higher Education and IT /Data related companies Fascinated by learning cutting edge technologies, such as; Data Mining and Machine Learning Handled a team of 4 during my 3 years of Tech experience and managed more than 200 students and effectively evaluated the performance of each student and utilize assessment methods to judge overall progress during my teaching experience.",
-      "Financial and Accounting professional with expertise in financial analysis, audit, compliance, financial accounting, forecasting, budgeting, and procurement in the healthcare industry. Strong working knowledge of GAAP, FASB, SOX, and ASC 606 procedures. Exceptional analytical ability and problem-solving skills, analysis and solutions of complex problems in conjunction with managing financial outputs, managing teams to achieve defined outcomes with over 15 years' experience in a variety of organizational roles. Advanced knowledge of Microsoft toolsets. Results oriented with proven track record of quick learning ability, increased responsibilities and rapid advancement.",
-      "A practiced, professional Test Manager with over 20 years of success managing test and validation of next-generation software / hardware technologies across multiple concurrent projects and releases. Delivered effectively to time and budget on a variety of complex, large-scale, multiplatform projects including: complex network framework, IoT (Internet of Things), telecommunication and hosted services, business process tools, automation frameworks. Managed, trained and mentored multi-disciplinary, geographically dispersed teams including, software development, test and validation, planning, QA, configuration management, agile scrum master and product owner."
-    ],
-    "skills": [
-      "Python",
-      "Machine Learning",
-      "SQL",
-      "Data Analysis",
-      "Excel",
-      "Deep Learning",
-      "Java",
-      "C++",
-      "Natural Language Processing",
-      "Artificial Intelligence",
-      "Tableau",
-      "Data Science",
-      "Data Mining",
-      "Microsoft Office",
-      "Data Analytics"
-    ],
-    "responsibilities": [
-      "Internal Audit Assistance",
-      "Voucher & Bill Verification",
-      "Cost Sheet Analysis",
-      "L/C Voucher Verification",
-      "Expense Verification"
-    ]
-  },
-  "Executive - Vat": {
-    "objectives": [
-      "A highly experienced skilled graduate with Analytics degree with a very good experience in SAS, Web scraping, SQL, Predictive modelling and data visualization. Excellent ability in identifying data requirements for analysis, data cleaning, munging and model building; Ensures the organization uses it effectively to reach profit and growth objectives. Comfortable with data handling, modeling, and coding, and have an appreciation of what makes sense from a business standpoint. More than six years of experience working as a researcher, data analyst, and environmental science and Technology Instructor. Experience in SQL, data warehousing, maintaining, securing and stabilizing data layers and testing to identify data and product defects introduced in the system. Customer segmentation, product positioning and mapping and conjoint analysis Modelling: Design and implement statistical / predictive models and cutting edge algorithms utilizing diverse sources of data to predict Diversified experience with Engineering, Manufacturing, Retailing, Higher Education and IT /Data related companies Fascinated by learning cutting edge technologies, such as; Data Mining and Machine Learning Handled a team of 4 during my 3 years of Tech experience and managed more than 200 students and effectively evaluated the performance of each student and utilize assessment methods to judge overall progress during my teaching experience.",
-      "Financial and Accounting professional with expertise in financial analysis, audit, compliance, financial accounting, forecasting, budgeting, and procurement in the healthcare industry. Strong working knowledge of GAAP, FASB, SOX, and ASC 606 procedures. Exceptional analytical ability and problem-solving skills, analysis and solutions of complex problems in conjunction with managing financial outputs, managing teams to achieve defined outcomes with over 15 years' experience in a variety of organizational roles. Advanced knowledge of Microsoft toolsets. Results oriented with proven track record of quick learning ability, increased responsibilities and rapid advancement.",
-      "A practiced, professional Test Manager with over 20 years of success managing test and validation of next-generation software / hardware technologies across multiple concurrent projects and releases. Delivered effectively to time and budget on a variety of complex, large-scale, multiplatform projects including: complex network framework, IoT (Internet of Things), telecommunication and hosted services, business process tools, automation frameworks. Managed, trained and mentored multi-disciplinary, geographically dispersed teams including, software development, test and validation, planning, QA, configuration management, agile scrum master and product owner."
-    ],
-    "skills": [
-      "Python",
-      "Machine Learning",
-      "SQL",
-      "Data Analysis",
-      "Excel",
-      "Deep Learning",
-      "C++",
-      "Java",
-      "Natural Language Processing",
-      "Artificial Intelligence",
-      "Tableau",
-      "Data Science",
-      "Data Mining",
-      "Microsoft Office",
-      "C"
-    ],
-    "responsibilities": [
-      "Mushak Forms Maintenance",
-      "VAT Software & MS Office Maintenance",
-      "VAT Ledger Management",
-      "VAT Challan Coordination",
-      "Liaison with VAT Office"
-    ]
-  },
-  "Network Support Engineer": {
-    "objectives": [
-      "A highly experienced skilled graduate with Analytics degree with a very good experience in SAS, Web scraping, SQL, Predictive modelling and data visualization. Excellent ability in identifying data requirements for analysis, data cleaning, munging and model building; Ensures the organization uses it effectively to reach profit and growth objectives. Comfortable with data handling, modeling, and coding, and have an appreciation of what makes sense from a business standpoint. More than six years of experience working as a researcher, data analyst, and environmental science and Technology Instructor. Experience in SQL, data warehousing, maintaining, securing and stabilizing data layers and testing to identify data and product defects introduced in the system. Customer segmentation, product positioning and mapping and conjoint analysis Modelling: Design and implement statistical / predictive models and cutting edge algorithms utilizing diverse sources of data to predict Diversified experience with Engineering, Manufacturing, Retailing, Higher Education and IT /Data related companies Fascinated by learning cutting edge technologies, such as; Data Mining and Machine Learning Handled a team of 4 during my 3 years of Tech experience and managed more than 200 students and effectively evaluated the performance of each student and utilize assessment methods to judge overall progress during my teaching experience.",
-      "Financial and Accounting professional with expertise in financial analysis, audit, compliance, financial accounting, forecasting, budgeting, and procurement in the healthcare industry. Strong working knowledge of GAAP, FASB, SOX, and ASC 606 procedures. Exceptional analytical ability and problem-solving skills, analysis and solutions of complex problems in conjunction with managing financial outputs, managing teams to achieve defined outcomes with over 15 years' experience in a variety of organizational roles. Advanced knowledge of Microsoft toolsets. Results oriented with proven track record of quick learning ability, increased responsibilities and rapid advancement.",
-      "A practiced, professional Test Manager with over 20 years of success managing test and validation of next-generation software / hardware technologies across multiple concurrent projects and releases. Delivered effectively to time and budget on a variety of complex, large-scale, multiplatform projects including: complex network framework, IoT (Internet of Things), telecommunication and hosted services, business process tools, automation frameworks. Managed, trained and mentored multi-disciplinary, geographically dispersed teams including, software development, test and validation, planning, QA, configuration management, agile scrum master and product owner."
-    ],
-    "skills": [
-      "Python",
-      "Machine Learning",
-      "SQL",
-      "Data Analysis",
-      "Excel",
-      "Deep Learning",
-      "C++",
-      "Java",
-      "Artificial Intelligence",
-      "Natural Language Processing",
-      "Tableau",
-      "Data Science",
-      "Microsoft Office",
-      "Data Mining",
-      "documentation"
-    ],
-    "responsibilities": [
-      "Mikrotik Router Configuration",
-      "OLT Device Setup & Management",
-      "Integration with Billing Software",
-      "Network Monitoring Tools Integration",
-      "Connectivity Troubleshooting"
-    ]
-  },
-  "Senior Software Engineer": {
-    "objectives": [
-      "A highly experienced skilled graduate with Analytics degree with a very good experience in SAS, Web scraping, SQL, Predictive modelling and data visualization. Excellent ability in identifying data requirements for analysis, data cleaning, munging and model building; Ensures the organization uses it effectively to reach profit and growth objectives. Comfortable with data handling, modeling, and coding, and have an appreciation of what makes sense from a business standpoint. More than six years of experience working as a researcher, data analyst, and environmental science and Technology Instructor. Experience in SQL, data warehousing, maintaining, securing and stabilizing data layers and testing to identify data and product defects introduced in the system. Customer segmentation, product positioning and mapping and conjoint analysis Modelling: Design and implement statistical / predictive models and cutting edge algorithms utilizing diverse sources of data to predict Diversified experience with Engineering, Manufacturing, Retailing, Higher Education and IT /Data related companies Fascinated by learning cutting edge technologies, such as; Data Mining and Machine Learning Handled a team of 4 during my 3 years of Tech experience and managed more than 200 students and effectively evaluated the performance of each student and utilize assessment methods to judge overall progress during my teaching experience.",
-      "Financial and Accounting professional with expertise in financial analysis, audit, compliance, financial accounting, forecasting, budgeting, and procurement in the healthcare industry. Strong working knowledge of GAAP, FASB, SOX, and ASC 606 procedures. Exceptional analytical ability and problem-solving skills, analysis and solutions of complex problems in conjunction with managing financial outputs, managing teams to achieve defined outcomes with over 15 years' experience in a variety of organizational roles. Advanced knowledge of Microsoft toolsets. Results oriented with proven track record of quick learning ability, increased responsibilities and rapid advancement.",
-      "A practiced, professional Test Manager with over 20 years of success managing test and validation of next-generation software / hardware technologies across multiple concurrent projects and releases. Delivered effectively to time and budget on a variety of complex, large-scale, multiplatform projects including: complex network framework, IoT (Internet of Things), telecommunication and hosted services, business process tools, automation frameworks. Managed, trained and mentored multi-disciplinary, geographically dispersed teams including, software development, test and validation, planning, QA, configuration management, agile scrum master and product owner."
-    ],
-    "skills": [
-      "Python",
-      "Machine Learning",
-      "SQL",
-      "Data Analysis",
-      "Excel",
-      "Deep Learning",
-      "Java",
-      "C++",
-      "Artificial Intelligence",
-      "Natural Language Processing",
-      "Tableau",
-      "Data Science",
-      "Microsoft Office",
-      "Data Mining",
-      "C"
-    ],
-    "responsibilities": [
-      "Technical Support",
-      "Troubleshooting",
-      "Collaboration",
-      "Documentation",
-      "System Monitoring"
-    ]
-  },
-  "System Administrator (Operation & Maintenance Of Server, Storage & Service Desk System)": {
-    "objectives": [
-      "A highly experienced skilled graduate with Analytics degree with a very good experience in SAS, Web scraping, SQL, Predictive modelling and data visualization. Excellent ability in identifying data requirements for analysis, data cleaning, munging and model building; Ensures the organization uses it effectively to reach profit and growth objectives. Comfortable with data handling, modeling, and coding, and have an appreciation of what makes sense from a business standpoint. More than six years of experience working as a researcher, data analyst, and environmental science and Technology Instructor. Experience in SQL, data warehousing, maintaining, securing and stabilizing data layers and testing to identify data and product defects introduced in the system. Customer segmentation, product positioning and mapping and conjoint analysis Modelling: Design and implement statistical / predictive models and cutting edge algorithms utilizing diverse sources of data to predict Diversified experience with Engineering, Manufacturing, Retailing, Higher Education and IT /Data related companies Fascinated by learning cutting edge technologies, such as; Data Mining and Machine Learning Handled a team of 4 during my 3 years of Tech experience and managed more than 200 students and effectively evaluated the performance of each student and utilize assessment methods to judge overall progress during my teaching experience.",
-      "Financial and Accounting professional with expertise in financial analysis, audit, compliance, financial accounting, forecasting, budgeting, and procurement in the healthcare industry. Strong working knowledge of GAAP, FASB, SOX, and ASC 606 procedures. Exceptional analytical ability and problem-solving skills, analysis and solutions of complex problems in conjunction with managing financial outputs, managing teams to achieve defined outcomes with over 15 years' experience in a variety of organizational roles. Advanced knowledge of Microsoft toolsets. Results oriented with proven track record of quick learning ability, increased responsibilities and rapid advancement.",
-      "A practiced, professional Test Manager with over 20 years of success managing test and validation of next-generation software / hardware technologies across multiple concurrent projects and releases. Delivered effectively to time and budget on a variety of complex, large-scale, multiplatform projects including: complex network framework, IoT (Internet of Things), telecommunication and hosted services, business process tools, automation frameworks. Managed, trained and mentored multi-disciplinary, geographically dispersed teams including, software development, test and validation, planning, QA, configuration management, agile scrum master and product owner."
-    ],
-    "skills": [
-      "Python",
-      "Machine Learning",
-      "SQL",
-      "Data Analysis",
-      "Excel",
-      "Deep Learning",
-      "C++",
-      "Java",
-      "Natural Language Processing",
-      "Artificial Intelligence",
-      "Tableau",
-      "Data Science",
-      "Microsoft Office",
-      "Data Mining",
-      "documentation"
-    ],
-    "responsibilities": [
-      "Hardware & Network Installation",
-      "Troubleshooting & Diagnostics",
-      "User Training & Capacity Building",
-      "Hardware Replacement",
-      "Fault Repair & System Setup"
-    ]
-  },
-  "Database Administrator (Dba)": {
-    "objectives": [
-      "A highly experienced skilled graduate with Analytics degree with a very good experience in SAS, Web scraping, SQL, Predictive modelling and data visualization. Excellent ability in identifying data requirements for analysis, data cleaning, munging and model building; Ensures the organization uses it effectively to reach profit and growth objectives. Comfortable with data handling, modeling, and coding, and have an appreciation of what makes sense from a business standpoint. More than six years of experience working as a researcher, data analyst, and environmental science and Technology Instructor. Experience in SQL, data warehousing, maintaining, securing and stabilizing data layers and testing to identify data and product defects introduced in the system. Customer segmentation, product positioning and mapping and conjoint analysis Modelling: Design and implement statistical / predictive models and cutting edge algorithms utilizing diverse sources of data to predict Diversified experience with Engineering, Manufacturing, Retailing, Higher Education and IT /Data related companies Fascinated by learning cutting edge technologies, such as; Data Mining and Machine Learning Handled a team of 4 during my 3 years of Tech experience and managed more than 200 students and effectively evaluated the performance of each student and utilize assessment methods to judge overall progress during my teaching experience.",
-      "Financial and Accounting professional with expertise in financial analysis, audit, compliance, financial accounting, forecasting, budgeting, and procurement in the healthcare industry. Strong working knowledge of GAAP, FASB, SOX, and ASC 606 procedures. Exceptional analytical ability and problem-solving skills, analysis and solutions of complex problems in conjunction with managing financial outputs, managing teams to achieve defined outcomes with over 15 years' experience in a variety of organizational roles. Advanced knowledge of Microsoft toolsets. Results oriented with proven track record of quick learning ability, increased responsibilities and rapid advancement.",
-      "A practiced, professional Test Manager with over 20 years of success managing test and validation of next-generation software / hardware technologies across multiple concurrent projects and releases. Delivered effectively to time and budget on a variety of complex, large-scale, multiplatform projects including: complex network framework, IoT (Internet of Things), telecommunication and hosted services, business process tools, automation frameworks. Managed, trained and mentored multi-disciplinary, geographically dispersed teams including, software development, test and validation, planning, QA, configuration management, agile scrum master and product owner."
-    ],
-    "skills": [
-      "Python",
-      "Machine Learning",
-      "SQL",
-      "Data Analysis",
-      "Excel",
-      "Deep Learning",
-      "Java",
-      "C++",
-      "Artificial Intelligence",
-      "Natural Language Processing",
-      "Tableau",
-      "Data Science",
-      "Microsoft Office",
-      "Data Mining",
-      "documentation"
-    ],
-    "responsibilities": [
-      "Database Design & Development",
-      "SQL Query Optimization",
-      "Data Integrity & Security",
-      "BI Solutions Development",
-      "ETL Process Implementation"
-    ]
-  },
-  "Asst. Manager/ Manger (Administrative)": {
-    "objectives": [
-      "A highly experienced skilled graduate with Analytics degree with a very good experience in SAS, Web scraping, SQL, Predictive modelling and data visualization. Excellent ability in identifying data requirements for analysis, data cleaning, munging and model building; Ensures the organization uses it effectively to reach profit and growth objectives. Comfortable with data handling, modeling, and coding, and have an appreciation of what makes sense from a business standpoint. More than six years of experience working as a researcher, data analyst, and environmental science and Technology Instructor. Experience in SQL, data warehousing, maintaining, securing and stabilizing data layers and testing to identify data and product defects introduced in the system. Customer segmentation, product positioning and mapping and conjoint analysis Modelling: Design and implement statistical / predictive models and cutting edge algorithms utilizing diverse sources of data to predict Diversified experience with Engineering, Manufacturing, Retailing, Higher Education and IT /Data related companies Fascinated by learning cutting edge technologies, such as; Data Mining and Machine Learning Handled a team of 4 during my 3 years of Tech experience and managed more than 200 students and effectively evaluated the performance of each student and utilize assessment methods to judge overall progress during my teaching experience.",
-      "Financial and Accounting professional with expertise in financial analysis, audit, compliance, financial accounting, forecasting, budgeting, and procurement in the healthcare industry. Strong working knowledge of GAAP, FASB, SOX, and ASC 606 procedures. Exceptional analytical ability and problem-solving skills, analysis and solutions of complex problems in conjunction with managing financial outputs, managing teams to achieve defined outcomes with over 15 years' experience in a variety of organizational roles. Advanced knowledge of Microsoft toolsets. Results oriented with proven track record of quick learning ability, increased responsibilities and rapid advancement.",
-      "A practiced, professional Test Manager with over 20 years of success managing test and validation of next-generation software / hardware technologies across multiple concurrent projects and releases. Delivered effectively to time and budget on a variety of complex, large-scale, multiplatform projects including: complex network framework, IoT (Internet of Things), telecommunication and hosted services, business process tools, automation frameworks. Managed, trained and mentored multi-disciplinary, geographically dispersed teams including, software development, test and validation, planning, QA, configuration management, agile scrum master and product owner."
-    ],
-    "skills": [
-      "Python",
-      "Machine Learning",
-      "SQL",
-      "Data Analysis",
-      "Excel",
-      "Deep Learning",
-      "Java",
-      "C++",
-      "Artificial Intelligence",
-      "Natural Language Processing",
-      "Tableau",
-      "Data Science",
-      "Data Mining",
-      "Microsoft Office",
-      "documentation"
-    ],
-    "responsibilities": [
-      "Administrative Support",
-      "Filing & Documentation",
-      "Communication",
-      "Team Support",
-      "Equipment Maintenance"
-    ]
-  },
-  "Mechanical Designer": {
-    "objectives": [
-      "A highly experienced skilled graduate with Analytics degree with a very good experience in SAS, Web scraping, SQL, Predictive modelling and data visualization. Excellent ability in identifying data requirements for analysis, data cleaning, munging and model building; Ensures the organization uses it effectively to reach profit and growth objectives. Comfortable with data handling, modeling, and coding, and have an appreciation of what makes sense from a business standpoint. More than six years of experience working as a researcher, data analyst, and environmental science and Technology Instructor. Experience in SQL, data warehousing, maintaining, securing and stabilizing data layers and testing to identify data and product defects introduced in the system. Customer segmentation, product positioning and mapping and conjoint analysis Modelling: Design and implement statistical / predictive models and cutting edge algorithms utilizing diverse sources of data to predict Diversified experience with Engineering, Manufacturing, Retailing, Higher Education and IT /Data related companies Fascinated by learning cutting edge technologies, such as; Data Mining and Machine Learning Handled a team of 4 during my 3 years of Tech experience and managed more than 200 students and effectively evaluated the performance of each student and utilize assessment methods to judge overall progress during my teaching experience.",
-      "Financial and Accounting professional with expertise in financial analysis, audit, compliance, financial accounting, forecasting, budgeting, and procurement in the healthcare industry. Strong working knowledge of GAAP, FASB, SOX, and ASC 606 procedures. Exceptional analytical ability and problem-solving skills, analysis and solutions of complex problems in conjunction with managing financial outputs, managing teams to achieve defined outcomes with over 15 years' experience in a variety of organizational roles. Advanced knowledge of Microsoft toolsets. Results oriented with proven track record of quick learning ability, increased responsibilities and rapid advancement.",
-      "A practiced, professional Test Manager with over 20 years of success managing test and validation of next-generation software / hardware technologies across multiple concurrent projects and releases. Delivered effectively to time and budget on a variety of complex, large-scale, multiplatform projects including: complex network framework, IoT (Internet of Things), telecommunication and hosted services, business process tools, automation frameworks. Managed, trained and mentored multi-disciplinary, geographically dispersed teams including, software development, test and validation, planning, QA, configuration management, agile scrum master and product owner."
-    ],
-    "skills": [
-      "Python",
-      "Machine Learning",
-      "SQL",
-      "Data Analysis",
-      "Excel",
-      "Deep Learning",
-      "C++",
-      "Java",
-      "Natural Language Processing",
-      "Artificial Intelligence",
-      "Tableau",
-      "Data Science",
-      "Microsoft Office",
-      "Data Mining",
-      "C"
-    ],
-    "responsibilities": [
-      "Design Creation",
-      "CAD Drawings",
-      "Design Optimization",
-      "Team Collaboration",
-      "Compliance Assurance"
-    ]
-  },
-  "Mechanical Engineer": {
-    "objectives": [
-      "A highly experienced skilled graduate with Analytics degree with a very good experience in SAS, Web scraping, SQL, Predictive modelling and data visualization. Excellent ability in identifying data requirements for analysis, data cleaning, munging and model building; Ensures the organization uses it effectively to reach profit and growth objectives. Comfortable with data handling, modeling, and coding, and have an appreciation of what makes sense from a business standpoint. More than six years of experience working as a researcher, data analyst, and environmental science and Technology Instructor. Experience in SQL, data warehousing, maintaining, securing and stabilizing data layers and testing to identify data and product defects introduced in the system. Customer segmentation, product positioning and mapping and conjoint analysis Modelling: Design and implement statistical / predictive models and cutting edge algorithms utilizing diverse sources of data to predict Diversified experience with Engineering, Manufacturing, Retailing, Higher Education and IT /Data related companies Fascinated by learning cutting edge technologies, such as; Data Mining and Machine Learning Handled a team of 4 during my 3 years of Tech experience and managed more than 200 students and effectively evaluated the performance of each student and utilize assessment methods to judge overall progress during my teaching experience.",
-      "Financial and Accounting professional with expertise in financial analysis, audit, compliance, financial accounting, forecasting, budgeting, and procurement in the healthcare industry. Strong working knowledge of GAAP, FASB, SOX, and ASC 606 procedures. Exceptional analytical ability and problem-solving skills, analysis and solutions of complex problems in conjunction with managing financial outputs, managing teams to achieve defined outcomes with over 15 years' experience in a variety of organizational roles. Advanced knowledge of Microsoft toolsets. Results oriented with proven track record of quick learning ability, increased responsibilities and rapid advancement.",
-      "A practiced, professional Test Manager with over 20 years of success managing test and validation of next-generation software / hardware technologies across multiple concurrent projects and releases. Delivered effectively to time and budget on a variety of complex, large-scale, multiplatform projects including: complex network framework, IoT (Internet of Things), telecommunication and hosted services, business process tools, automation frameworks. Managed, trained and mentored multi-disciplinary, geographically dispersed teams including, software development, test and validation, planning, QA, configuration management, agile scrum master and product owner."
-    ],
-    "skills": [
-      "Python",
-      "Machine Learning",
-      "SQL",
-      "Data Analysis",
-      "Excel",
-      "Deep Learning",
-      "Java",
-      "C++",
-      "Artificial Intelligence",
-      "Natural Language Processing",
-      "Tableau",
-      "Data Science",
-      "Data Mining",
-      "Microsoft Office",
-      "C"
-    ],
-    "responsibilities": [
-      "Machinery Maintenance",
-      "Troubleshooting",
-      "Report Preparation",
-      "Log Maintenance"
-    ]
-  },
-  "Ai Engineer": {
-    "objectives": [
-      "A highly experienced skilled graduate with Analytics degree with a very good experience in SAS, Web scraping, SQL, Predictive modelling and data visualization. Excellent ability in identifying data requirements for analysis, data cleaning, munging and model building; Ensures the organization uses it effectively to reach profit and growth objectives. Comfortable with data handling, modeling, and coding, and have an appreciation of what makes sense from a business standpoint. More than six years of experience working as a researcher, data analyst, and environmental science and Technology Instructor. Experience in SQL, data warehousing, maintaining, securing and stabilizing data layers and testing to identify data and product defects introduced in the system. Customer segmentation, product positioning and mapping and conjoint analysis Modelling: Design and implement statistical / predictive models and cutting edge algorithms utilizing diverse sources of data to predict Diversified experience with Engineering, Manufacturing, Retailing, Higher Education and IT /Data related companies Fascinated by learning cutting edge technologies, such as; Data Mining and Machine Learning Handled a team of 4 during my 3 years of Tech experience and managed more than 200 students and effectively evaluated the performance of each student and utilize assessment methods to judge overall progress during my teaching experience.",
-      "Financial and Accounting professional with expertise in financial analysis, audit, compliance, financial accounting, forecasting, budgeting, and procurement in the healthcare industry. Strong working knowledge of GAAP, FASB, SOX, and ASC 606 procedures. Exceptional analytical ability and problem-solving skills, analysis and solutions of complex problems in conjunction with managing financial outputs, managing teams to achieve defined outcomes with over 15 years' experience in a variety of organizational roles. Advanced knowledge of Microsoft toolsets. Results oriented with proven track record of quick learning ability, increased responsibilities and rapid advancement.",
-      "A practiced, professional Test Manager with over 20 years of success managing test and validation of next-generation software / hardware technologies across multiple concurrent projects and releases. Delivered effectively to time and budget on a variety of complex, large-scale, multiplatform projects including: complex network framework, IoT (Internet of Things), telecommunication and hosted services, business process tools, automation frameworks. Managed, trained and mentored multi-disciplinary, geographically dispersed teams including, software development, test and validation, planning, QA, configuration management, agile scrum master and product owner."
-    ],
-    "skills": [
-      "Python",
-      "Machine Learning",
-      "SQL",
-      "Data Analysis",
-      "Excel",
-      "Deep Learning",
-      "Java",
-      "C++",
-      "Artificial Intelligence",
-      "Natural Language Processing",
-      "Tableau",
-      "Data Science",
-      "Data Mining",
-      "Microsoft Office",
-      "Word"
-    ],
-    "responsibilities": [
-      "Machine Learning Design",
-      "Data Analysis",
-      "Model Training",
-      "AI Integration",
-      "Cross-Functional Collaboration"
+      "Performance Evaluation",
+      "HR Database Management",
+      "Report Compilation"
     ]
   },
   "Business Development Executive": {
     "objectives": [
-      "A highly experienced skilled graduate with Analytics degree with a very good experience in SAS, Web scraping, SQL, Predictive modelling and data visualization. Excellent ability in identifying data requirements for analysis, data cleaning, munging and model building; Ensures the organization uses it effectively to reach profit and growth objectives. Comfortable with data handling, modeling, and coding, and have an appreciation of what makes sense from a business standpoint. More than six years of experience working as a researcher, data analyst, and environmental science and Technology Instructor. Experience in SQL, data warehousing, maintaining, securing and stabilizing data layers and testing to identify data and product defects introduced in the system. Customer segmentation, product positioning and mapping and conjoint analysis Modelling: Design and implement statistical / predictive models and cutting edge algorithms utilizing diverse sources of data to predict Diversified experience with Engineering, Manufacturing, Retailing, Higher Education and IT /Data related companies Fascinated by learning cutting edge technologies, such as; Data Mining and Machine Learning Handled a team of 4 during my 3 years of Tech experience and managed more than 200 students and effectively evaluated the performance of each student and utilize assessment methods to judge overall progress during my teaching experience.",
-      "Financial and Accounting professional with expertise in financial analysis, audit, compliance, financial accounting, forecasting, budgeting, and procurement in the healthcare industry. Strong working knowledge of GAAP, FASB, SOX, and ASC 606 procedures. Exceptional analytical ability and problem-solving skills, analysis and solutions of complex problems in conjunction with managing financial outputs, managing teams to achieve defined outcomes with over 15 years' experience in a variety of organizational roles. Advanced knowledge of Microsoft toolsets. Results oriented with proven track record of quick learning ability, increased responsibilities and rapid advancement.",
-      "A practiced, professional Test Manager with over 20 years of success managing test and validation of next-generation software / hardware technologies across multiple concurrent projects and releases. Delivered effectively to time and budget on a variety of complex, large-scale, multiplatform projects including: complex network framework, IoT (Internet of Things), telecommunication and hosted services, business process tools, automation frameworks. Managed, trained and mentored multi-disciplinary, geographically dispersed teams including, software development, test and validation, planning, QA, configuration management, agile scrum master and product owner."
+      "To obtain a position in a fast-paced business office environment, demanding a strong organizational, technical, and interpersonal position utilizing my skills and attributes.",
+      "I would like to introduce myself as an applicant for the data scientist role. I have gathered an well informed amount of experience from my coursework and I feel that I can perform and produce results in an work environment if given the opportunity.",
+      "I am a recent graduate who is interested and fascinated by Machine learning. I want to join this industry and be a part of it, learn and contribute towards both the growth of the company and me as an Individuals in terms of skills.",
+      "Passionate Data Engineer with a zeal to excel forward and produce promising outcomes. Hands-on knowledge in various Machine Learning Algorithms. Also experienced in data mining, warehouse maintaining, and visualization. In search of a role where I can nurture my skills and contribute to the growth of the company and myself.",
+      "I am looking for another opportunity within USA in infrastructure consulting/ Systems Administration that gives me the opportunity to excel in my current skills and paves way for learning new technologies."
     ],
     "skills": [
       "Python",
@@ -577,7 +331,12 @@
       "Data Science",
       "Microsoft Office",
       "Data Mining",
-      "Data Analytics"
+      "Data Analytics",
+      "C",
+      "documentation",
+      "Word",
+      "SAP",
+      "processes"
     ],
     "responsibilities": [
       "Apparel Sourcing",
@@ -586,11 +345,13 @@
       "Buyer/Vendor Communication"
     ]
   },
-  "Executive/ Senior Executive- Trade Marketing, Hygiene Products": {
+  "Mechanical Engineer": {
     "objectives": [
-      "A highly experienced skilled graduate with Analytics degree with a very good experience in SAS, Web scraping, SQL, Predictive modelling and data visualization. Excellent ability in identifying data requirements for analysis, data cleaning, munging and model building; Ensures the organization uses it effectively to reach profit and growth objectives. Comfortable with data handling, modeling, and coding, and have an appreciation of what makes sense from a business standpoint. More than six years of experience working as a researcher, data analyst, and environmental science and Technology Instructor. Experience in SQL, data warehousing, maintaining, securing and stabilizing data layers and testing to identify data and product defects introduced in the system. Customer segmentation, product positioning and mapping and conjoint analysis Modelling: Design and implement statistical / predictive models and cutting edge algorithms utilizing diverse sources of data to predict Diversified experience with Engineering, Manufacturing, Retailing, Higher Education and IT /Data related companies Fascinated by learning cutting edge technologies, such as; Data Mining and Machine Learning Handled a team of 4 during my 3 years of Tech experience and managed more than 200 students and effectively evaluated the performance of each student and utilize assessment methods to judge overall progress during my teaching experience.",
-      "Financial and Accounting professional with expertise in financial analysis, audit, compliance, financial accounting, forecasting, budgeting, and procurement in the healthcare industry. Strong working knowledge of GAAP, FASB, SOX, and ASC 606 procedures. Exceptional analytical ability and problem-solving skills, analysis and solutions of complex problems in conjunction with managing financial outputs, managing teams to achieve defined outcomes with over 15 years' experience in a variety of organizational roles. Advanced knowledge of Microsoft toolsets. Results oriented with proven track record of quick learning ability, increased responsibilities and rapid advancement.",
-      "A practiced, professional Test Manager with over 20 years of success managing test and validation of next-generation software / hardware technologies across multiple concurrent projects and releases. Delivered effectively to time and budget on a variety of complex, large-scale, multiplatform projects including: complex network framework, IoT (Internet of Things), telecommunication and hosted services, business process tools, automation frameworks. Managed, trained and mentored multi-disciplinary, geographically dispersed teams including, software development, test and validation, planning, QA, configuration management, agile scrum master and product owner."
+      "Certified Data analyst with a degree in Electronics Engineering, I have hands on experience in analyzing & interpreting data with good numerical accuracy.",
+      "Soon-to-be Computer Science graduate eager to continue exploring the inspiring, innovative field of Android Development. As a seasoned intern, I am looking to join an Android Development team with AT&T as a junior developer.",
+      "Dedicated and well-rounded software engineer with a passion for math, computer science, and elite education. Bringing 12+ years of teaching expertise to help Amazon's Career Fulfillment students feel the same joy and pride in my comprehensive JavaScript computer science program as my past 150+ high school students. Eager to teach the basics, get students the tools they need, and foster their passion to reach their goals.",
+      "Fresher with excellent communication, good analyzing, and problem-solving skills. Proficient and well-armed at Debugging and Bug fixing. Strong C, C++ coding background and well informed in OOPs concepts.",
+      "As a recent graduate, I am looking for roles that challenge me and feed my craving for learning. I can easily adapt to new technologies, understand and work with a variety of people, and always looking to solving business problems in much more technology sophisticated ways."
     ],
     "skills": [
       "Python",
@@ -599,29 +360,33 @@
       "Data Analysis",
       "Excel",
       "Deep Learning",
-      "C++",
       "Java",
+      "C++",
       "Artificial Intelligence",
       "Natural Language Processing",
       "Tableau",
       "Data Science",
-      "Microsoft Office",
       "Data Mining",
-      "C"
+      "Microsoft Office",
+      "C",
+      "Data Analytics",
+      "documentation",
+      "processes",
+      "Word",
+      "SAP"
     ],
     "responsibilities": [
-      "Trade Marketing Executive",
-      "Brand Visibility",
-      "Sales Targets",
-      "Field Marketing",
-      "Product Distribution"
+      "Machinery Maintenance",
+      "Report Preparation"
     ]
   },
-  "Executive/ Sr. Executive -It": {
+  "Mechanical Designer": {
     "objectives": [
-      "A highly experienced skilled graduate with Analytics degree with a very good experience in SAS, Web scraping, SQL, Predictive modelling and data visualization. Excellent ability in identifying data requirements for analysis, data cleaning, munging and model building; Ensures the organization uses it effectively to reach profit and growth objectives. Comfortable with data handling, modeling, and coding, and have an appreciation of what makes sense from a business standpoint. More than six years of experience working as a researcher, data analyst, and environmental science and Technology Instructor. Experience in SQL, data warehousing, maintaining, securing and stabilizing data layers and testing to identify data and product defects introduced in the system. Customer segmentation, product positioning and mapping and conjoint analysis Modelling: Design and implement statistical / predictive models and cutting edge algorithms utilizing diverse sources of data to predict Diversified experience with Engineering, Manufacturing, Retailing, Higher Education and IT /Data related companies Fascinated by learning cutting edge technologies, such as; Data Mining and Machine Learning Handled a team of 4 during my 3 years of Tech experience and managed more than 200 students and effectively evaluated the performance of each student and utilize assessment methods to judge overall progress during my teaching experience.",
-      "Financial and Accounting professional with expertise in financial analysis, audit, compliance, financial accounting, forecasting, budgeting, and procurement in the healthcare industry. Strong working knowledge of GAAP, FASB, SOX, and ASC 606 procedures. Exceptional analytical ability and problem-solving skills, analysis and solutions of complex problems in conjunction with managing financial outputs, managing teams to achieve defined outcomes with over 15 years' experience in a variety of organizational roles. Advanced knowledge of Microsoft toolsets. Results oriented with proven track record of quick learning ability, increased responsibilities and rapid advancement.",
-      "A practiced, professional Test Manager with over 20 years of success managing test and validation of next-generation software / hardware technologies across multiple concurrent projects and releases. Delivered effectively to time and budget on a variety of complex, large-scale, multiplatform projects including: complex network framework, IoT (Internet of Things), telecommunication and hosted services, business process tools, automation frameworks. Managed, trained and mentored multi-disciplinary, geographically dispersed teams including, software development, test and validation, planning, QA, configuration management, agile scrum master and product owner."
+      "Enthusiastic, knowledgeable professional with experience and proven success in program and project management, online and instructor led design, development and facilitation. Outstanding problem-solving skills, as proven through implementation of accounting software packages, significantly improving billing and reporting processes. Excellent management skills, encouraging career growth of subordinates through additional training and opportunities. Keep up-to-date with industry changes through professional affiliation.",
+      "Energetic, innovative engineering undergraduate, passionate about Machine Learning, NLP and Deep Learning for solving real-world problems, aiming to work in an organization providing great learning experience and growth opportunities for mutual benefit.",
+      "Associate software engineer specializing in Machine Learning models and Optimization. I work with both natural Language processing and computer vision in terms of Modelling and development.",
+      "Desires an accounting position in a positive working environment that encourages and supports continuing professional growth.",
+      "PhD cleanroom expert looking for an opportunity to work as a full-time module/process engineer in Lam Research"
     ],
     "skills": [
       "Python",
@@ -630,29 +395,274 @@
       "Data Analysis",
       "Excel",
       "Deep Learning",
-      "Java",
       "C++",
+      "Java",
       "Natural Language Processing",
       "Artificial Intelligence",
       "Tableau",
       "Data Science",
       "Microsoft Office",
       "Data Mining",
-      "Data Analytics"
+      "C",
+      "Data Analytics",
+      "documentation",
+      "SAP",
+      "Word",
+      "processes"
     ],
     "responsibilities": [
-      "Hardware & Software Installation",
-      "System Monitoring",
-      "Networking Expertise",
-      "Mail Server Administration",
-      "Security Management"
+      "Design Optimization",
+      "Team Collaboration",
+      "Compliance Assurance",
+      "Manufacturing Support"
     ]
   },
-  "Machine Learning (Ml) Engineer": {
+  "Database Administrator (DBA)": {
     "objectives": [
-      "A highly experienced skilled graduate with Analytics degree with a very good experience in SAS, Web scraping, SQL, Predictive modelling and data visualization. Excellent ability in identifying data requirements for analysis, data cleaning, munging and model building; Ensures the organization uses it effectively to reach profit and growth objectives. Comfortable with data handling, modeling, and coding, and have an appreciation of what makes sense from a business standpoint. More than six years of experience working as a researcher, data analyst, and environmental science and Technology Instructor. Experience in SQL, data warehousing, maintaining, securing and stabilizing data layers and testing to identify data and product defects introduced in the system. Customer segmentation, product positioning and mapping and conjoint analysis Modelling: Design and implement statistical / predictive models and cutting edge algorithms utilizing diverse sources of data to predict Diversified experience with Engineering, Manufacturing, Retailing, Higher Education and IT /Data related companies Fascinated by learning cutting edge technologies, such as; Data Mining and Machine Learning Handled a team of 4 during my 3 years of Tech experience and managed more than 200 students and effectively evaluated the performance of each student and utilize assessment methods to judge overall progress during my teaching experience.",
-      "Financial and Accounting professional with expertise in financial analysis, audit, compliance, financial accounting, forecasting, budgeting, and procurement in the healthcare industry. Strong working knowledge of GAAP, FASB, SOX, and ASC 606 procedures. Exceptional analytical ability and problem-solving skills, analysis and solutions of complex problems in conjunction with managing financial outputs, managing teams to achieve defined outcomes with over 15 years' experience in a variety of organizational roles. Advanced knowledge of Microsoft toolsets. Results oriented with proven track record of quick learning ability, increased responsibilities and rapid advancement.",
-      "A practiced, professional Test Manager with over 20 years of success managing test and validation of next-generation software / hardware technologies across multiple concurrent projects and releases. Delivered effectively to time and budget on a variety of complex, large-scale, multiplatform projects including: complex network framework, IoT (Internet of Things), telecommunication and hosted services, business process tools, automation frameworks. Managed, trained and mentored multi-disciplinary, geographically dispersed teams including, software development, test and validation, planning, QA, configuration management, agile scrum master and product owner."
+      "To obtain a challenging position in a professional and dynamic environment while utilizing my skills and experience to further my career in accounting.",
+      "Highly motivated mechanical engineering student (EIT) interested in pursuing an engaging position in the corporate setting to implement skills honed through years of engineering background. A dedicated student with problem-solving, leadership, and communication skills along with the capability to build relationships and work in a team-oriented environment.",
+      "A python programmer, currently pursuing Data science and looking for roles that involve the application of Machine Learning. I am always excited to take on real life problems and tread through different technology stacks.",
+      "Professional accountant with an outstanding work ethic and integrity seeking to make a valuable contribution utilizing strong analytical, organizational, communication, and computer skills.",
+      "To utilize my customer relations and management background to obtain a position with a company that places importance on efficiency and success. Employ natural leadership and interpersonal skills to build relationships throughout the organization."
+    ],
+    "skills": [
+      "Python",
+      "Machine Learning",
+      "SQL",
+      "Data Analysis",
+      "Excel",
+      "Deep Learning",
+      "Java",
+      "C++",
+      "Artificial Intelligence",
+      "Natural Language Processing",
+      "Tableau",
+      "Data Science",
+      "Microsoft Office",
+      "Data Mining",
+      "documentation",
+      "C",
+      "Data Analytics",
+      "Word",
+      "processes",
+      "SAP"
+    ],
+    "responsibilities": [
+      "Database Design & Development",
+      "SQL Query Optimization",
+      "Data Integrity & Security",
+      "BI Solutions Development",
+      "ETL Process Implementation",
+      "Database Maintenance",
+      "Backup & Restore Management"
+    ]
+  },
+  "Network Support Engineer": {
+    "objectives": [
+      "To obtain a position in the field of civil engineering technician where I can apply and impart the knowledge I have gained through experience and college, as well as to acquire new insight through experience and application.",
+      "I am an experienced analytics specialist seeking a full-time position in the field of data science and application in business problem solving, where I can apply my knowledge and skills for continuous improvement.",
+      "I'm passionate learner with a knack for Artificial Intelligence. The kind of problems AI can solve, fills me with enthusiasm to learn more and contribute more. I have dedicated more than a year developing and training Machine learning Models across several projects.",
+      "I am looking for another opportunity within USA in infrastructure consulting/ Systems Administration that gives me the opportunity to excel in my current skills and paves way for learning new technologies.",
+      "To obtain a computer engineering internship at XYZ Company that will utilize my problem-solving abilities and to further sharpen my skills in computer science."
+    ],
+    "skills": [
+      "Python",
+      "Machine Learning",
+      "SQL",
+      "Data Analysis",
+      "Excel",
+      "Deep Learning",
+      "C++",
+      "Java",
+      "Artificial Intelligence",
+      "Natural Language Processing",
+      "Tableau",
+      "Data Science",
+      "Microsoft Office",
+      "Data Mining",
+      "documentation",
+      "Data Analytics",
+      "C",
+      "SAP",
+      "processes",
+      "Word"
+    ],
+    "responsibilities": [
+      "Mikrotik Router Configuration",
+      "OLT Device Setup & Management",
+      "Integration with Billing Software",
+      "Network Monitoring Tools Integration",
+      "Connectivity Troubleshooting",
+      "Technical Support & Escalation",
+      "Installation & Configuration"
+    ]
+  },
+  "Executive - VAT": {
+    "objectives": [
+      "Expertise EDA modeler. I like to learn what my data contains and how well I can model it depending on the problem. I can also leverage different visualization tools to aid the understanding of the extracted data and finally use the required ML algorithm to get an outcome.",
+      "I am Data science enthusiast focused on solving complex problems using machine learning techniques. I try to simplify problems and attack them head on. Always working and striving to be better solution finder.",
+      "To obtain a position where Teamwork, Integrity and Professionalism are a high standard in the Company's Mission Statement. All while engaging in new challenges and learning experiences.",
+      "I am currently looking for an opportunity as a Data Science or Machine Learning Engineer.",
+      "I am looking for an opportunity to work as a Data Scientist. Possessing right and accurate skills at collecting, analyzing, interpreting large datasets and performing data management tasks. Under the guidance of company's professionals I can contribute to company's success using my extensive analytical skills."
+    ],
+    "skills": [
+      "Python",
+      "Machine Learning",
+      "SQL",
+      "Data Analysis",
+      "Excel",
+      "Deep Learning",
+      "C++",
+      "Java",
+      "Natural Language Processing",
+      "Artificial Intelligence",
+      "Tableau",
+      "Data Science",
+      "Data Mining",
+      "Microsoft Office",
+      "C",
+      "documentation",
+      "Data Analytics",
+      "processes",
+      "SAP",
+      "Word"
+    ],
+    "responsibilities": [
+      "Mushak Forms Maintenance",
+      "VAT Software & MS Office Maintenance",
+      "VAT Ledger Management",
+      "VAT Challan Coordination",
+      "Liaison with VAT Office",
+      "VAT Documentation",
+      "Other Assigned Tasks"
+    ]
+  },
+  "Sr.Officer / Executive - Internal Audit": {
+    "objectives": [
+      "Enthusiastic, knowledgeable professional with experience and proven success in program and project management, online and instructor led design, development and facilitation. Outstanding problem-solving skills, as proven through implementation of accounting software packages, significantly improving billing and reporting processes. Excellent management skills, encouraging career growth of subordinates through additional training and opportunities. Keep up-to-date with industry changes through professional affiliation.",
+      "As a junior analyst I currently work with data preprocessing and data cleaning before sending them to Machine Learning Models. I am also simultaneously training to be a machine learning engineer to work closely with teams that build models and would like to join a venture for such opportunity.",
+      "Fresher starting out with Business Analysis, and machine learning modelling based on data engineering.",
+      "I am an assistant software engineer working on cloud-based solutions. After working on a couple of Machine Learning application evaluations and deployment I got really engrossed into the domain and would like to work more towards improving myself.",
+      "Leadership and team building oriented mentality. Working towards of being a better professional, someone on whom a company can easily rely on. Looking for roles where I can learn and grow my skillset."
+    ],
+    "skills": [
+      "Python",
+      "Machine Learning",
+      "SQL",
+      "Data Analysis",
+      "Excel",
+      "Deep Learning",
+      "Java",
+      "C++",
+      "Natural Language Processing",
+      "Artificial Intelligence",
+      "Tableau",
+      "Data Science",
+      "Data Mining",
+      "Microsoft Office",
+      "Data Analytics",
+      "C",
+      "documentation",
+      "processes",
+      "SAP",
+      "Word"
+    ],
+    "responsibilities": [
+      "Internal Audit Assistance",
+      "Voucher & Bill Verification",
+      "Cost Sheet Analysis",
+      "L/C Voucher Verification",
+      "Expense Verification",
+      "Salary & Wages Verification",
+      "Market Rate Verification"
+    ]
+  },
+  "Management Trainee - Mechanical": {
+    "objectives": [
+      "strong willingness to exhibit my proficiency in Analytical tools, Statistics and Computing Methodologies in the professional environment.",
+      "Extremely motivated to constantly develop my skills and grow professionally. I am confident in my ability to come up with innovative solutions and maintain better software development practices.",
+      "Creative and innovative draftsman, passionate about building designs and advanced construction solutions.Â  Â Seeking the best opportunity to further enhance present professional experience and expand knowledge base on architectural designs, while growing with an organization.",
+      "Industrious recent computer science graduate with a zeal for innovation. Seeking a position at Sikka Software, where the strategic focus on delighting users aligns with my creativity and desire to enhance social events through technology.",
+      "Seeking a long term position. Supervise/manage planning departments for 10 years and improvements were seen in production rates and shipments. Manage/supervise estimating and quoting departments and reduced costs. Experience in reviewing documentation such as BOM's, routings, SOP's, routings, and change management, which led to reduced costs and improved deliveries. Implement a demand/capacity system and electronic work instruction system, which led to faster shipments to the customer. Experience includes ISO, Lean, Six Sigma, and APICS environments. MRP/ ERP systems include WDS, Syteline, Microsoft Great Plains, and others."
+    ],
+    "skills": [
+      "Python",
+      "Machine Learning",
+      "SQL",
+      "Data Analysis",
+      "Excel",
+      "Deep Learning",
+      "C++",
+      "Java",
+      "Natural Language Processing",
+      "Artificial Intelligence",
+      "Tableau",
+      "Data Science",
+      "Data Mining",
+      "Microsoft Office",
+      "C",
+      "Data Analytics",
+      "documentation",
+      "SAP",
+      "Word",
+      "processes"
+    ],
+    "responsibilities": [
+      "Management Trainee",
+      "Mechanical Systems",
+      "Maintenance & Troubleshooting",
+      "Performance Analysis",
+      "Process Improvement",
+      "Training & Development",
+      "Administrative Support"
+    ]
+  },
+  "Marketing Officer": {
+    "objectives": [
+      "I am a software developer currently working on Machine Learning Projects. The domain of analytics and Machine Learning has amassed a greater interest for me and I want to explore and learn about the core concepts used in production. I am looking to switch to a fulltime role that will help me explore more about this.",
+      "Seeking a technical position within an engineering team.",
+      "I am a market research specialist with a grasp of machine learning and looking for a deeper dive into the career of being a professional machine learning engineer.",
+      "Fresher starting out with Business Analysis, and machine learning modelling based on data engineering.",
+      "Proficient Entry Level Electrical Engineer with excellent technical, analytical and communication skills. Willing to relocate anywhere in the US."
+    ],
+    "skills": [
+      "Python",
+      "Machine Learning",
+      "SQL",
+      "Data Analysis",
+      "Excel",
+      "Deep Learning",
+      "C++",
+      "Java",
+      "Natural Language Processing",
+      "Artificial Intelligence",
+      "Tableau",
+      "Data Science",
+      "Data Mining",
+      "Microsoft Office",
+      "documentation",
+      "C",
+      "Data Analytics",
+      "Word",
+      "SAP",
+      "processes"
+    ],
+    "responsibilities": [
+      "Digital Marketing Strategy",
+      "Brand Awareness, Online Traffic",
+      "Social Media Management",
+      "Google Analytics",
+      "Cross-functional Teams",
+      "Campaign Execution, SEO"
+    ]
+  },
+  "Machine Learning (ML) Engineer": {
+    "objectives": [
+      "Fresher looking to join as a data analyst and junior data scientist. Experienced in creating meaningful data dashboards and evaluation models.",
+      "Seeking Roles In Machine Learning, Natural Language Processing, Deep Learning. Previously worked as a Data Processing intern. Having good knowledge in using Python Libraries and different data processing tools.",
+      "Expertise EDA modeler. I like to learn what my data contains and how well I can model it depending on the problem. I can also leverage different visualization tools to aid the understanding of the extracted data and finally use the required ML algorithm to get an outcome.",
+      "An avid data analyst looking to step into the world of machine learning and data sciences. I have experience related to Data Mining, Data Visualization, Text Analytics, Data Collection and would currently like to expand my horizon and work on Machine Learning projects.",
+      "Data Engineer who is experienced with Text Analytics and Natural Language Processing. I have also worked on Big Data Analytics using hadoop"
     ],
     "skills": [
       "Python",
@@ -669,21 +679,70 @@
       "Data Science",
       "Microsoft Office",
       "Data Mining",
-      "Data Analytics"
+      "Data Analytics",
+      "documentation",
+      "C",
+      "Word",
+      "processes",
+      "SAP"
     ],
     "responsibilities": [
       "Machine Learning Leadership",
       "Cross-Functional Collaboration",
       "Strategy Development",
       "ML/NLP Infrastructure",
-      "Prototype Transformation"
+      "Prototype Transformation",
+      "ML System Design",
+      "Algorithm Research"
     ]
   },
-  "Devops Engineer": {
+  "Executive/ Sr. Executive -IT": {
     "objectives": [
-      "A highly experienced skilled graduate with Analytics degree with a very good experience in SAS, Web scraping, SQL, Predictive modelling and data visualization. Excellent ability in identifying data requirements for analysis, data cleaning, munging and model building; Ensures the organization uses it effectively to reach profit and growth objectives. Comfortable with data handling, modeling, and coding, and have an appreciation of what makes sense from a business standpoint. More than six years of experience working as a researcher, data analyst, and environmental science and Technology Instructor. Experience in SQL, data warehousing, maintaining, securing and stabilizing data layers and testing to identify data and product defects introduced in the system. Customer segmentation, product positioning and mapping and conjoint analysis Modelling: Design and implement statistical / predictive models and cutting edge algorithms utilizing diverse sources of data to predict Diversified experience with Engineering, Manufacturing, Retailing, Higher Education and IT /Data related companies Fascinated by learning cutting edge technologies, such as; Data Mining and Machine Learning Handled a team of 4 during my 3 years of Tech experience and managed more than 200 students and effectively evaluated the performance of each student and utilize assessment methods to judge overall progress during my teaching experience.",
-      "Financial and Accounting professional with expertise in financial analysis, audit, compliance, financial accounting, forecasting, budgeting, and procurement in the healthcare industry. Strong working knowledge of GAAP, FASB, SOX, and ASC 606 procedures. Exceptional analytical ability and problem-solving skills, analysis and solutions of complex problems in conjunction with managing financial outputs, managing teams to achieve defined outcomes with over 15 years' experience in a variety of organizational roles. Advanced knowledge of Microsoft toolsets. Results oriented with proven track record of quick learning ability, increased responsibilities and rapid advancement.",
-      "A practiced, professional Test Manager with over 20 years of success managing test and validation of next-generation software / hardware technologies across multiple concurrent projects and releases. Delivered effectively to time and budget on a variety of complex, large-scale, multiplatform projects including: complex network framework, IoT (Internet of Things), telecommunication and hosted services, business process tools, automation frameworks. Managed, trained and mentored multi-disciplinary, geographically dispersed teams including, software development, test and validation, planning, QA, configuration management, agile scrum master and product owner."
+      "Machine Learning engineer who has worked on multiple projects with knowledge in big data handling and business analytics. As someone who is always learning, I would love to use my knowledge to provide the best solutions.",
+      "Graduate analyst currently working as business analyst consultant. As an individual, I always try to overcome problems in the most analytical manner. I want to work on Machine Learning application problems that deal with real life scenarios.",
+      "Senior Computer Vision Scientist with 10+ years of experience working with data and data sets of varying size and complexity. As a seasoned Computer Scientist, I am looking to continue my career in a senior or director-level position with AbCellera.",
+      "I am looking for a job switch to transition into Data Science and utilize my currents skills & learnings from my Master's course to solve new problems.",
+      "Data Engineer who is experienced with Text Analytics and Natural Language Processing. I have also worked on Big Data Analytics using hadoop"
+    ],
+    "skills": [
+      "Python",
+      "Machine Learning",
+      "SQL",
+      "Data Analysis",
+      "Excel",
+      "Deep Learning",
+      "Java",
+      "C++",
+      "Natural Language Processing",
+      "Artificial Intelligence",
+      "Tableau",
+      "Data Science",
+      "Microsoft Office",
+      "Data Mining",
+      "Data Analytics",
+      "C",
+      "documentation",
+      "Word",
+      "SAP",
+      "processes"
+    ],
+    "responsibilities": [
+      "Hardware & Software Installation",
+      "System Monitoring",
+      "Networking Expertise",
+      "Mail Server Administration",
+      "Security Management",
+      "Troubleshooting & Repair",
+      "Operations Support"
+    ]
+  },
+  "DevOps Engineer": {
+    "objectives": [
+      "Computer Science graduate with 2+ years of experience in systems management, information technology, and data administration. Demonstrated exceptional knowledge in all phases of multiple framework application infrastructures, development, technical process improvement, and system integration.",
+      "Flexible, autonomous graduate with an MS in Computer Science looking to leverage experience building responsive and scalable web apps to solve problems that delight end-users. Motivated to learn from senior engineers while sharing innovative ideas in an environment like Odoo that values personal growth.",
+      "Dedicated computer science student with a strong command of Python and proficiency in Visual Studio Code, seeking a role as an entry-level software developer at Amazon. Eager to bring my ability to develop, test, and maintain software to a dynamic team that values innovation.",
+      "Dedicated and well-rounded software engineer with a passion for math, computer science, and elite education. Bringing 12+ years of teaching expertise to help Amazon's Career Fulfillment students feel the same joy and pride in my comprehensive JavaScript computer science program as my past 150+ high school students. Eager to teach the basics, get students the tools they need, and foster their passion to reach their goals.",
+      "Highly motivated mechanical engineering student (EIT) interested in pursuing an engaging position in the corporate setting to implement skills honed through years of engineering background. A dedicated student with problem-solving, leadership, and communication skills along with the capability to build relationships and work in a team-oriented environment."
     ],
     "skills": [
       "Python",
@@ -700,21 +759,30 @@
       "Data Science",
       "Microsoft Office",
       "Data Mining",
-      "Data Analytics"
+      "Data Analytics",
+      "documentation",
+      "C",
+      "Word",
+      "processes",
+      "SAP"
     ],
     "responsibilities": [
       "Open-Source Technologies",
       "CI/CD Culture & Tooling",
       "Product Availability & Scalability",
       "Automation (Build & Deploy)",
-      "Monitoring & Reliability"
+      "Monitoring & Reliability",
+      "Infrastructure Innovation",
+      "Software Engineering Velocity"
     ]
   },
   "Data Engineer": {
     "objectives": [
-      "A highly experienced skilled graduate with Analytics degree with a very good experience in SAS, Web scraping, SQL, Predictive modelling and data visualization. Excellent ability in identifying data requirements for analysis, data cleaning, munging and model building; Ensures the organization uses it effectively to reach profit and growth objectives. Comfortable with data handling, modeling, and coding, and have an appreciation of what makes sense from a business standpoint. More than six years of experience working as a researcher, data analyst, and environmental science and Technology Instructor. Experience in SQL, data warehousing, maintaining, securing and stabilizing data layers and testing to identify data and product defects introduced in the system. Customer segmentation, product positioning and mapping and conjoint analysis Modelling: Design and implement statistical / predictive models and cutting edge algorithms utilizing diverse sources of data to predict Diversified experience with Engineering, Manufacturing, Retailing, Higher Education and IT /Data related companies Fascinated by learning cutting edge technologies, such as; Data Mining and Machine Learning Handled a team of 4 during my 3 years of Tech experience and managed more than 200 students and effectively evaluated the performance of each student and utilize assessment methods to judge overall progress during my teaching experience.",
-      "Financial and Accounting professional with expertise in financial analysis, audit, compliance, financial accounting, forecasting, budgeting, and procurement in the healthcare industry. Strong working knowledge of GAAP, FASB, SOX, and ASC 606 procedures. Exceptional analytical ability and problem-solving skills, analysis and solutions of complex problems in conjunction with managing financial outputs, managing teams to achieve defined outcomes with over 15 years' experience in a variety of organizational roles. Advanced knowledge of Microsoft toolsets. Results oriented with proven track record of quick learning ability, increased responsibilities and rapid advancement.",
-      "A practiced, professional Test Manager with over 20 years of success managing test and validation of next-generation software / hardware technologies across multiple concurrent projects and releases. Delivered effectively to time and budget on a variety of complex, large-scale, multiplatform projects including: complex network framework, IoT (Internet of Things), telecommunication and hosted services, business process tools, automation frameworks. Managed, trained and mentored multi-disciplinary, geographically dispersed teams including, software development, test and validation, planning, QA, configuration management, agile scrum master and product owner."
+      "Graduate Looking for roles related to BU analyst and machine learning.",
+      "Machine Learning Engineer seeking roles in Machine Learning, Natural Language Processing, Artificial Intelligence, Data Science.",
+      "As a Data Analyst I always look into more innovative ways of finding figures and facts from data. I have also worked with some production based Machine learning application problems and I would like to involve myself more with such ventures.",
+      "Graduate of computer science with experience working across the full-stack of software development. Looking for a role where I can grow and learn from experienced team members while drawing on project experience I have already successfully executed.",
+      "As a recent graduate, I am looking for roles that challenge me and feed my craving for learning. I can easily adapt to new technologies, understand and work with a variety of people, and always looking to solving business problems in much more technology sophisticated ways."
     ],
     "skills": [
       "Python",
@@ -731,21 +799,30 @@
       "Data Science",
       "Microsoft Office",
       "Data Mining",
-      "documentation"
+      "documentation",
+      "C",
+      "Data Analytics",
+      "processes",
+      "Word",
+      "SAP"
     ],
     "responsibilities": [
       "Data Platform Design",
       "Data Pipeline Development",
-      "ETL Processes",
       "SQL Query Optimization",
-      "Data Integration & Transformation"
+      "Data Integration & Transformation",
+      "Stakeholder Collaboration",
+      "Data Quality Monitoring",
+      "Continuous Learning"
     ]
   },
-  "Full Stack Developer (Python,React Js)": {
+  "Full Stack Developer (Python,React js)": {
     "objectives": [
-      "A highly experienced skilled graduate with Analytics degree with a very good experience in SAS, Web scraping, SQL, Predictive modelling and data visualization. Excellent ability in identifying data requirements for analysis, data cleaning, munging and model building; Ensures the organization uses it effectively to reach profit and growth objectives. Comfortable with data handling, modeling, and coding, and have an appreciation of what makes sense from a business standpoint. More than six years of experience working as a researcher, data analyst, and environmental science and Technology Instructor. Experience in SQL, data warehousing, maintaining, securing and stabilizing data layers and testing to identify data and product defects introduced in the system. Customer segmentation, product positioning and mapping and conjoint analysis Modelling: Design and implement statistical / predictive models and cutting edge algorithms utilizing diverse sources of data to predict Diversified experience with Engineering, Manufacturing, Retailing, Higher Education and IT /Data related companies Fascinated by learning cutting edge technologies, such as; Data Mining and Machine Learning Handled a team of 4 during my 3 years of Tech experience and managed more than 200 students and effectively evaluated the performance of each student and utilize assessment methods to judge overall progress during my teaching experience.",
-      "Financial and Accounting professional with expertise in financial analysis, audit, compliance, financial accounting, forecasting, budgeting, and procurement in the healthcare industry. Strong working knowledge of GAAP, FASB, SOX, and ASC 606 procedures. Exceptional analytical ability and problem-solving skills, analysis and solutions of complex problems in conjunction with managing financial outputs, managing teams to achieve defined outcomes with over 15 years' experience in a variety of organizational roles. Advanced knowledge of Microsoft toolsets. Results oriented with proven track record of quick learning ability, increased responsibilities and rapid advancement.",
-      "A practiced, professional Test Manager with over 20 years of success managing test and validation of next-generation software / hardware technologies across multiple concurrent projects and releases. Delivered effectively to time and budget on a variety of complex, large-scale, multiplatform projects including: complex network framework, IoT (Internet of Things), telecommunication and hosted services, business process tools, automation frameworks. Managed, trained and mentored multi-disciplinary, geographically dispersed teams including, software development, test and validation, planning, QA, configuration management, agile scrum master and product owner."
+      "A Software Designer Internship with a client-driven corporation leading the field of wireless communication, where outstanding success in team projects, involving design and implementation of software, as well as proven ability to deliver high quality projects on-time will contribute to the implementation, testing and support of innovative wireless products.",
+      "Currently seeking the next career challenge of continuing the path of accounting management in a small to medium-sized company that needs an involved professional with demonstrated leadership experience.",
+      "Fresher Computer vision and Machine Learning Engineer looking for a job that is both challenging and fun in terms of problem-solving. Also an expert in maintaining and managing Tableau and Power BI dashboards to address business.",
+      "A versatile and dynamic manager and marketing professional with more than (20) years of sales, management, marketing and promotional experience. A goal oriented and trusted leader, able to communicate effectively with people of all ages and backgrounds, to work collaboratively to resolve problems and to motivate team members to achieve personal and organizational objectives.",
+      "A quality-oriented professional with a keen interest in solving complex business problems by way of AI-based design & thinking. A technology-agnostic individual with a strong background in data science, statistics, and economics with an aim to accelerate artificial intelligence."
     ],
     "skills": [
       "Python",
@@ -762,21 +839,30 @@
       "Data Science",
       "Data Mining",
       "Microsoft Office",
-      "C"
+      "C",
+      "Data Analytics",
+      "documentation",
+      "Word",
+      "processes",
+      "SAP"
     ],
     "responsibilities": [
       "Full Stack Development",
-      "Front-end: ReactJS",
-      "Backend: Python",
+      "Front-end: ReactJS, NextJS",
+      "Backend: Python, Django",
       "Server-Side Logic",
-      "DRF (Django REST Framework)"
+      "DRF (Django REST Framework)",
+      "Database Management (PostgreSQL, MySQL)",
+      "Version Control (Git)"
     ]
   },
-  "Senior Ios Engineer": {
+  "Senior iOS Engineer": {
     "objectives": [
-      "A highly experienced skilled graduate with Analytics degree with a very good experience in SAS, Web scraping, SQL, Predictive modelling and data visualization. Excellent ability in identifying data requirements for analysis, data cleaning, munging and model building; Ensures the organization uses it effectively to reach profit and growth objectives. Comfortable with data handling, modeling, and coding, and have an appreciation of what makes sense from a business standpoint. More than six years of experience working as a researcher, data analyst, and environmental science and Technology Instructor. Experience in SQL, data warehousing, maintaining, securing and stabilizing data layers and testing to identify data and product defects introduced in the system. Customer segmentation, product positioning and mapping and conjoint analysis Modelling: Design and implement statistical / predictive models and cutting edge algorithms utilizing diverse sources of data to predict Diversified experience with Engineering, Manufacturing, Retailing, Higher Education and IT /Data related companies Fascinated by learning cutting edge technologies, such as; Data Mining and Machine Learning Handled a team of 4 during my 3 years of Tech experience and managed more than 200 students and effectively evaluated the performance of each student and utilize assessment methods to judge overall progress during my teaching experience.",
-      "Financial and Accounting professional with expertise in financial analysis, audit, compliance, financial accounting, forecasting, budgeting, and procurement in the healthcare industry. Strong working knowledge of GAAP, FASB, SOX, and ASC 606 procedures. Exceptional analytical ability and problem-solving skills, analysis and solutions of complex problems in conjunction with managing financial outputs, managing teams to achieve defined outcomes with over 15 years' experience in a variety of organizational roles. Advanced knowledge of Microsoft toolsets. Results oriented with proven track record of quick learning ability, increased responsibilities and rapid advancement.",
-      "A practiced, professional Test Manager with over 20 years of success managing test and validation of next-generation software / hardware technologies across multiple concurrent projects and releases. Delivered effectively to time and budget on a variety of complex, large-scale, multiplatform projects including: complex network framework, IoT (Internet of Things), telecommunication and hosted services, business process tools, automation frameworks. Managed, trained and mentored multi-disciplinary, geographically dispersed teams including, software development, test and validation, planning, QA, configuration management, agile scrum master and product owner."
+      "Professional accountant with an outstanding work ethic and integrity seeking to make a valuable contribution utilizing strong analytical, organizational, communication, and computer skills.",
+      "Committed and motivated professional with exceptional customer service and decision making skills. Extensive experience working with a diverse client base and delivering results. High-achieving professional possessing excellent communication, organizational and analytical capabilities. Background in business development, customer service and project management.",
+      "Currently seeking the next career challenge of continuing the path of accounting management in a small to medium-sized company that needs an involved professional with demonstrated leadership experience.",
+      "Machine Learning Engineer seeking assignments Deep Learning, Reinforcement Learning, Tensorflow. Keras.",
+      "Leadership and team building oriented mentality. Working towards of being a better professional, someone on whom a company can easily rely on. Looking for roles where I can learn and grow my skillset."
     ],
     "skills": [
       "Python",
@@ -793,21 +879,30 @@
       "Data Science",
       "Data Mining",
       "Microsoft Office",
-      "documentation"
+      "documentation",
+      "Data Analytics",
+      "C",
+      "Word",
+      "processes",
+      "SAP"
     ],
     "responsibilities": [
-      "iOS Lifecycle",
       "Requirement Analysis",
       "Native Frameworks",
-      "iOS Development",
-      "API Integration"
+      "Technical Communication",
+      "Performance Optimization",
+      "Feature Collaboration",
+      "Code Translation",
+      "High-Performance Development"
     ]
   },
   "Data Science Engineer": {
     "objectives": [
-      "A highly experienced skilled graduate with Analytics degree with a very good experience in SAS, Web scraping, SQL, Predictive modelling and data visualization. Excellent ability in identifying data requirements for analysis, data cleaning, munging and model building; Ensures the organization uses it effectively to reach profit and growth objectives. Comfortable with data handling, modeling, and coding, and have an appreciation of what makes sense from a business standpoint. More than six years of experience working as a researcher, data analyst, and environmental science and Technology Instructor. Experience in SQL, data warehousing, maintaining, securing and stabilizing data layers and testing to identify data and product defects introduced in the system. Customer segmentation, product positioning and mapping and conjoint analysis Modelling: Design and implement statistical / predictive models and cutting edge algorithms utilizing diverse sources of data to predict Diversified experience with Engineering, Manufacturing, Retailing, Higher Education and IT /Data related companies Fascinated by learning cutting edge technologies, such as; Data Mining and Machine Learning Handled a team of 4 during my 3 years of Tech experience and managed more than 200 students and effectively evaluated the performance of each student and utilize assessment methods to judge overall progress during my teaching experience.",
-      "Financial and Accounting professional with expertise in financial analysis, audit, compliance, financial accounting, forecasting, budgeting, and procurement in the healthcare industry. Strong working knowledge of GAAP, FASB, SOX, and ASC 606 procedures. Exceptional analytical ability and problem-solving skills, analysis and solutions of complex problems in conjunction with managing financial outputs, managing teams to achieve defined outcomes with over 15 years' experience in a variety of organizational roles. Advanced knowledge of Microsoft toolsets. Results oriented with proven track record of quick learning ability, increased responsibilities and rapid advancement.",
-      "A practiced, professional Test Manager with over 20 years of success managing test and validation of next-generation software / hardware technologies across multiple concurrent projects and releases. Delivered effectively to time and budget on a variety of complex, large-scale, multiplatform projects including: complex network framework, IoT (Internet of Things), telecommunication and hosted services, business process tools, automation frameworks. Managed, trained and mentored multi-disciplinary, geographically dispersed teams including, software development, test and validation, planning, QA, configuration management, agile scrum master and product owner."
+      "I am fresher data analyst starting out in ERP and MIS. As a fresher I am looking for roles specific to data science and machine learning to learn about the subject and create amazing applications to solve real life problems.",
+      "Recently graduated fresher experienced in Machine Learning and Natural Language Processing looking for roles that involve projects in the same.",
+      "To obtain a computer engineering internship at XYZ Company that will utilize my problem-solving abilities and to further sharpen my skills in computer science.",
+      "Computer Repair Technician",
+      "Graduate analyst currently working as business analyst consultant. As an individual, I always try to overcome problems in the most analytical manner. I want to work on Machine Learning application problems that deal with real life scenarios."
     ],
     "skills": [
       "Python",
@@ -824,45 +919,21 @@
       "Data Science",
       "Data Mining",
       "Microsoft Office",
-      "Data Analytics"
+      "Data Analytics",
+      "documentation",
+      "C",
+      "Word",
+      "SAP",
+      "processes"
     ],
     "responsibilities": [
       "Application Development",
       "Object-Oriented Design",
-      "Collaboration",
-      "Problem-Solving",
-      "Software Lifecycle"
-    ]
-  },
-  "Intern (Generative Ai Engineering - 2D/3D Image Generation)": {
-    "objectives": [
-      "A highly experienced skilled graduate with Analytics degree with a very good experience in SAS, Web scraping, SQL, Predictive modelling and data visualization. Excellent ability in identifying data requirements for analysis, data cleaning, munging and model building; Ensures the organization uses it effectively to reach profit and growth objectives. Comfortable with data handling, modeling, and coding, and have an appreciation of what makes sense from a business standpoint. More than six years of experience working as a researcher, data analyst, and environmental science and Technology Instructor. Experience in SQL, data warehousing, maintaining, securing and stabilizing data layers and testing to identify data and product defects introduced in the system. Customer segmentation, product positioning and mapping and conjoint analysis Modelling: Design and implement statistical / predictive models and cutting edge algorithms utilizing diverse sources of data to predict Diversified experience with Engineering, Manufacturing, Retailing, Higher Education and IT /Data related companies Fascinated by learning cutting edge technologies, such as; Data Mining and Machine Learning Handled a team of 4 during my 3 years of Tech experience and managed more than 200 students and effectively evaluated the performance of each student and utilize assessment methods to judge overall progress during my teaching experience.",
-      "Financial and Accounting professional with expertise in financial analysis, audit, compliance, financial accounting, forecasting, budgeting, and procurement in the healthcare industry. Strong working knowledge of GAAP, FASB, SOX, and ASC 606 procedures. Exceptional analytical ability and problem-solving skills, analysis and solutions of complex problems in conjunction with managing financial outputs, managing teams to achieve defined outcomes with over 15 years' experience in a variety of organizational roles. Advanced knowledge of Microsoft toolsets. Results oriented with proven track record of quick learning ability, increased responsibilities and rapid advancement.",
-      "A practiced, professional Test Manager with over 20 years of success managing test and validation of next-generation software / hardware technologies across multiple concurrent projects and releases. Delivered effectively to time and budget on a variety of complex, large-scale, multiplatform projects including: complex network framework, IoT (Internet of Things), telecommunication and hosted services, business process tools, automation frameworks. Managed, trained and mentored multi-disciplinary, geographically dispersed teams including, software development, test and validation, planning, QA, configuration management, agile scrum master and product owner."
-    ],
-    "skills": [
-      "Python",
-      "Machine Learning",
-      "SQL",
-      "Data Analysis",
-      "Excel",
-      "Deep Learning",
-      "C++",
-      "Java",
-      "Natural Language Processing",
-      "Artificial Intelligence",
-      "Tableau",
-      "Data Science",
-      "Data Mining",
-      "Microsoft Office",
-      "documentation"
-    ],
-    "responsibilities": [
-      "Generative AI Development",
-      "Evolutionary Computation",
-      "Deep Learning Optimization",
-      "Expert Systems Design",
-      "Knowledge Representation"
+      "Software Lifecycle",
+      "Software Testing",
+      "Performance Monitoring",
+      "Plugin Development",
+      "Integration Support"
     ]
   }
 }

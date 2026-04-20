@@ -55,7 +55,7 @@ export default function CompanyProfileTab() {
       } else {
         setError(data.error || 'Lỗi khi cập nhật hồ sơ');
       }
-    } catch (err) {
+    } catch {
       setError('Lỗi kết nối mạng');
     } finally {
       setSaving(false);

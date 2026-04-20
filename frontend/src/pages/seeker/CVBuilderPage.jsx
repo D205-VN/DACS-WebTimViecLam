@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, Sparkles, Download, Loader2, User, Mail, Phone, Target, GraduationCap, Briefcase, Wrench, Award, Heart, Plus } from 'lucide-react';
-import { useAuth } from '../context/AuthContext';
+import { ArrowLeft, Sparkles, Download, Loader2, User, Mail, Phone, Target, GraduationCap, Briefcase, Wrench, Award, Heart, Plus, Save, CheckCircle } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
 
 const API = '/api/cv';
 
@@ -14,6 +14,8 @@ export default function CVBuilderPage() {
   
   const [cvHtml, setCvHtml] = useState('');
   const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [saveSuccess, setSaveSuccess] = useState(false);
   const [error, setError] = useState('');
   const cvRef = useRef(null);
 
@@ -74,6 +76,29 @@ export default function CVBuilderPage() {
       image: { type: 'jpeg', quality: 0.98 },
       html2canvas: { scale: 2 }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
     }).from(cvRef.current).save();
+  };
+
+  const handleSave = async () => {
+    if (!cvHtml) return;
+    setSaving(true);
+    try {
+      const res = await fetch(`${API}/save`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          title: `CV - ${form.role || 'Cơ bản'}`,
+          target_role: form.role,
+          html_content: cvHtml
+        }),
+      });
+      if (!res.ok) throw new Error('Không thể lưu CV');
+      setSaveSuccess(true);
+      setTimeout(() => setSaveSuccess(false), 3000);
+    } catch (err) {
+      alert(err.message);
+    } finally {
+      setSaving(false);
+    }
   };
 
   const inputClass = 'w-full px-4 py-3 bg-white border border-gray-200 rounded-xl text-sm text-gray-700 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-navy-200 focus:border-navy-400 transition-all';
@@ -196,9 +221,14 @@ export default function CVBuilderPage() {
             <div className="flex items-center justify-between mb-3">
               <h2 className="text-base font-bold text-gray-800">Xem trước CV</h2>
               {cvHtml && (
-                <button onClick={handleDownload} className="flex items-center gap-1.5 px-4 py-2 text-sm font-semibold text-navy-700 bg-navy-50 rounded-lg hover:bg-navy-100 transition-colors">
-                  <Download className="w-4 h-4" /> Tải PDF
-                </button>
+                <div className="flex gap-2">
+                  <button onClick={handleSave} disabled={saving || saveSuccess} className="flex items-center gap-1.5 px-4 py-2 text-sm font-semibold text-white bg-navy-600 rounded-lg hover:bg-navy-700 transition-colors disabled:opacity-70">
+                    {saveSuccess ? <><CheckCircle className="w-4 h-4" /> Đã lưu</> : saving ? <><Loader2 className="w-4 h-4 animate-spin" /> Đang lưu...</> : <><Save className="w-4 h-4" /> Lưu hồ sơ</>}
+                  </button>
+                  <button onClick={handleDownload} className="flex items-center gap-1.5 px-4 py-2 text-sm font-semibold text-navy-700 bg-navy-50 rounded-lg hover:bg-navy-100 transition-colors">
+                    <Download className="w-4 h-4" /> Tải PDF
+                  </button>
+                </div>
               )}
             </div>
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden min-h-[600px] flex flex-col">

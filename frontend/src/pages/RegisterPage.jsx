@@ -12,7 +12,7 @@ export default function RegisterPage() {
   const [step, setStep] = useState(location.state?.pendingEmail ? 2 : 1); // 1=form, 2=OTP
   const [formData, setFormData] = useState({
     fullName: '', email: '', phone: '', password: '', confirmPassword: '',
-    role: 'seeker', agreeTerms: false,
+    role_code: 'seeker', agreeTerms: false,
     companyName: '', companyEmail: '', cityCode: '', wardCode: '',
   });
   const [showPassword, setShowPassword] = useState(false);
@@ -48,7 +48,7 @@ export default function RegisterPage() {
   }, [otpCountdown]);
 
   const handleChange = (field, value) => setFormData(p => ({ ...p, [field]: value }));
-  const isEmployer = formData.role === 'employer';
+  const isEmployer = formData.role_code === 'employer';
   
   // Use pendingEmail if navigating from login, otherwise use form data
   const pendingEmail = location.state?.pendingEmail;
@@ -74,7 +74,7 @@ export default function RegisterPage() {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           fullName: formData.fullName, email: emailForOTP, phone: formData.phone,
-          password: formData.password, role: formData.role,
+          password: formData.password, role_code: formData.role_code,
           companyName: formData.companyName || null, companyEmail: formData.companyEmail || null,
           companyCity: selectedCity?.name || null, companyWard: selectedWard?.name || null,
         }),
@@ -130,12 +130,6 @@ export default function RegisterPage() {
     } catch (err) { setError(err.message); } finally { setLoading(false); }
   };
 
-  const handleGoogleRegister = () => {
-    if (window.google) {
-      window.google.accounts.id.prompt();
-    } else { setError('Google Sign-In chưa sẵn sàng. Vui lòng thử lại.'); }
-  };
-
   // Init Google Sign-In
   useEffect(() => {
     const script = document.createElement('script');
@@ -164,6 +158,7 @@ export default function RegisterPage() {
     };
     document.head.appendChild(script);
     return () => { document.head.removeChild(script); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const inputClass = 'w-full pl-12 pr-4 py-3 bg-white border border-gray-200 rounded-xl text-sm text-gray-700 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-navy-200 focus:border-navy-400 transition-all';
@@ -220,8 +215,8 @@ export default function RegisterPage() {
               {/* Role Selection */}
               <div className="flex gap-3 mb-6">
                 {[['seeker', '🔍 Tìm việc'], ['employer', '🏢 Nhà tuyển dụng']].map(([r, label]) => (
-                  <button key={r} type="button" onClick={() => handleChange('role', r)}
-                    className={`flex-1 py-3 rounded-xl text-sm font-semibold border-2 transition-all duration-200 ${formData.role === r ? 'border-navy-600 bg-navy-50 text-navy-700 shadow-sm' : 'border-gray-200 bg-white text-gray-500 hover:border-gray-300'}`}>
+                  <button key={r} type="button" onClick={() => handleChange('role_code', r)}
+                    className={`flex-1 py-3 rounded-xl text-sm font-semibold border-2 transition-all duration-200 ${formData.role_code === r ? 'border-navy-600 bg-navy-50 text-navy-700 shadow-sm' : 'border-gray-200 bg-white text-gray-500 hover:border-gray-300'}`}>
                     {label}
                   </button>
                 ))}

@@ -15,7 +15,7 @@ function generateOTP() {
 // Helper: create JWT token
 function createToken(user) {
   return jwt.sign(
-    { id: user.id, email: user.email, role: user.role_code, role_name: user.role_name },
+    { id: user.id, email: user.email, role_code: user.role_code, role_name: user.role_name },
     process.env.JWT_SECRET,
     { expiresIn: '7d' }
   );
@@ -26,7 +26,7 @@ function createToken(user) {
  * Đăng ký tài khoản mới + gửi OTP qua email
  */
 async function register(req, res) {
-  const { fullName, email, phone, password, role, companyName, companyEmail, companyCity, companyWard } = req.body;
+  const { fullName, email, phone, password, role_code, companyName, companyEmail, companyCity, companyWard } = req.body;
 
   try {
     // Check existing user
@@ -45,7 +45,7 @@ async function register(req, res) {
     const passwordHash = await bcrypt.hash(password, salt);
 
     // Map role string to role_id
-    const roleId = role === 'employer' ? 2 : 3;
+    const roleId = role_code === 'employer' ? 2 : 3;
 
     // Insert user
     const result = await pool.query(

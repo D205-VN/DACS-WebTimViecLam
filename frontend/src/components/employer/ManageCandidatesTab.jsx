@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Search, Mail, Phone, Eye, MoreHorizontal, CheckCircle, Loader2, Briefcase, XCircle, Clock } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
@@ -10,7 +10,7 @@ export default function ManageCandidatesTab() {
   const [activeStage, setActiveStage] = useState('all');
   const [actionLoading, setActionLoading] = useState(null);
   
-  const fetchCandidates = async () => {
+  const fetchCandidates = useCallback(async () => {
     try {
       const res = await fetch('/api/employer/candidates', {
         headers: { Authorization: `Bearer ${token}` },
@@ -27,11 +27,11 @@ export default function ManageCandidatesTab() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [token]);
 
   useEffect(() => {
     if (token) fetchCandidates();
-  }, [token]);
+  }, [token, fetchCandidates]);
 
   const handleStatusUpdate = async (applicationId, newStatus) => {
     setActionLoading(applicationId);
@@ -50,7 +50,7 @@ export default function ManageCandidatesTab() {
         const data = await res.json();
         alert(data.error || 'Lỗi khi cập nhật trạng thái');
       }
-    } catch (err) {
+    } catch {
       alert('Lỗi kết nối');
     } finally {
       setActionLoading(null);

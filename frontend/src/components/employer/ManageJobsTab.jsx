@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { MapPin, Edit, Power, Trash2, Loader2, Plus, X, CheckCircle2, AlertCircle, Eye, Briefcase, Clock, DollarSign, Calendar, Users, FileText } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
@@ -33,7 +33,7 @@ export default function ManageJobsTab() {
   // View Modal State
   const [viewingJob, setViewingJob] = useState(null);
 
-  const fetchJobs = async () => {
+  const fetchJobs = useCallback(async () => {
     setLoading(true);
     try {
       const res = await fetch('/api/employer/jobs', {
@@ -51,11 +51,11 @@ export default function ManageJobsTab() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [token]);
 
   useEffect(() => {
     if (token) fetchJobs();
-  }, [token]);
+  }, [token, fetchJobs]);
 
   const handleStatusChange = async (jobId, currentStatus) => {
     const newStatus = currentStatus === 'Đang tuyển' ? 'Ngừng tuyển' : 'Đang tuyển';
@@ -77,7 +77,7 @@ export default function ManageJobsTab() {
         const data = await res.json();
         alert(data.error || 'Lỗi khi cập nhật trạng thái');
       }
-    } catch (err) {
+    } catch {
       alert('Lỗi kết nối');
     } finally {
       setActionLoading(null);
@@ -99,7 +99,7 @@ export default function ManageJobsTab() {
         const data = await res.json();
         alert(data.error || 'Lỗi khi xóa tin');
       }
-    } catch (err) {
+    } catch {
       alert('Lỗi kết nối');
     } finally {
       setActionLoading(null);
@@ -141,7 +141,7 @@ export default function ManageJobsTab() {
         const data = await res.json();
         alert(data.error || 'Lỗi khi cập nhật');
       }
-    } catch (err) {
+    } catch {
       alert('Lỗi kết nối');
     } finally {
       setActionLoading(null);

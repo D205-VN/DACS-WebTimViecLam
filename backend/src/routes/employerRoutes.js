@@ -19,7 +19,7 @@ const {
 
 // Middleware kiểm tra role employer
 function requireEmployer(req, res, next) {
-  if (req.user.role !== 'employer') {
+  if (req.user.role_code !== 'employer') {
     return res.status(403).json({ error: 'Chỉ nhà tuyển dụng mới có quyền truy cập' });
   }
   next();

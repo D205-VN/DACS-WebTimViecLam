@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { LayoutDashboard, FileText, Users, Building2, Plus, TrendingUp, Clock, Eye, Briefcase, ChevronRight, Calendar, MapPin, DollarSign, UserPlus } from 'lucide-react';
+import { LayoutDashboard, FileText, Users, Building2, Plus } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import EmployerHeader from '../../components/employer/EmployerHeader';
 import ManageJobsTab from '../../components/employer/ManageJobsTab';
@@ -62,13 +62,6 @@ export default function EmployerDashboard() {
     totalCandidates: 0,
     newCandidates: 0,
   };
-
-  const statCards = [
-    { label: 'Tổng tin đăng', value: displayStats.totalJobs, icon: FileText, color: 'from-blue-500 to-blue-600', bgLight: 'bg-blue-50', textColor: 'text-blue-600' },
-    { label: 'Tin đang tuyển', value: displayStats.activeJobs, icon: TrendingUp, color: 'from-emerald-500 to-emerald-600', bgLight: 'bg-emerald-50', textColor: 'text-emerald-600' },
-    { label: 'Tổng ứng viên', value: displayStats.totalCandidates, icon: Users, color: 'from-violet-500 to-violet-600', bgLight: 'bg-violet-50', textColor: 'text-violet-600' },
-    { label: 'Ứng viên mới', value: displayStats.newCandidates, icon: UserPlus, color: 'from-amber-500 to-amber-600', bgLight: 'bg-amber-50', textColor: 'text-amber-600' },
-  ];
 
   const sidebarItems = [
     { key: 'dashboard', label: 'Bảng điều khiển', icon: LayoutDashboard },

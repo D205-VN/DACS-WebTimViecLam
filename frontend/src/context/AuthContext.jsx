@@ -11,41 +11,39 @@ export function AuthProvider({ children }) {
     return saved ? JSON.parse(saved) : null;
   });
   const [token, setToken] = useState(() => localStorage.getItem('token'));
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(() => !!localStorage.getItem('token'));
 
-  // Verify token & refresh user data on mount
+  // Verify token & refresh user when token changes
   useEffect(() => {
-    if (token) {
-      fetch(`${API_BASE}/me`, {
-        headers: { Authorization: `Bearer ${token}` },
+    if (!token) return;
+
+    fetch(`${API_BASE}/me`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then((res) => {
+        if (!res.ok) throw new Error('Token invalid');
+        return res.json();
       })
-        .then(res => {
-          if (!res.ok) throw new Error('Token invalid');
-          return res.json();
-        })
-        .then(data => {
-          setUser(data.user);
-          localStorage.setItem('user', JSON.stringify(data.user));
-          setLoading(false);
-        })
-        .catch(() => {
-          // Token expired or invalid — clear everything
-          localStorage.removeItem('token');
-          localStorage.removeItem('user');
-          setToken(null);
-          setUser(null);
-          setLoading(false);
-        });
-    } else {
-      setLoading(false);
-    }
-  }, []); // Chỉ chạy 1 lần khi mount
+      .then((data) => {
+        setUser(data.user);
+        localStorage.setItem('user', JSON.stringify(data.user));
+        setLoading(false);
+      })
+      .catch(() => {
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        setToken(null);
+        setUser(null);
+        setLoading(false);
+      });
+  }, [token]);
 
   const login = useCallback((newToken, userData) => {
     localStorage.setItem('token', newToken);
     localStorage.setItem('user', JSON.stringify(userData));
     setToken(newToken);
     setUser(userData);
+    setLoading(false);
   }, []);
 
   const logout = useCallback(() => {
@@ -53,6 +51,7 @@ export function AuthProvider({ children }) {
     localStorage.removeItem('user');
     setToken(null);
     setUser(null);
+    setLoading(false);
   }, []);
 
   return (
@@ -62,6 +61,8 @@ export function AuthProvider({ children }) {
   );
 }
 
+// Hook is intentionally co-located with provider (Vite fast refresh).
+// eslint-disable-next-line react-refresh/only-export-components
 export function useAuth() {
   const context = useContext(AuthContext);
   if (!context) {

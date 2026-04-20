@@ -9,7 +9,9 @@ import ChangePasswordPage from './pages/ChangePasswordPage';
 import JobDetailPage from './pages/JobDetailPage';
 import SavedJobsPage from './pages/SavedJobsPage';
 import AppliedJobsPage from './pages/AppliedJobsPage';
-import CVBuilderPage from './pages/CVBuilderPage';
+import CVBuilderPage from './pages/seeker/CVBuilderPage';
+import ManageCVsPage from './pages/seeker/ManageCVsPage';
+import CVImportImagePage from './pages/seeker/CVImportImagePage';
 import EmployerDashboard from './pages/employer/EmployerDashboard';
 import PostJob from './pages/employer/PostJob';
 
@@ -48,7 +50,15 @@ const router = createBrowserRouter([
   { path: '/change-password', element: <MainLayout><ProtectedRoute><ChangePasswordPage /></ProtectedRoute></MainLayout> },
   { path: '/saved-jobs', element: <MainLayout><ProtectedRoute><SavedJobsPage /></ProtectedRoute></MainLayout> },
   { path: '/applied-jobs', element: <MainLayout><ProtectedRoute><AppliedJobsPage /></ProtectedRoute></MainLayout> },
-  { path: '/cv-builder', element: <MainLayout><ProtectedRoute><CVBuilderPage /></ProtectedRoute></MainLayout> },
+  // Seeker routes (namespaced similar to /employer/*)
+  { path: '/seeker/cv-builder', element: <MainLayout><ProtectedRoute><CVBuilderPage /></ProtectedRoute></MainLayout> },
+  { path: '/seeker/my-cvs', element: <MainLayout><ProtectedRoute><ManageCVsPage /></ProtectedRoute></MainLayout> },
+  { path: '/seeker/cv-import', element: <MainLayout><ProtectedRoute><CVImportImagePage /></ProtectedRoute></MainLayout> },
+
+  // Backwards-compatible redirects
+  { path: '/cv-builder', element: <Navigate to="/seeker/cv-builder" replace /> },
+  { path: '/my-cvs', element: <Navigate to="/seeker/my-cvs" replace /> },
+  { path: '/cv-import', element: <Navigate to="/seeker/cv-import" replace /> },
   // Employer routes
   { path: '/employer/dashboard', element: <EmployerRoute><EmployerDashboard /></EmployerRoute> },
   { path: '/employer/post-job', element: <EmployerRoute><PostJob /></EmployerRoute> },

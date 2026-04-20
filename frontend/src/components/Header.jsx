@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Menu, X, Bell, Briefcase, Building2, BookOpen, User, LogOut, Settings, Shield, ChevronDown, Hash, Bookmark, Send, Sparkles } from 'lucide-react';
+import { Menu, X, Bell, Briefcase, Building2, BookOpen, User, LogOut, Settings, Shield, ChevronDown, Hash, Bookmark, Send, Sparkles, FileText } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 export default function Header() {
@@ -201,7 +201,7 @@ export default function Header() {
                       </Link>
 
                       <Link
-                        to="/cv-builder"
+                        to="/seeker/cv-builder"
                         onClick={() => setDropdownOpen(false)}
                         className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-navy-50 hover:text-navy-700 transition-colors"
                       >
@@ -211,6 +211,20 @@ export default function Header() {
                         <div>
                           <p className="font-medium">Tạo CV AI</p>
                           <p className="text-[11px] text-gray-400">CV chuyên nghiệp tự động</p>
+                        </div>
+                      </Link>
+
+                      <Link
+                        to="/seeker/my-cvs"
+                        onClick={() => setDropdownOpen(false)}
+                        className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-navy-50 hover:text-navy-700 transition-colors"
+                      >
+                        <div className="w-8 h-8 bg-indigo-50 rounded-lg flex items-center justify-center">
+                          <FileText className="w-4 h-4 text-indigo-500" />
+                        </div>
+                        <div>
+                          <p className="font-medium">Quản lý hồ sơ CV</p>
+                          <p className="text-[11px] text-gray-400">Xem và tải các CV đã tạo</p>
                         </div>
                       </Link>
                     </div>

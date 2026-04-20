@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { MapPin, DollarSign, Clock, Bookmark, BookmarkCheck, Briefcase } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
@@ -15,25 +15,20 @@ export default function JobList({ searchParams }) {
   const [totalJobs, setTotalJobs] = useState(0);
   const [savedIds, setSavedIds] = useState(new Set());
 
-  const buildQueryString = (pageNum) => {
-    const params = new URLSearchParams({
-      page: String(pageNum),
-      limit: '20',
-    });
-
-    if (searchParams?.keyword) params.set('q', searchParams.keyword);
-    if (searchParams?.location) params.set('location', searchParams.location);
-    if (searchParams?.jobType) params.set('job_type', searchParams.jobType);
-
-    return params.toString();
-  };
-
-  const fetchJobs = async (pageNum, isAppend = false) => {
+  const fetchJobs = useCallback(async (pageNum, isAppend = false) => {
     try {
       if (isAppend) setLoadingMore(true);
       else setLoading(true);
 
-      const res = await fetch(`${API}?${buildQueryString(pageNum)}`);
+      const params = new URLSearchParams({
+        page: String(pageNum),
+        limit: '20',
+      });
+      if (searchParams?.keyword) params.set('keyword', searchParams.keyword);
+      if (searchParams?.location) params.set('location', searchParams.location);
+      if (searchParams?.jobType) params.set('jobType', searchParams.jobType);
+
+      const res = await fetch(`${API}?${params.toString()}`);
       const payload = await res.json();
 
       if (isAppend) setJobsData((prev) => [...prev, ...(payload.data || [])]);
@@ -46,7 +41,7 @@ export default function JobList({ searchParams }) {
       setLoading(false);
       setLoadingMore(false);
     }
-  };
+  }, [searchParams?.keyword, searchParams?.location, searchParams?.jobType]);
 
   useEffect(() => {
     if (token) {
@@ -60,7 +55,7 @@ export default function JobList({ searchParams }) {
   useEffect(() => {
     setPage(1);
     fetchJobs(1);
-  }, [searchParams?.keyword, searchParams?.location, searchParams?.jobType]);
+  }, [fetchJobs]);
 
   const handleLoadMore = () => {
     const next = page + 1;

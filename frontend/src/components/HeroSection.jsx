@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { Search, MapPin, Briefcase, ChevronDown, Sparkles, TrendingUp, Users } from 'lucide-react';
 
 function normalizeProvinceName(name = '') {
@@ -8,6 +8,22 @@ function normalizeProvinceName(name = '') {
     .trim();
 }
 
+const jobTypes = [
+  { value: '', label: 'Tất cả' },
+  { value: 'full time', label: 'Toàn thời gian' },
+  { value: 'part time', label: 'Bán thời gian' },
+  { value: 'others', label: 'Thực tập' },
+  { value: 'remote', label: 'Làm việc từ xa' },
+];
+
+const popularTags = ['Lập trình viên', 'Marketing', 'Kế toán', 'Nhân sự', 'Bán hàng'];
+
+const stats = [
+  { label: 'Việc làm mới / ngày', value: '12,500+', icon: TrendingUp },
+  { label: 'Nhà tuyển dụng', value: '8,200+', icon: Users },
+  { label: 'Lĩnh vực hot', value: '25+', icon: Sparkles },
+];
+
 export default function HeroSection({ onSearch }) {
   const [keyword, setKeyword] = useState('');
   const [location, setLocation] = useState('');
@@ -16,22 +32,6 @@ export default function HeroSection({ onSearch }) {
   const [locations, setLocations] = useState([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const locationBoxRef = useRef(null);
-
-  const jobTypes = [
-    { value: '', label: 'Tất cả loại' },
-    { value: 'Remote', label: 'Remote' },
-    { value: 'Full time', label: 'Full-time' },
-    { value: 'Part time', label: 'Part-time' },
-    { value: 'Freelance', label: 'Freelance' },
-  ];
-
-  const stats = [
-    { icon: Briefcase, value: '12,500+', label: 'Việc làm mới' },
-    { icon: Users, value: '8,200+', label: 'Nhà tuyển dụng' },
-    { icon: TrendingUp, value: '95%', label: 'Tỷ lệ phản hồi' },
-  ];
-
-  const popularTags = ['React Developer', 'Marketing', 'Data Analyst', 'UI/UX Designer', 'Product Manager'];
 
   useEffect(() => {
     fetch('/data/vietnam_34_provinces.json')
@@ -113,7 +113,13 @@ export default function HeroSection({ onSearch }) {
 
         <div className="max-w-4xl mx-auto mb-8">
           <div className="bg-white rounded-2xl shadow-2xl shadow-navy-900/30 p-2 sm:p-3">
-            <div className="flex flex-col sm:flex-row gap-2 sm:gap-0">
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                triggerSearch();
+              }}
+              className="flex flex-col sm:flex-row gap-2 sm:gap-0"
+            >
               <div className="flex items-center gap-2 flex-1 px-4 py-3 sm:border-r border-gray-200">
                 <Search className="w-5 h-5 text-gray-400 shrink-0" />
                 <input
@@ -126,7 +132,10 @@ export default function HeroSection({ onSearch }) {
                 />
               </div>
 
-              <div ref={locationBoxRef} className="relative flex items-center gap-2 flex-1 px-4 py-3 sm:border-r border-gray-200">
+              <div
+                ref={locationBoxRef}
+                className="relative flex items-center gap-2 flex-1 px-4 py-3 sm:border-r border-gray-200"
+              >
                 <MapPin className="w-5 h-5 text-gray-400 shrink-0" />
                 <input
                   type="text"
@@ -151,7 +160,7 @@ export default function HeroSection({ onSearch }) {
                           setShowSuggestions(false);
                           triggerSearch({ location: item });
                         }}
-                        className="w-full text-left px-4 py-2.5 text-sm text-gray-600 hover:bg-gray-50"
+                        className="w-full text-left px-4 py-2.5 text-sm text-gray-600 hover:bg-gray-50 hover:text-gray-800 transition-colors"
                       >
                         {item}
                       </button>
@@ -197,13 +206,13 @@ export default function HeroSection({ onSearch }) {
               </div>
 
               <button
-                onClick={() => triggerSearch()}
+                type="submit"
                 className="bg-gradient-to-r from-navy-600 to-navy-800 text-white px-8 py-3 rounded-xl text-sm font-semibold hover:shadow-lg hover:shadow-navy-700/30 hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200 shrink-0"
               >
                 <span className="hidden sm:inline">Tìm kiếm</span>
                 <Search className="w-5 h-5 sm:hidden" />
               </button>
-            </div>
+            </form>
           </div>
         </div>
 
@@ -212,6 +221,7 @@ export default function HeroSection({ onSearch }) {
           {popularTags.map((tag) => (
             <button
               key={tag}
+              type="button"
               onClick={() => {
                 setKeyword(tag);
                 triggerSearch({ keyword: tag });
