@@ -7,6 +7,8 @@ const {
   createJob,
   getMyJobs,
   getCandidates,
+  getCandidateStats,
+  getCandidateById,
   getProfile,
   updateProfile,
   getNotifications,
@@ -14,7 +16,9 @@ const {
   updateJob,
   updateJobStatus,
   deleteJob,
-  updateApplicationStatus
+  updateApplicationStatus,
+  saveCandidateNote,
+  scheduleInterview
 } = require('../controllers/employerController');
 
 // Middleware kiểm tra role employer
@@ -33,6 +37,8 @@ router.get('/dashboard', getDashboard);
 router.get('/jobs', getMyJobs);
 router.post('/jobs', createJob);
 router.get('/candidates', getCandidates);
+router.get('/candidates/stats', getCandidateStats);
+router.get('/candidates/:id', getCandidateById);
 router.get('/profile', getProfile);
 router.put('/profile', updateProfile);
 router.get('/notifications', getNotifications);
@@ -45,5 +51,8 @@ router.delete('/jobs/:id', deleteJob);
 
 // Trạng thái ứng tuyển
 router.patch('/applications/:id/status', updateApplicationStatus);
+router.put('/candidates/:id/status', updateApplicationStatus);
+router.post('/candidates/:id/note', saveCandidateNote);
+router.post('/candidates/:id/interview', scheduleInterview);
 
 module.exports = router;
