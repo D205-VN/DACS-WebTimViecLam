@@ -2,6 +2,7 @@ const pool = require('../config/db');
 
 let employerJobSchemaReady = false;
 let employerProfileSchemaReady = false;
+let employerApplicationSchemaReady = false;
 
 function normalizeDeadline(deadline) {
   if (!deadline) return null;
@@ -47,15 +48,49 @@ async function ensureEmployerProfileSchema() {
   employerProfileSchemaReady = true;
 }
 
+async function ensureEmployerApplicationSchema() {
+  if (employerApplicationSchemaReady) return;
+
+  await pool.query(`
+    ALTER TABLE applied_jobs
+    ADD COLUMN IF NOT EXISTS note TEXT,
+    ADD COLUMN IF NOT EXISTS interview_at TIMESTAMP,
+    ADD COLUMN IF NOT EXISTS interview_mode VARCHAR(50),
+    ADD COLUMN IF NOT EXISTS interview_link TEXT,
+    ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT NOW()
+  `);
+
+  employerApplicationSchemaReady = true;
+}
+
 async function ensureEmployerJobSchemaForRequest(req, res, next) {
   try {
     await ensureEmployerJobSchema();
     await ensureEmployerProfileSchema();
-    next();
+    await ensureEmployerApplicationSchema();
+    return next();
   } catch (err) {
     console.error('Ensure employer job schema error:', err);
+    return next();
     res.status(500).json({ error: 'Lỗi cấu hình dữ liệu tuyển dụng' });
   }
+}
+
+function normalizeApplicationStatus(status) {
+  const allowed = ['pending', 'interview', 'hired', 'rejected'];
+  return allowed.includes(status) ? status : 'pending';
+}
+
+async function getCandidateOwnership(applicationId, employerId) {
+  const result = await pool.query(
+    `SELECT aj.id
+     FROM applied_jobs aj
+     JOIN jobs j ON aj.job_id = j.id
+     WHERE aj.id = $1 AND j.employer_id = $2`,
+    [applicationId, employerId]
+  );
+
+  return result.rows[0] || null;
 }
 
 function buildDeadlineSqlExpression(columnName) {
@@ -222,20 +257,114 @@ async function getMyJobs(req, res) {
 async function getCandidates(req, res) {
   try {
     const userId = req.user.id;
+    const { status, keyword, job_id, applied_from, applied_to } = req.query;
+    const conditions = ['j.employer_id = $1'];
+    const params = [userId];
+
+    if (status && status !== 'all') {
+      params.push(normalizeApplicationStatus(status));
+      conditions.push(`COALESCE(NULLIF(TRIM(aj.status), ''), 'pending') = $${params.length}`);
+    }
+
+    if (keyword?.trim()) {
+      params.push(`%${keyword.trim()}%`);
+      conditions.push(`(u.full_name ILIKE $${params.length} OR u.email ILIKE $${params.length})`);
+    }
+
+    if (job_id) {
+      params.push(job_id);
+      conditions.push(`j.id = $${params.length}`);
+    }
+
+    if (applied_from) {
+      params.push(applied_from);
+      conditions.push(`DATE(aj.created_at) >= $${params.length}`);
+    }
+
+    if (applied_to) {
+      params.push(applied_to);
+      conditions.push(`DATE(aj.created_at) <= $${params.length}`);
+    }
     const result = await pool.query(
-      `SELECT aj.*, u.full_name as candidate_name, u.email as candidate_email, u.avatar_url,
+      `SELECT aj.id, aj.user_id, aj.job_id, aj.cv_text, aj.note, aj.interview_at, aj.interview_mode,
+              aj.interview_link, aj.created_at, aj.updated_at,
+              COALESCE(NULLIF(TRIM(aj.status), ''), 'pending') as status,
+              u.full_name as candidate_name, u.email as candidate_email, u.phone as candidate_phone, u.avatar_url,
               j.job_title as job_title
        FROM applied_jobs aj
        JOIN users u ON aj.user_id = u.id
        JOIN jobs j ON aj.job_id = j.id
-       WHERE j.employer_id = $1
+       WHERE ${conditions.join(' AND ')}
        ORDER BY aj.created_at DESC`,
-      [userId]
+      params
     );
     res.json({ data: result.rows });
   } catch (err) {
     console.error('Get candidates error:', err);
     res.status(500).json({ error: 'Lỗi khi tải danh sách ứng viên' });
+  }
+}
+
+async function getCandidateStats(req, res) {
+  try {
+    const userId = req.user.id;
+    const result = await pool.query(
+      `SELECT
+          COUNT(*)::int AS total,
+          COUNT(*) FILTER (WHERE COALESCE(NULLIF(TRIM(aj.status), ''), 'pending') = 'pending')::int AS pending,
+          COUNT(*) FILTER (WHERE COALESCE(NULLIF(TRIM(aj.status), ''), 'pending') = 'interview')::int AS interview,
+          COUNT(*) FILTER (WHERE COALESCE(NULLIF(TRIM(aj.status), ''), 'pending') = 'hired')::int AS hired,
+          COUNT(*) FILTER (WHERE COALESCE(NULLIF(TRIM(aj.status), ''), 'pending') = 'rejected')::int AS rejected
+       FROM applied_jobs aj
+       JOIN jobs j ON aj.job_id = j.id
+       WHERE j.employer_id = $1`,
+      [userId]
+    );
+
+    res.json({ data: result.rows[0] || { total: 0, pending: 0, interview: 0, hired: 0, rejected: 0 } });
+  } catch (err) {
+    console.error('Get candidate stats error:', err);
+    res.status(500).json({ error: 'Lỗi khi tải thống kê ứng viên' });
+  }
+}
+
+async function getCandidateById(req, res) {
+  try {
+    const userId = req.user.id;
+    const applicationId = req.params.id;
+    const result = await pool.query(
+      `SELECT aj.id, aj.user_id, aj.job_id, aj.cv_text, aj.note, aj.interview_at, aj.interview_mode,
+              aj.interview_link, aj.created_at, aj.updated_at,
+              COALESCE(NULLIF(TRIM(aj.status), ''), 'pending') as status,
+              u.full_name as candidate_name, u.email as candidate_email, u.phone as candidate_phone, u.avatar_url,
+              j.job_title as job_title
+       FROM applied_jobs aj
+       JOIN users u ON aj.user_id = u.id
+       JOIN jobs j ON aj.job_id = j.id
+       WHERE aj.id = $1 AND j.employer_id = $2`,
+      [applicationId, userId]
+    );
+
+    if (!result.rows.length) {
+      return res.status(404).json({ error: 'Không tìm thấy ứng viên' });
+    }
+
+    const candidate = result.rows[0];
+    const skills = candidate.cv_text
+      ? candidate.cv_text.split(/[\n,|]/).map((item) => item.trim()).filter(Boolean).slice(0, 10)
+      : [];
+
+    res.json({
+      data: {
+        ...candidate,
+        skills,
+        experience_summary: candidate.cv_text || '',
+        cv_file_url: null,
+      }
+    });
+  } catch (err) {
+    console.error('Get candidate detail error:', err);
+    res.status(500).json({ error: 'Lỗi khi tải chi tiết ứng viên' });
   }
 }
 
@@ -466,7 +595,7 @@ async function updateJob(req, res) {
 
     // Kiểm tra quyền sở hữu
     const check = await pool.query('SELECT id FROM jobs WHERE id = $1 AND employer_id = $2', [jobId, userId]);
-    if (check.rows.length === 0) {
+    if (!ownership || check.rows.length === 0) {
       return res.status(403).json({ error: 'Bạn không có quyền chỉnh sửa tin này' });
     }
 
@@ -567,8 +696,10 @@ async function updateApplicationStatus(req, res) {
     const userId = req.user.id;
     const applicationId = req.params.id;
     const { status } = req.body; // pending, interview, hired, rejected
+    const normalizedStatus = normalizeApplicationStatus(status);
 
     // Kiểm tra quyền sở hữu (job của application này phải thuộc về employer này)
+    const ownership = await getCandidateOwnership(applicationId, userId);
     const check = await pool.query(
       `SELECT aj.id FROM applied_jobs aj
        JOIN jobs j ON aj.job_id = j.id
@@ -576,13 +707,16 @@ async function updateApplicationStatus(req, res) {
       [applicationId, userId]
     );
 
-    if (check.rows.length === 0) {
+    if (!ownership || check.rows.length === 0) {
       return res.status(403).json({ error: 'Không có quyền thay đổi hồ sơ này' });
     }
 
-    await pool.query(
-      'UPDATE applied_jobs SET status = $1, updated_at = NOW() WHERE id = $2',
-      [status, applicationId]
+    const result = await pool.query(
+      `UPDATE applied_jobs
+       SET status = $1, updated_at = NOW()
+       WHERE id = $2
+       RETURNING id, COALESCE(NULLIF(TRIM(status), ''), 'pending') as status, updated_at`,
+      [normalizedStatus, applicationId]
     );
 
     res.json({ message: 'Đã cập nhật trạng thái ứng viên' });
@@ -592,9 +726,97 @@ async function updateApplicationStatus(req, res) {
   }
 }
 
+async function updateCandidateStatus(req, res) {
+  try {
+    const userId = req.user.id;
+    const applicationId = req.params.id;
+    const normalizedStatus = normalizeApplicationStatus(req.body.status);
+
+    const ownership = await getCandidateOwnership(applicationId, userId);
+    if (!ownership) {
+      return res.status(403).json({ error: 'Không có quyền thay đổi hồ sơ này' });
+    }
+
+    const result = await pool.query(
+      `UPDATE applied_jobs
+       SET status = $1, updated_at = NOW()
+       WHERE id = $2
+       RETURNING id, COALESCE(NULLIF(TRIM(status), ''), 'pending') as status, updated_at`,
+      [normalizedStatus, applicationId]
+    );
+
+    res.json({ message: 'Đã cập nhật trạng thái ứng viên', data: result.rows[0] });
+  } catch (err) {
+    console.error('Update candidate status error:', err);
+    res.status(500).json({ error: 'Lỗi khi cập nhật trạng thái ứng viên' });
+  }
+}
+
+async function saveCandidateNote(req, res) {
+  try {
+    const userId = req.user.id;
+    const applicationId = req.params.id;
+    const note = req.body.note?.trim() || null;
+
+    const ownership = await getCandidateOwnership(applicationId, userId);
+    if (!ownership) {
+      return res.status(403).json({ error: 'Không có quyền cập nhật ghi chú cho ứng viên này' });
+    }
+
+    const result = await pool.query(
+      `UPDATE applied_jobs
+       SET note = $1, updated_at = NOW()
+       WHERE id = $2
+       RETURNING id, note, updated_at`,
+      [note, applicationId]
+    );
+
+    res.json({ message: 'Đã lưu ghi chú nội bộ', data: result.rows[0] });
+  } catch (err) {
+    console.error('Save candidate note error:', err);
+    res.status(500).json({ error: 'Lỗi khi lưu ghi chú nội bộ' });
+  }
+}
+
+async function scheduleInterview(req, res) {
+  try {
+    const userId = req.user.id;
+    const applicationId = req.params.id;
+    const { interview_at, interview_mode, interview_link } = req.body;
+
+    const ownership = await getCandidateOwnership(applicationId, userId);
+    if (!ownership) {
+      return res.status(403).json({ error: 'Không có quyền lên lịch phỏng vấn cho ứng viên này' });
+    }
+
+    const normalizedAt = interview_at ? new Date(interview_at) : null;
+    if (!normalizedAt || Number.isNaN(normalizedAt.getTime())) {
+      return res.status(400).json({ error: 'Ngày giờ phỏng vấn không hợp lệ' });
+    }
+
+    const result = await pool.query(
+      `UPDATE applied_jobs
+       SET status = 'interview',
+           interview_at = $1,
+           interview_mode = $2,
+           interview_link = $3,
+           updated_at = NOW()
+       WHERE id = $4
+       RETURNING id, COALESCE(NULLIF(TRIM(status), ''), 'pending') as status,
+                 interview_at, interview_mode, interview_link, updated_at`,
+      [normalizedAt.toISOString(), interview_mode?.trim() || 'online', interview_link?.trim() || null, applicationId]
+    );
+
+    res.json({ message: 'Đã lên lịch phỏng vấn', data: result.rows[0] });
+  } catch (err) {
+    console.error('Schedule interview error:', err);
+    res.status(500).json({ error: 'Lỗi khi lên lịch phỏng vấn' });
+  }
+}
+
 module.exports = { 
   ensureEmployerJobSchemaForRequest,
-  getDashboard, createJob, getMyJobs, getCandidates, getProfile, 
+  getDashboard, createJob, getMyJobs, getCandidates, getCandidateStats, getCandidateById, getProfile, 
   updateProfile, getNotifications, getAnalytics: getAnalyticsV2,
-  updateJob, updateJobStatus, deleteJob, updateApplicationStatus 
+  updateJob, updateJobStatus, deleteJob, updateApplicationStatus: updateCandidateStatus, saveCandidateNote, scheduleInterview
 };
