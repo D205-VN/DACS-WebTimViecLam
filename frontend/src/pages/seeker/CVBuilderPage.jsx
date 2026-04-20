@@ -1,7 +1,8 @@
 import { useState, useRef, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, Sparkles, Download, Loader2, User, Mail, Phone, Target, GraduationCap, Briefcase, Wrench, Award, Heart, Plus, Save, CheckCircle } from 'lucide-react';
+import { ArrowLeft, Sparkles, Download, Loader2, User, Mail, Phone, Target, GraduationCap, Briefcase, Wrench, Award, Heart, Plus, Save, CheckCircle, ImageUp, Trash2 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import SeekerToolsNav from '../../components/seeker/SeekerToolsNav';
 
 const API = '/api/cv';
 
@@ -9,7 +10,7 @@ export default function CVBuilderPage() {
   const { token, user } = useAuth();
   const [form, setForm] = useState({
     fullName: user?.full_name || '', email: user?.email || '', phone: '',
-    role: '', objective: '', education: '', experience: '', skills: '', certifications: '', hobbies: '',
+    role: '', objective: '', education: '', experience: '', skills: '', certifications: '', hobbies: '', portraitDataUrl: '',
   });
   
   const [cvHtml, setCvHtml] = useState('');
@@ -18,6 +19,7 @@ export default function CVBuilderPage() {
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [error, setError] = useState('');
   const cvRef = useRef(null);
+  const portraitInputRef = useRef(null);
 
   // Suggestions from Dataset
   const [kb, setKb] = useState({});
@@ -55,7 +57,52 @@ export default function CVBuilderPage() {
     });
   };
 
+  const resizeImageToDataUrl = (file) => new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const maxSize = 320;
+        const ratio = Math.min(maxSize / img.width, maxSize / img.height, 1);
+        canvas.width = Math.round(img.width * ratio);
+        canvas.height = Math.round(img.height * ratio);
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          reject(new Error('Không xử lý được ảnh'));
+          return;
+        }
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        resolve(canvas.toDataURL('image/jpeg', 0.9));
+      };
+      img.onerror = () => reject(new Error('Ảnh không hợp lệ'));
+      img.src = reader.result;
+    };
+    reader.onerror = () => reject(new Error('Không đọc được ảnh'));
+    reader.readAsDataURL(file);
+  });
+
+  const handlePortraitChange = async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    setError('');
+
+    try {
+      const portraitDataUrl = await resizeImageToDataUrl(file);
+      setForm((prev) => ({ ...prev, portraitDataUrl }));
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      event.target.value = '';
+    }
+  };
+
   const handleGenerate = async () => {
+    if (!form.portraitDataUrl) {
+      setError('Vui lòng tải ảnh thẻ chân dung trước khi tạo CV AI.');
+      return;
+    }
+
     setError(''); setLoading(true); setCvHtml('');
     try {
       const res = await fetch(`${API}/generate`, {
@@ -140,6 +187,8 @@ export default function CVBuilderPage() {
         </div>
       </div>
 
+      <SeekerToolsNav />
+
       {error && <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-600">{error}</div>}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -171,6 +220,60 @@ export default function CVBuilderPage() {
                 <div>
                   <label className="flex items-center gap-1.5 text-sm font-semibold text-gray-700 mb-1.5"><Phone className="w-4 h-4 text-gray-400" /> Số điện thoại</label>
                   <input type="tel" value={form.phone} onChange={e => handleChange('phone', e.target.value)} placeholder="0912 345 678" className={inputClass} />
+                </div>
+              </div>
+
+              <div>
+                <div className="flex items-center justify-between gap-3 mb-1.5">
+                  <label className="flex items-center gap-1.5 text-sm font-semibold text-gray-700">
+                    <ImageUp className="w-4 h-4 text-gray-400" /> Ảnh thẻ chân dung
+                  </label>
+                  {form.portraitDataUrl ? (
+                    <button
+                      type="button"
+                      onClick={() => setForm((prev) => ({ ...prev, portraitDataUrl: '' }))}
+                      className="inline-flex items-center gap-1 text-xs font-medium text-red-500 hover:text-red-600"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" /> Xóa ảnh
+                    </button>
+                  ) : null}
+                </div>
+
+                <input
+                  ref={portraitInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handlePortraitChange}
+                  className="hidden"
+                />
+
+                <div className="flex flex-col gap-4 rounded-2xl border border-dashed border-gray-200 bg-gray-50 p-4 sm:flex-row sm:items-center">
+                  <div className="flex h-28 w-28 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-white border border-gray-200">
+                    {form.portraitDataUrl ? (
+                      <img src={form.portraitDataUrl} alt="Ảnh chân dung" className="h-full w-full object-cover" />
+                    ) : (
+                      <div className="px-3 text-center text-xs text-gray-400">
+                        Ảnh sẽ hiển thị ở đây
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-gray-700">
+                      Tải ảnh chân dung nền sáng, nhìn thẳng, bố cục gọn.
+                    </p>
+                    <p className="mt-1 text-xs leading-5 text-gray-500">
+                      Ảnh này sẽ được chèn trực tiếp vào CV AI và giữ nguyên khi lưu hoặc tải PDF.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => portraitInputRef.current?.click()}
+                      className="mt-3 inline-flex items-center gap-2 rounded-xl bg-white px-4 py-2.5 text-sm font-semibold text-navy-700 border border-gray-200 hover:bg-navy-50 hover:border-navy-200 transition-colors"
+                    >
+                      <ImageUp className="w-4 h-4" />
+                      {form.portraitDataUrl ? 'Đổi ảnh chân dung' : 'Tải ảnh chân dung'}
+                    </button>
+                  </div>
                 </div>
               </div>
 

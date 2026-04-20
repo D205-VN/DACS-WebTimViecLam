@@ -2,6 +2,7 @@ import { useMemo, useState, useEffect, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowLeft, FileText, Trash2, Download, Loader2, Sparkles, Calendar, Briefcase, ImageUp, Search } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import SeekerToolsNav from '../../components/seeker/SeekerToolsNav';
 
 const API = '/api/cv';
 
@@ -84,7 +85,7 @@ export default function ManageCVsPage() {
         <ArrowLeft className="w-4 h-4" /> Quay lại trang chủ
       </Link>
 
-      <div className="flex items-center justify-between mb-8">
+      <div className="flex flex-col gap-4 mb-8 lg:flex-row lg:items-center lg:justify-between">
         <div className="flex items-center gap-3">
           <div className="w-14 h-14 bg-gradient-to-br from-blue-100 to-indigo-100 rounded-2xl flex items-center justify-center">
             <FileText className="w-7 h-7 text-navy-600" />
@@ -94,7 +95,7 @@ export default function ManageCVsPage() {
             <p className="text-sm text-gray-500">Xem lại và tải xuống các bản CV bạn đã lưu</p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
           <Link to="/seeker/cv-import" className="flex items-center gap-2 px-5 py-2.5 bg-white border border-gray-200 text-gray-700 font-semibold rounded-xl hover:shadow-sm hover:bg-gray-50 transition-all">
             <ImageUp className="w-4 h-4" /> Import ảnh từ máy
           </Link>
@@ -103,6 +104,8 @@ export default function ManageCVsPage() {
           </Link>
         </div>
       </div>
+
+      <SeekerToolsNav />
 
       {error && <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-600">{error}</div>}
 

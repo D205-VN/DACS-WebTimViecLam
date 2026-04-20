@@ -3,6 +3,9 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import Header from './components/Header';
 import Footer from './components/Footer';
 import HomePage from './pages/HomePage';
+import CompaniesPage from './pages/CompaniesPage';
+import BlogPage from './pages/BlogPage';
+import BlogDetailPage from './pages/BlogDetailPage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import ChangePasswordPage from './pages/ChangePasswordPage';
@@ -44,6 +47,9 @@ function EmployerRoute({ children }) {
 
 const router = createBrowserRouter([
   { path: '/', element: <MainLayout><HomePage /></MainLayout> },
+  { path: '/companies', element: <MainLayout><CompaniesPage /></MainLayout> },
+  { path: '/blog', element: <MainLayout><BlogPage /></MainLayout> },
+  { path: '/blog/:slug', element: <MainLayout><BlogDetailPage /></MainLayout> },
   { path: '/login', element: <LoginPage /> },
   { path: '/register', element: <RegisterPage /> },
   { path: '/jobs/:id', element: <MainLayout><JobDetailPage /></MainLayout> },

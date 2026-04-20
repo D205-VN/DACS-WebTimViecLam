@@ -1,5 +1,94 @@
 const pool = require('../config/db');
 
+const SALARY_RANGE_OPTIONS = [
+  { value: '', label: 'Tất cả' },
+  { value: '0-10', label: 'Dưới 10 triệu' },
+  { value: '10-15', label: '10 - 15 triệu' },
+  { value: '15-20', label: '15 - 20 triệu' },
+  { value: '20-30', label: '20 - 30 triệu' },
+  { value: '30+', label: 'Trên 30 triệu' },
+];
+
+function parseListParam(value) {
+  if (!value) return [];
+  const rawValues = Array.isArray(value) ? value : String(value).split(',');
+
+  return rawValues
+    .map((item) => String(item || '').trim())
+    .filter(Boolean);
+}
+
+function appendLikeAnyClause(field, values, params, paramIndex) {
+  if (!values.length) {
+    return { clause: '', nextIndex: paramIndex };
+  }
+
+  const placeholders = values.map((_, index) => `$${paramIndex + index}`).join(', ');
+  params.push(...values.map((value) => `%${value}%`));
+
+  return {
+    clause: ` AND ${field} ILIKE ANY (ARRAY[${placeholders}]::text[])`,
+    nextIndex: paramIndex + values.length,
+  };
+}
+
+const normalizedSalaryExpr = `regexp_replace(lower(COALESCE(salary, '')), '\\s+', '', 'g')`;
+const salaryLowerTokenExpr = `split_part(${normalizedSalaryExpr}, '-', 1)`;
+const salaryUpperTokenExpr = `CASE
+  WHEN POSITION('-' IN ${normalizedSalaryExpr}) > 0
+    THEN split_part(${normalizedSalaryExpr}, '-', 2)
+  ELSE split_part(${normalizedSalaryExpr}, '-', 1)
+END`;
+
+function buildSalaryValueExpression(tokenExpr) {
+  return `CASE
+    WHEN COALESCE(TRIM(salary), '') = '' THEN NULL
+    WHEN lower(salary) ~ 'th[oỏ]a\\s*thu[aậ]n|thuong\\s*luong|c[aạ]nh\\s*tranh' THEN NULL
+    WHEN NULLIF(regexp_replace(${tokenExpr}, '[^0-9]', '', 'g'), '') IS NULL THEN NULL
+    WHEN lower(salary) ~ '(usd|\\$)' THEN regexp_replace(${tokenExpr}, '[^0-9]', '', 'g')::numeric * 25000
+    WHEN regexp_replace(${tokenExpr}, '[^0-9]', '', 'g')::numeric < 1000 THEN regexp_replace(${tokenExpr}, '[^0-9]', '', 'g')::numeric * 1000000
+    ELSE regexp_replace(${tokenExpr}, '[^0-9]', '', 'g')::numeric
+  END`;
+}
+
+const salaryLowerExpr = buildSalaryValueExpression(salaryLowerTokenExpr);
+const salaryUpperExpr = buildSalaryValueExpression(salaryUpperTokenExpr);
+
+function appendSalaryRangeClause(rangeValue, params, paramIndex) {
+  if (!rangeValue) {
+    return { clause: '', nextIndex: paramIndex };
+  }
+
+  if (rangeValue === '0-10') {
+    params.push(10000000);
+    return {
+      clause: ` AND ${salaryLowerExpr} IS NOT NULL AND COALESCE(${salaryUpperExpr}, ${salaryLowerExpr}) < $${paramIndex}`,
+      nextIndex: paramIndex + 1,
+    };
+  }
+
+  if (rangeValue === '30+') {
+    params.push(30000000);
+    return {
+      clause: ` AND ${salaryLowerExpr} IS NOT NULL AND COALESCE(${salaryUpperExpr}, ${salaryLowerExpr}) >= $${paramIndex}`,
+      nextIndex: paramIndex + 1,
+    };
+  }
+
+  const [minMillions, maxMillions] = String(rangeValue).split('-').map(Number);
+  if (!Number.isFinite(minMillions) || !Number.isFinite(maxMillions)) {
+    return { clause: '', nextIndex: paramIndex };
+  }
+
+  params.push(minMillions * 1000000, maxMillions * 1000000);
+  return {
+    clause: ` AND ${salaryLowerExpr} IS NOT NULL
+      AND COALESCE(${salaryUpperExpr}, ${salaryLowerExpr}) >= $${paramIndex}
+      AND ${salaryLowerExpr} < $${paramIndex + 1}`,
+    nextIndex: paramIndex + 2,
+  };
+}
+
 function buildLocationLikePatterns(rawLocation) {
   const input = (rawLocation || '').trim();
   if (!input) return [];
@@ -49,9 +138,13 @@ exports.getJobs = async (req, res) => {
     const keyword = req.query.keyword || req.query.q || '';
     const location = req.query.location || '';
     const jobType = req.query.jobType || req.query.job_type || '';
+    const salaryRange = req.query.salaryRange || req.query.salary_range || '';
+    const company = String(req.query.company || '').trim();
+    const levels = parseListParam(req.query.levels);
+    const industries = parseListParam(req.query.industries);
 
     let whereClause = '';
-    let params = [];
+    const params = [];
     let paramIndex = 1;
 
     if (keyword) {
@@ -76,6 +169,24 @@ exports.getJobs = async (req, res) => {
       paramIndex++;
     }
 
+    if (company) {
+      whereClause += ` AND LOWER(TRIM(company_name)) = LOWER(TRIM($${paramIndex}))`;
+      params.push(company);
+      paramIndex++;
+    }
+
+    const levelClause = appendLikeAnyClause('career_level', levels, params, paramIndex);
+    whereClause += levelClause.clause;
+    paramIndex = levelClause.nextIndex;
+
+    const industryClause = appendLikeAnyClause('industry', industries, params, paramIndex);
+    whereClause += industryClause.clause;
+    paramIndex = industryClause.nextIndex;
+
+    const salaryClause = appendSalaryRangeClause(salaryRange, params, paramIndex);
+    whereClause += salaryClause.clause;
+    paramIndex = salaryClause.nextIndex;
+
     const countQuery = `SELECT COUNT(*) FROM jobs WHERE 1=1${whereClause}`;
     const countResult = await pool.query(countQuery, params);
     const totalJobs = parseInt(countResult.rows[0].count);
@@ -83,9 +194,10 @@ exports.getJobs = async (req, res) => {
     params.push(limit, offset);
     const query = `SELECT id, job_title as title, job_description as description, job_requirements as requirements,
               benefits, job_address as location, job_type, years_of_experience as experience,
-              salary, submission_deadline as deadline, company_name, industry, created_at 
+              salary, submission_deadline as deadline, company_name, company_overview, company_size,
+              company_address, industry, career_level, created_at 
               FROM jobs WHERE 1=1${whereClause} 
-              ORDER BY id ASC LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`;
+              ORDER BY created_at DESC NULLS LAST, id DESC LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`;
     const result = await pool.query(query, params);
     
     res.json({
@@ -100,6 +212,73 @@ exports.getJobs = async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Internal server error' });
+  }
+};
+
+// GET /api/jobs/filters — Dữ liệu filter cho frontend
+exports.getJobFilters = async (_req, res) => {
+  try {
+    const [levelsResult, industriesResult] = await Promise.all([
+      pool.query(
+        `SELECT career_level as value, COUNT(*)::int as count
+         FROM jobs
+         WHERE career_level IS NOT NULL AND TRIM(career_level) <> ''
+         GROUP BY career_level
+         ORDER BY count DESC, value ASC`
+      ),
+      pool.query(
+        `SELECT industry as value, COUNT(*)::int as count
+         FROM jobs
+         WHERE industry IS NOT NULL AND TRIM(industry) <> ''
+         GROUP BY industry
+         ORDER BY count DESC, value ASC
+         LIMIT 20`
+      ),
+    ]);
+
+    res.json({
+      data: {
+        salaryRanges: SALARY_RANGE_OPTIONS,
+        levels: levelsResult.rows,
+        industries: industriesResult.rows,
+      },
+    });
+  } catch (err) {
+    console.error('Get job filters error:', err);
+    res.status(500).json({ error: 'Lỗi khi tải bộ lọc' });
+  }
+};
+
+// GET /api/jobs/companies — Danh sách công ty đang có tin tuyển dụng
+exports.getCompanies = async (req, res) => {
+  try {
+    const keyword = String(req.query.keyword || '').trim();
+    const params = [];
+    let whereClause = `WHERE company_name IS NOT NULL AND TRIM(company_name) <> ''`;
+
+    if (keyword) {
+      whereClause += ` AND company_name ILIKE $1`;
+      params.push(`%${keyword}%`);
+    }
+
+    const result = await pool.query(
+      `SELECT
+          company_name,
+          MAX(NULLIF(TRIM(company_overview), '')) as company_overview,
+          MAX(NULLIF(TRIM(company_size), '')) as company_size,
+          MAX(NULLIF(TRIM(company_address), '')) as company_address,
+          COUNT(*)::int as job_count
+       FROM jobs
+       ${whereClause}
+       GROUP BY company_name
+       ORDER BY job_count DESC, company_name ASC`,
+      params
+    );
+
+    res.json({ data: result.rows });
+  } catch (err) {
+    console.error('Get companies error:', err);
+    res.status(500).json({ error: 'Lỗi khi tải danh sách công ty' });
   }
 };
 
@@ -158,7 +337,8 @@ exports.getJobById = async (req, res) => {
     const result = await pool.query(
       `SELECT id, job_title as title, job_description as description, job_requirements as requirements,
               benefits, job_address as location, job_type, years_of_experience as experience,
-              salary, submission_deadline as deadline, company_name, created_at
+              salary, submission_deadline as deadline, company_name, company_overview, company_size,
+              company_address, industry, career_level, number_candidate, created_at
        FROM jobs WHERE id = $1`, 
       [req.params.id]
     );

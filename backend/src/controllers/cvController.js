@@ -6,6 +6,22 @@ require('dotenv').config();
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
+function mergePortraitIntoHtml(html, portraitDataUrl, fullName) {
+  if (!portraitDataUrl || !html) return html;
+
+  if (html.includes('__PORTRAIT__')) {
+    return html.replace(/__PORTRAIT__/g, portraitDataUrl);
+  }
+
+  const portraitBlock = `
+    <div style="display: flex; justify-content: center; margin-bottom: 18px;">
+      <img src="${portraitDataUrl}" alt="${fullName || 'Ảnh chân dung'}" style="width: 108px; height: 108px; object-fit: cover; border-radius: 18px; border: 3px solid #dbe7f3;" />
+    </div>
+  `;
+
+  return `${portraitBlock}${html}`;
+}
+
 /**
  * GET /api/cv/suggestions
  * Lấy dữ liệu gợi ý từ Resume Knowledge Base
@@ -29,7 +45,7 @@ exports.getSuggestions = (req, res) => {
  * Tạo CV bằng AI (Gemini hoặc Custom Kaggle Model)
  */
 exports.generateCV = async (req, res) => {
-  const { fullName, email, phone, objective, education, experience, skills, certifications, hobbies } = req.body;
+  const { fullName, email, phone, objective, education, experience, skills, certifications, hobbies, portraitDataUrl } = req.body;
 
   const prompt = `Bạn là chuyên gia viết CV chuyên nghiệp tại Việt Nam. Hãy tạo một CV hoàn chỉnh bằng tiếng Việt dưới dạng HTML đẹp mắt với inline CSS (không dùng class, không dùng external CSS).
 
@@ -37,6 +53,7 @@ Thông tin ứng viên:
 - Họ tên: ${fullName || 'Chưa cung cấp'}
 - Email: ${email || 'Chưa cung cấp'}
 - Điện thoại: ${phone || 'Chưa cung cấp'}
+- Ảnh chân dung: ${portraitDataUrl ? 'Đã cung cấp. Trong HTML hãy hiển thị ảnh ở phần đầu CV bằng thẻ img với src="__PORTRAIT__".' : 'Chưa cung cấp'}
 - Mục tiêu nghề nghiệp: ${objective || 'Chưa cung cấp'}
 - Học vấn: ${education || 'Chưa cung cấp'}
 - Kinh nghiệm làm việc: ${experience || 'Chưa cung cấp'}
@@ -52,7 +69,8 @@ Yêu cầu format CV:
 5. Dùng màu xanh navy (#1e3a5f) làm accent color
 6. Trang A4 (max-width: 800px, margin auto)
 7. Nếu thông tin nào "Chưa cung cấp" thì hãy viết gợi ý mẫu phù hợp
-8. CHỈ trả về HTML, không giải thích gì thêm`;
+8. Nếu có ảnh chân dung thì đặt ở header, kích thước gọn, hình vuông hoặc bo tròn nhẹ, chuyên nghiệp
+9. CHỈ trả về HTML, không giải thích gì thêm`;
 
   try {
     // Nếu có CUSTOM_AI_API_URL (Kaggle Ngrok URL) thì gọi tới đó
@@ -68,6 +86,7 @@ Yêu cầu format CV:
           const customData = await customRes.json();
           let html = customData.cv || customData.response || '';
           html = html.replace(/```html\n?/gi, '').replace(/```\n?/g, '').trim();
+          html = mergePortraitIntoHtml(html, portraitDataUrl, fullName);
           return res.json({ cv: html });
         }
         console.log('Custom API failed, falling back to Gemini...');
@@ -88,6 +107,7 @@ Yêu cầu format CV:
 
     // Clean markdown code fences if any
     text = text.replace(/```html\n?/gi, '').replace(/```\n?/g, '').trim();
+    text = mergePortraitIntoHtml(text, portraitDataUrl, fullName);
 
     res.json({ cv: text });
   } catch (err) {
@@ -96,11 +116,17 @@ Yêu cầu format CV:
     // Fallback Local HTML Generation (No AI required)
     const fallbackHtml = `
       <div style="font-family: sans-serif; max-width: 800px; margin: 0 auto; color: #333; line-height: 1.6;">
-        <div style="text-align: center; margin-bottom: 30px; border-bottom: 2px solid #1e3a5f; padding-bottom: 20px;">
-          <h1 style="color: #1e3a5f; margin: 0; font-size: 28px;">${fullName || 'Tên Ứng Viên'}</h1>
-          <p style="margin: 5px 0 0 0; font-size: 14px; color: #666;">
-            ${email ? 'Email: ' + email : ''} ${phone ? ' | SĐT: ' + phone : ''}
-          </p>
+        <div style="display: flex; align-items: center; gap: 20px; margin-bottom: 30px; border-bottom: 2px solid #1e3a5f; padding-bottom: 20px;">
+          ${portraitDataUrl ? `
+          <div style="flex-shrink: 0;">
+            <img src="${portraitDataUrl}" alt="${fullName || 'Ảnh chân dung'}" style="width: 110px; height: 110px; object-fit: cover; border-radius: 18px; border: 3px solid #dbe7f3;" />
+          </div>` : ''}
+          <div style="flex: 1; text-align: ${portraitDataUrl ? 'left' : 'center'};">
+            <h1 style="color: #1e3a5f; margin: 0; font-size: 28px;">${fullName || 'Tên Ứng Viên'}</h1>
+            <p style="margin: 5px 0 0 0; font-size: 14px; color: #666;">
+              ${email ? 'Email: ' + email : ''} ${phone ? ' | SĐT: ' + phone : ''}
+            </p>
+          </div>
         </div>
 
         ${objective ? `

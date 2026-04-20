@@ -1,11 +1,11 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { MapPin, DollarSign, Clock, Bookmark, BookmarkCheck, Briefcase } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 const API = '/api/jobs';
 
-export default function JobList({ searchParams }) {
+export default function JobList({ searchParams, title, emptyMessage }) {
   const navigate = useNavigate();
   const { token, isAuthenticated } = useAuth();
   const [jobsData, setJobsData] = useState([]);
@@ -14,6 +14,8 @@ export default function JobList({ searchParams }) {
   const [page, setPage] = useState(1);
   const [totalJobs, setTotalJobs] = useState(0);
   const [savedIds, setSavedIds] = useState(new Set());
+  const selectedLevels = useMemo(() => searchParams?.levels || [], [searchParams?.levels]);
+  const selectedIndustries = useMemo(() => searchParams?.industries || [], [searchParams?.industries]);
 
   const fetchJobs = useCallback(async (pageNum, isAppend = false) => {
     try {
@@ -27,6 +29,10 @@ export default function JobList({ searchParams }) {
       if (searchParams?.keyword) params.set('keyword', searchParams.keyword);
       if (searchParams?.location) params.set('location', searchParams.location);
       if (searchParams?.jobType) params.set('jobType', searchParams.jobType);
+      if (searchParams?.salaryRange) params.set('salaryRange', searchParams.salaryRange);
+      if (searchParams?.company) params.set('company', searchParams.company);
+      if (selectedLevels.length) params.set('levels', selectedLevels.join(','));
+      if (selectedIndustries.length) params.set('industries', selectedIndustries.join(','));
 
       const res = await fetch(`${API}?${params.toString()}`);
       const payload = await res.json();
@@ -41,7 +47,15 @@ export default function JobList({ searchParams }) {
       setLoading(false);
       setLoadingMore(false);
     }
-  }, [searchParams?.keyword, searchParams?.location, searchParams?.jobType]);
+  }, [
+    searchParams?.keyword,
+    searchParams?.location,
+    searchParams?.jobType,
+    searchParams?.salaryRange,
+    searchParams?.company,
+    selectedLevels,
+    selectedIndustries,
+  ]);
 
   useEffect(() => {
     if (token) {
@@ -83,14 +97,23 @@ export default function JobList({ searchParams }) {
     });
   };
 
+  const handleCompanyClick = (e, companyName) => {
+    e.stopPropagation();
+    if (!companyName) return;
+    navigate(`/companies?company=${encodeURIComponent(companyName)}`);
+  };
+
+  const heading = title || (searchParams?.company ? `Tin tuyển dụng tại ${searchParams.company}` : 'Việc làm mới nhất');
+  const description = searchParams?.company
+    ? `Tìm thấy ${loading && page === 1 ? '...' : totalJobs.toLocaleString()} tin tuyển dụng của công ty này`
+    : `Tìm thấy ${loading && page === 1 ? '...' : totalJobs.toLocaleString()} việc làm`;
+
   return (
     <div>
       <div className="flex items-center justify-between mb-5">
         <div>
-          <h2 className="text-lg font-bold text-gray-800">Việc làm mới nhất</h2>
-          <p className="text-sm text-gray-500 mt-0.5">
-            Tìm thấy <span className="font-semibold text-navy-700">{loading && page === 1 ? '...' : totalJobs.toLocaleString()}</span> việc làm
-          </p>
+          <h2 className="text-lg font-bold text-gray-800">{heading}</h2>
+          <p className="text-sm text-gray-500 mt-0.5">{description}</p>
         </div>
       </div>
 
@@ -121,7 +144,17 @@ export default function JobList({ searchParams }) {
                       <div className="flex items-start justify-between gap-2">
                         <div>
                           <h3 className="text-base font-bold text-gray-800 group-hover:text-navy-700 transition-colors uppercase">{job.title}</h3>
-                          <p className="text-sm text-gray-500 mt-0.5 font-medium">{job.company_name || 'Đang cập nhật'}</p>
+                          {job.company_name ? (
+                            <button
+                              type="button"
+                              onClick={(e) => handleCompanyClick(e, job.company_name)}
+                              className="text-sm text-gray-500 mt-0.5 font-medium hover:text-navy-700 transition-colors"
+                            >
+                              {job.company_name}
+                            </button>
+                          ) : (
+                            <p className="text-sm text-gray-500 mt-0.5 font-medium">Đang cập nhật</p>
+                          )}
                         </div>
                         <button
                           onClick={(e) => handleToggleSave(e, job.id)}
@@ -146,6 +179,11 @@ export default function JobList({ searchParams }) {
                       </div>
                       <div className="flex items-center justify-between mt-3">
                         <div className="flex flex-wrap gap-1.5">
+                          {job.career_level ? (
+                            <span className="px-2.5 py-1 text-[11px] font-medium text-amber-700 bg-amber-50 rounded-lg truncate max-w-[140px]">
+                              {job.career_level}
+                            </span>
+                          ) : null}
                           {tags.map((tag, idx) => (
                             <span key={idx} className="px-2.5 py-1 text-[11px] font-medium text-navy-600 bg-navy-50 rounded-lg truncate max-w-[120px]">
                               {tag}
@@ -163,7 +201,7 @@ export default function JobList({ searchParams }) {
 
           {!jobsData.length && (
             <div className="bg-white rounded-2xl border border-gray-100 p-10 text-center text-gray-500">
-              Không tìm thấy việc làm phù hợp với từ khóa hoặc địa điểm bạn đã nhập.
+              {emptyMessage || 'Không tìm thấy việc làm phù hợp với bộ lọc hiện tại.'}
             </div>
           )}
 

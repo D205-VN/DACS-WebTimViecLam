@@ -1,11 +1,6 @@
-import { Star, TrendingUp, ArrowRight, MapPin } from 'lucide-react';
-
-const topCompanies = [
-  { name: 'FPT Software', logo: '🏢', color: 'from-blue-500 to-cyan-500', jobs: 145, rating: 4.5 },
-  { name: 'VNG Corporation', logo: '🎮', color: 'from-amber-400 to-orange-500', jobs: 89, rating: 4.3 },
-  { name: 'Shopee Vietnam', logo: '🛒', color: 'from-orange-400 to-red-500', jobs: 210, rating: 4.4 },
-  { name: 'MoMo', logo: '💜', color: 'from-pink-500 to-rose-600', jobs: 67, rating: 4.6 },
-];
+import { useEffect, useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { ArrowRight, Briefcase, Building2, MapPin, TrendingUp } from 'lucide-react';
 
 const suggestedJobs = [
   { title: 'Frontend Developer', company: 'Zalo', salary: '20-30tr', location: 'HCM' },
@@ -13,50 +8,128 @@ const suggestedJobs = [
   { title: 'Mobile Developer', company: 'Grab Vietnam', salary: '25-40tr', location: 'HCM' },
 ];
 
+const rankColors = [
+  'from-amber-400 to-orange-500',
+  'from-slate-400 to-slate-600',
+  'from-orange-500 to-rose-500',
+  'from-navy-500 to-cyan-500',
+  'from-emerald-500 to-teal-600',
+];
+
+function getCompanyInitials(name = '') {
+  return name
+    .split(' ')
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0])
+    .join('')
+    .toUpperCase();
+}
+
 export default function RightSidebar() {
+  const navigate = useNavigate();
+  const [topCompanies, setTopCompanies] = useState([]);
+  const [loadingCompanies, setLoadingCompanies] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    fetch('/api/jobs/companies')
+      .then((res) => res.json())
+      .then((payload) => {
+        if (!cancelled) {
+          setTopCompanies((payload.data || []).slice(0, 5));
+          setLoadingCompanies(false);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setTopCompanies([]);
+          setLoadingCompanies(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   return (
     <div className="space-y-5">
-      {/* Top Companies Widget */}
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <TrendingUp className="w-5 h-5 text-navy-700" />
             <h3 className="text-base font-bold text-gray-800">Công ty hàng đầu</h3>
           </div>
-          <a href="#" className="text-xs text-navy-600 hover:text-navy-800 font-medium transition-colors flex items-center gap-0.5">
+          <Link to="/companies" className="text-xs text-navy-600 hover:text-navy-800 font-medium transition-colors flex items-center gap-0.5">
             Xem tất cả
             <ArrowRight className="w-3 h-3" />
-          </a>
+          </Link>
         </div>
 
         <div className="space-y-3">
-          {topCompanies.map((company) => (
-            <div
-              key={company.name}
-              className="flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 cursor-pointer transition-colors group"
-            >
-              <div className={`w-10 h-10 bg-gradient-to-br ${company.color} rounded-xl flex items-center justify-center text-lg shrink-0 shadow-sm`}>
-                {company.logo}
-              </div>
-              <div className="flex-1 min-w-0">
-                <h4 className="text-sm font-semibold text-gray-700 group-hover:text-navy-700 transition-colors truncate">
-                  {company.name}
-                </h4>
-                <div className="flex items-center gap-2 mt-0.5">
-                  <div className="flex items-center gap-0.5">
-                    <Star className="w-3 h-3 text-amber-400 fill-amber-400" />
-                    <span className="text-xs text-gray-500">{company.rating}</span>
-                  </div>
-                  <span className="text-xs text-gray-300">•</span>
-                  <span className="text-xs text-success-600 font-medium">{company.jobs} việc làm</span>
+          {loadingCompanies ? (
+            Array.from({ length: 4 }).map((_, index) => (
+              <div key={index} className="flex items-center gap-3 p-3 rounded-xl border border-gray-100 animate-pulse">
+                <div className="w-11 h-11 rounded-xl bg-gray-100 shrink-0"></div>
+                <div className="flex-1 min-w-0 space-y-2">
+                  <div className="h-3 rounded bg-gray-100 w-2/3"></div>
+                  <div className="h-3 rounded bg-gray-100 w-1/2"></div>
                 </div>
               </div>
+            ))
+          ) : topCompanies.length > 0 ? (
+            topCompanies.map((company, index) => (
+              <button
+                key={company.company_name}
+                type="button"
+                onClick={() => navigate(`/companies?company=${encodeURIComponent(company.company_name)}`)}
+                className="w-full flex items-start gap-3 p-3 rounded-xl hover:bg-gray-50 border border-transparent hover:border-gray-100 transition-colors text-left group"
+              >
+                <div className={`w-11 h-11 bg-gradient-to-br ${rankColors[index % rankColors.length]} rounded-xl flex items-center justify-center text-white shrink-0 shadow-sm font-bold text-sm`}>
+                  {index < 3 ? `#${index + 1}` : getCompanyInitials(company.company_name)}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-start justify-between gap-3">
+                    <h4 className="text-sm font-semibold text-gray-700 group-hover:text-navy-700 transition-colors line-clamp-2">
+                      {company.company_name}
+                    </h4>
+                    <span className="shrink-0 rounded-full bg-emerald-50 px-2 py-1 text-[11px] font-semibold text-emerald-600">
+                      {company.job_count} tin
+                    </span>
+                  </div>
+
+                  <div className="mt-2 space-y-1 text-xs text-gray-500">
+                    {company.company_size ? (
+                      <div className="inline-flex items-center gap-1.5">
+                        <Building2 className="w-3.5 h-3.5 text-gray-400" />
+                        {company.company_size}
+                      </div>
+                    ) : null}
+                    {company.company_address ? (
+                      <div className="flex items-start gap-1.5">
+                        <MapPin className="w-3.5 h-3.5 text-gray-400 mt-0.5 shrink-0" />
+                        <span className="line-clamp-2">{company.company_address}</span>
+                      </div>
+                    ) : (
+                      <div className="inline-flex items-center gap-1.5">
+                        <Briefcase className="w-3.5 h-3.5 text-gray-400" />
+                        Đang tuyển dụng nhiều vị trí
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </button>
+            ))
+          ) : (
+            <div className="rounded-xl border border-dashed border-gray-200 bg-gray-50 px-4 py-6 text-center text-sm text-gray-500">
+              Chưa có dữ liệu công ty nổi bật.
             </div>
-          ))}
+          )}
         </div>
       </div>
 
-      {/* Suggested Jobs Widget */}
       <div className="bg-gradient-to-br from-navy-700 to-navy-900 rounded-2xl p-5 shadow-lg shadow-navy-900/20">
         <h3 className="text-base font-bold text-white mb-4">💡 Gợi ý cho bạn</h3>
         <div className="space-y-3">

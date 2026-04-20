@@ -47,6 +47,17 @@ export default function JobDetailPage() {
   if (!job) return <div className="text-center py-20 text-gray-500">Không tìm thấy việc làm</div>;
 
   const tags = job.industry?.split(/[,/]/).map(t => t.trim()).filter(Boolean) || [];
+  const jobTitle = job.title || job.job_title;
+  const jobLocation = job.location || job.job_address;
+  const jobDescription = job.description || job.job_description;
+  const jobRequirements = job.requirements || job.job_requirements;
+  const jobExperience = job.experience || job.years_of_experience;
+  const jobDeadline = job.deadline || job.submission_deadline;
+
+  const handleCompanyClick = () => {
+    if (!job.company_name) return;
+    navigate(`/companies?company=${encodeURIComponent(job.company_name)}`);
+  };
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-8">
@@ -64,10 +75,16 @@ export default function JobDetailPage() {
                 <Briefcase className="w-8 h-8" />
               </div>
               <div className="flex-1 min-w-0">
-                <h1 className="text-xl font-bold text-gray-800 uppercase">{job.job_title}</h1>
-                <p className="text-base text-gray-600 font-medium mt-1">{job.company_name || 'Đang cập nhật'}</p>
+                <h1 className="text-xl font-bold text-gray-800 uppercase">{jobTitle}</h1>
+                {job.company_name ? (
+                  <button type="button" onClick={handleCompanyClick} className="text-base text-gray-600 font-medium mt-1 hover:text-navy-700 transition-colors">
+                    {job.company_name}
+                  </button>
+                ) : (
+                  <p className="text-base text-gray-600 font-medium mt-1">Đang cập nhật</p>
+                )}
                 <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-3">
-                  <span className="flex items-center gap-1.5 text-sm text-gray-500"><MapPin className="w-4 h-4" />{job.job_address || 'Chưa rõ'}</span>
+                  <span className="flex items-center gap-1.5 text-sm text-gray-500"><MapPin className="w-4 h-4" />{jobLocation || 'Chưa rõ'}</span>
                   <span className="flex items-center gap-1.5 text-sm font-semibold text-success-600"><DollarSign className="w-4 h-4" />{job.salary || 'Thỏa thuận'}</span>
                   <span className="flex items-center gap-1.5 text-sm text-gray-500"><Clock className="w-4 h-4" />{job.job_type || 'Chính thức'}</span>
                 </div>
@@ -89,18 +106,18 @@ export default function JobDetailPage() {
           </div>
 
           {/* Job Description */}
-          {job.job_description && (
+          {jobDescription && (
             <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm">
               <h2 className="text-lg font-bold text-gray-800 mb-4">Mô tả công việc</h2>
-              <div className="text-sm text-gray-600 leading-relaxed whitespace-pre-line">{job.job_description}</div>
+              <div className="text-sm text-gray-600 leading-relaxed whitespace-pre-line">{jobDescription}</div>
             </div>
           )}
 
           {/* Requirements */}
-          {job.job_requirements && (
+          {jobRequirements && (
             <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm">
               <h2 className="text-lg font-bold text-gray-800 mb-4">Yêu cầu ứng viên</h2>
-              <div className="text-sm text-gray-600 leading-relaxed whitespace-pre-line">{job.job_requirements}</div>
+              <div className="text-sm text-gray-600 leading-relaxed whitespace-pre-line">{jobRequirements}</div>
             </div>
           )}
 
@@ -119,7 +136,7 @@ export default function JobDetailPage() {
           <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm">
             <h3 className="text-base font-bold text-gray-800 mb-4">Thông tin công ty</h3>
             <div className="space-y-3 text-sm">
-              <div className="flex items-start gap-3"><Building2 className="w-4 h-4 text-gray-400 mt-0.5 shrink-0" /><div><p className="text-gray-500">Công ty</p><p className="font-medium text-gray-700">{job.company_name || 'Đang cập nhật'}</p></div></div>
+              <div className="flex items-start gap-3"><Building2 className="w-4 h-4 text-gray-400 mt-0.5 shrink-0" /><div><p className="text-gray-500">Công ty</p>{job.company_name ? <button type="button" onClick={handleCompanyClick} className="font-medium text-gray-700 hover:text-navy-700 transition-colors">{job.company_name}</button> : <p className="font-medium text-gray-700">Đang cập nhật</p>}</div></div>
               <div className="flex items-start gap-3"><Users className="w-4 h-4 text-gray-400 mt-0.5 shrink-0" /><div><p className="text-gray-500">Quy mô</p><p className="font-medium text-gray-700">{job.company_size || 'Đang cập nhật'}</p></div></div>
               <div className="flex items-start gap-3"><MapPin className="w-4 h-4 text-gray-400 mt-0.5 shrink-0" /><div><p className="text-gray-500">Địa chỉ</p><p className="font-medium text-gray-700">{job.company_address || 'Đang cập nhật'}</p></div></div>
             </div>
@@ -129,9 +146,9 @@ export default function JobDetailPage() {
           <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm">
             <h3 className="text-base font-bold text-gray-800 mb-4">Thông tin chung</h3>
             <div className="space-y-3 text-sm">
-              <div className="flex items-start gap-3"><GraduationCap className="w-4 h-4 text-gray-400 mt-0.5 shrink-0" /><div><p className="text-gray-500">Kinh nghiệm</p><p className="font-medium text-gray-700">{job.years_of_experience || 'Không yêu cầu'}</p></div></div>
+              <div className="flex items-start gap-3"><GraduationCap className="w-4 h-4 text-gray-400 mt-0.5 shrink-0" /><div><p className="text-gray-500">Kinh nghiệm</p><p className="font-medium text-gray-700">{jobExperience || 'Không yêu cầu'}</p></div></div>
               <div className="flex items-start gap-3"><Users className="w-4 h-4 text-gray-400 mt-0.5 shrink-0" /><div><p className="text-gray-500">Số lượng tuyển</p><p className="font-medium text-gray-700">{job.number_candidate || 'Không giới hạn'}</p></div></div>
-              <div className="flex items-start gap-3"><Calendar className="w-4 h-4 text-gray-400 mt-0.5 shrink-0" /><div><p className="text-gray-500">Hạn nộp</p><p className="font-medium text-gray-700">{job.submission_deadline || 'Đang cập nhật'}</p></div></div>
+              <div className="flex items-start gap-3"><Calendar className="w-4 h-4 text-gray-400 mt-0.5 shrink-0" /><div><p className="text-gray-500">Hạn nộp</p><p className="font-medium text-gray-700">{jobDeadline || 'Đang cập nhật'}</p></div></div>
             </div>
           </div>
         </div>

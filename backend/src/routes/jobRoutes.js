@@ -5,6 +5,8 @@ const { authenticateToken } = require('../middlewares/authMiddleware');
 
 // Public routes
 router.get('/', jobController.getJobs);
+router.get('/filters', jobController.getJobFilters);
+router.get('/companies', jobController.getCompanies);
 router.get('/saved', authenticateToken, jobController.getSavedJobs);
 router.get('/applied', authenticateToken, jobController.getAppliedJobs);
 router.get('/saved-ids', authenticateToken, jobController.getSavedJobIds);

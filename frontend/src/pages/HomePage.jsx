@@ -1,27 +1,89 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import HeroSection from '../components/HeroSection';
 import FilterSidebar from '../components/FilterSidebar';
 import JobList from '../components/JobList';
 import RightSidebar from '../components/RightSidebar';
+
+const fallbackFilterOptions = {
+  salaryRanges: [
+    { value: '', label: 'Tất cả' },
+    { value: '0-10', label: 'Dưới 10 triệu' },
+    { value: '10-15', label: '10 - 15 triệu' },
+    { value: '15-20', label: '15 - 20 triệu' },
+    { value: '20-30', label: '20 - 30 triệu' },
+    { value: '30+', label: 'Trên 30 triệu' },
+  ],
+  levels: [
+    { value: 'Mới tốt nghiệp' },
+    { value: 'Thực tập sinh' },
+    { value: 'Nhân viên' },
+    { value: 'Trưởng nhóm' },
+    { value: 'Quản lý' },
+  ],
+  industries: [
+    { value: 'lập trình viên' },
+    { value: 'marketing' },
+    { value: 'kế toán' },
+    { value: 'nhân viên kinh doanh' },
+    { value: 'hành chính' },
+    { value: 'chăm sóc khách hàng' },
+  ],
+};
 
 export default function HomePage() {
   const [searchParams, setSearchParams] = useState({
     keyword: '',
     location: '',
     jobType: '',
+    salaryRange: '',
+    levels: [],
+    industries: [],
   });
+  const [filterOptions, setFilterOptions] = useState(fallbackFilterOptions);
+
+  useEffect(() => {
+    fetch('/api/jobs/filters')
+      .then((res) => res.json())
+      .then((payload) => {
+        if (payload?.data) {
+          setFilterOptions(payload.data);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  const handleSearch = (nextSearch) => {
+    setSearchParams((prev) => ({ ...prev, ...nextSearch }));
+  };
+
+  const handleApplyFilters = (nextFilters) => {
+    setSearchParams((prev) => ({ ...prev, ...nextFilters }));
+  };
 
   return (
     <>
       {/* Hero Section */}
-      <HeroSection onSearch={setSearchParams} />
+      <HeroSection onSearch={handleSearch} />
 
       {/* Main Content: Filters + Job Feed + Sidebar */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="flex flex-col lg:flex-row gap-6">
           {/* Left Sidebar - Filters */}
           <div className="hidden lg:block w-64 shrink-0">
-            <FilterSidebar />
+            <FilterSidebar
+              key={[
+                searchParams.salaryRange,
+                searchParams.levels.join('|'),
+                searchParams.industries.join('|'),
+              ].join('::')}
+              value={{
+                salaryRange: searchParams.salaryRange,
+                levels: searchParams.levels,
+                industries: searchParams.industries,
+              }}
+              options={filterOptions}
+              onApply={handleApplyFilters}
+            />
           </div>
 
           {/* Center - Job List */}

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowLeft, ImageUp, Loader2, Save, Download, CheckCircle } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import SeekerToolsNav from '../../components/seeker/SeekerToolsNav';
 
 const API = '/api/cv';
 
@@ -129,6 +130,8 @@ export default function CVImportImagePage() {
         </div>
       </div>
 
+      <SeekerToolsNav />
+
       {error && <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-600">{error}</div>}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -208,4 +211,3 @@ export default function CVImportImagePage() {
     </div>
   );
 }
-
