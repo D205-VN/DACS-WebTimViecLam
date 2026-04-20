@@ -264,8 +264,17 @@ export default function AdminDashboard() {
           </div>
 
           <div className="flex items-center gap-3">
-            <button className="hidden rounded-2xl border border-white/10 bg-white/5 p-3 text-gray-400 transition-colors hover:border-blue-500/20 hover:text-white md:flex">
+            <button
+              onClick={() => setActiveTab(stats.pendingJobs > 0 ? 'jobs' : 'users')}
+              className="relative hidden rounded-2xl border border-white/10 bg-white/5 p-3 text-gray-400 transition-colors hover:border-blue-500/20 hover:text-white md:flex"
+              title={stats.pendingJobs > 0 ? 'Mở danh sách tin chờ duyệt' : 'Mở danh sách người dùng mới'}
+            >
               <Bell className="h-5 w-5" />
+              {stats.pendingJobs > 0 && (
+                <span className="absolute right-1.5 top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-amber-500 px-1 text-[10px] font-bold text-white">
+                  {Math.min(stats.pendingJobs, 9)}
+                </span>
+              )}
             </button>
 
             <div className="hidden items-center gap-3 rounded-2xl border border-white/10 bg-white/5 px-3 py-2 sm:flex">

@@ -9,9 +9,11 @@ import {
   ChevronDown,
   FileText,
   Hash,
+  LayoutDashboard,
   Loader2,
   LogOut,
   Menu,
+  Plus,
   Send,
   Shield,
   Sparkles,
@@ -19,82 +21,142 @@ import {
   X,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { getRouteByRole } from '../utils/roleRedirect';
 
-const navLinks = [
-  {
-    name: 'Tìm việc',
-    to: '/',
-    icon: Briefcase,
-    match: (pathname) =>
-      pathname === '/' ||
-      pathname.startsWith('/jobs') ||
-      pathname.startsWith('/saved-jobs') ||
-      pathname.startsWith('/applied-jobs'),
-  },
-  {
-    name: 'Công ty',
-    to: '/companies',
-    icon: Building2,
-    match: (pathname) => pathname.startsWith('/companies'),
-  },
-  {
-    name: 'Blog',
-    to: '/blog',
-    icon: BookOpen,
-    match: (pathname) => pathname.startsWith('/blog'),
-  },
-];
+function getNavLinks(roleCode) {
+  return [
+    {
+      name: 'Tìm việc',
+      to: getRouteByRole(roleCode, 'home'),
+      icon: Briefcase,
+      match: (pathname) =>
+        pathname === '/' ||
+        pathname === '/seeker/home' ||
+        pathname.startsWith('/jobs') ||
+        pathname.startsWith('/seeker/jobs') ||
+        pathname.startsWith('/saved-jobs') ||
+        pathname.startsWith('/applied-jobs') ||
+        pathname.startsWith('/seeker/saved-jobs') ||
+        pathname.startsWith('/seeker/applied-jobs'),
+    },
+    {
+      name: 'Công ty',
+      to: getRouteByRole(roleCode, 'companies'),
+      icon: Building2,
+      match: (pathname) => pathname.startsWith('/companies') || pathname.startsWith('/seeker/companies'),
+    },
+    {
+      name: 'Blog',
+      to: getRouteByRole(roleCode, 'blog'),
+      icon: BookOpen,
+      match: (pathname) => pathname.startsWith('/blog') || pathname.startsWith('/seeker/blog'),
+    },
+  ];
+}
 
-const userMenuLinks = [
-  {
-    to: '/profile',
-    label: 'Cập nhật thông tin',
-    description: 'Chỉnh sửa hồ sơ cá nhân',
-    icon: User,
-    iconClass: 'bg-blue-50 text-blue-500',
-    match: (pathname) => pathname.startsWith('/profile'),
-  },
-  {
-    to: '/change-password',
-    label: 'Bảo mật',
-    description: 'Đổi mật khẩu tài khoản',
-    icon: Shield,
-    iconClass: 'bg-amber-50 text-amber-500',
-    match: (pathname) => pathname.startsWith('/change-password'),
-  },
-  {
-    to: '/saved-jobs',
-    label: 'Việc đã lưu',
-    description: 'Xem danh sách đã bookmark',
-    icon: Bookmark,
-    iconClass: 'bg-red-50 text-red-400',
-    match: (pathname) => pathname.startsWith('/saved-jobs'),
-  },
-  {
-    to: '/applied-jobs',
-    label: 'Đã ứng tuyển',
-    description: 'Theo dõi trạng thái',
-    icon: Send,
-    iconClass: 'bg-green-50 text-green-500',
-    match: (pathname) => pathname.startsWith('/applied-jobs'),
-  },
-  {
-    to: '/seeker/cv-builder',
-    label: 'Tạo CV AI',
-    description: 'CV chuyên nghiệp tự động',
-    icon: Sparkles,
-    iconClass: 'bg-fuchsia-50 text-fuchsia-500',
-    match: (pathname) => pathname.startsWith('/seeker/cv-builder'),
-  },
-  {
-    to: '/seeker/my-cvs',
-    label: 'Quản lý hồ sơ CV',
-    description: 'Xem, tải và import CV',
-    icon: FileText,
-    iconClass: 'bg-indigo-50 text-indigo-500',
-    match: (pathname) => pathname.startsWith('/seeker/my-cvs') || pathname.startsWith('/seeker/cv-import'),
-  },
-];
+function getUserMenuLinks(roleCode) {
+  if (roleCode === 'admin') {
+    return [
+      {
+        to: '/admin/dashboard',
+        label: 'Bảng điều khiển',
+        description: 'Quản trị hệ thống',
+        icon: LayoutDashboard,
+        iconClass: 'bg-blue-50 text-blue-500',
+        match: (pathname) => pathname.startsWith('/admin'),
+      },
+      {
+        to: getRouteByRole(roleCode, 'changePassword'),
+        label: 'Bảo mật',
+        description: 'Đổi mật khẩu tài khoản',
+        icon: Shield,
+        iconClass: 'bg-amber-50 text-amber-500',
+        match: (pathname) => pathname.startsWith('/change-password') || pathname.startsWith('/admin/change-password'),
+      },
+    ];
+  }
+
+  if (roleCode === 'employer') {
+    return [
+      {
+        to: '/employer/dashboard',
+        state: { activeTab: 'dashboard' },
+        label: 'Bảng điều khiển',
+        description: 'Quản lý tuyển dụng',
+        icon: LayoutDashboard,
+        iconClass: 'bg-blue-50 text-blue-500',
+        match: (pathname) => pathname.startsWith('/employer/dashboard'),
+      },
+      {
+        to: '/employer/post-job',
+        label: 'Đăng tin tuyển dụng',
+        description: 'Tạo tin tuyển dụng mới',
+        icon: Plus,
+        iconClass: 'bg-emerald-50 text-emerald-500',
+        match: (pathname) => pathname.startsWith('/employer/post-job'),
+      },
+      {
+        to: getRouteByRole(roleCode, 'changePassword'),
+        label: 'Bảo mật',
+        description: 'Đổi mật khẩu tài khoản',
+        icon: Shield,
+        iconClass: 'bg-amber-50 text-amber-500',
+        match: (pathname) => pathname.startsWith('/change-password') || pathname.startsWith('/employer/change-password'),
+      },
+    ];
+  }
+
+  return [
+    {
+      to: getRouteByRole(roleCode, 'profile'),
+      label: 'Cập nhật thông tin',
+      description: 'Chỉnh sửa hồ sơ cá nhân',
+      icon: User,
+      iconClass: 'bg-blue-50 text-blue-500',
+      match: (pathname) => pathname.startsWith('/profile') || pathname.startsWith('/seeker/profile'),
+    },
+    {
+      to: getRouteByRole(roleCode, 'changePassword'),
+      label: 'Bảo mật',
+      description: 'Đổi mật khẩu tài khoản',
+      icon: Shield,
+      iconClass: 'bg-amber-50 text-amber-500',
+      match: (pathname) => pathname.startsWith('/change-password') || pathname.startsWith('/seeker/change-password'),
+    },
+    {
+      to: getRouteByRole(roleCode, 'savedJobs'),
+      label: 'Việc đã lưu',
+      description: 'Xem danh sách đã bookmark',
+      icon: Bookmark,
+      iconClass: 'bg-red-50 text-red-400',
+      match: (pathname) => pathname.startsWith('/saved-jobs') || pathname.startsWith('/seeker/saved-jobs'),
+    },
+    {
+      to: getRouteByRole(roleCode, 'appliedJobs'),
+      label: 'Đã ứng tuyển',
+      description: 'Theo dõi trạng thái',
+      icon: Send,
+      iconClass: 'bg-green-50 text-green-500',
+      match: (pathname) => pathname.startsWith('/applied-jobs') || pathname.startsWith('/seeker/applied-jobs'),
+    },
+    {
+      to: getRouteByRole(roleCode, 'cvBuilder'),
+      label: 'Tạo CV AI',
+      description: 'CV chuyên nghiệp tự động',
+      icon: Sparkles,
+      iconClass: 'bg-fuchsia-50 text-fuchsia-500',
+      match: (pathname) => pathname.startsWith('/seeker/cv-builder'),
+    },
+    {
+      to: getRouteByRole(roleCode, 'myCvs'),
+      label: 'Quản lý hồ sơ CV',
+      description: 'Xem, tải và import CV',
+      icon: FileText,
+      iconClass: 'bg-indigo-50 text-indigo-500',
+      match: (pathname) => pathname.startsWith('/seeker/my-cvs') || pathname.startsWith('/seeker/cv-import'),
+    },
+  ];
+}
 
 function getInitials(name) {
   if (!name) return '?';
@@ -108,9 +170,11 @@ function getInitials(name) {
 
 const applicationStatusLabels = {
   pending: 'Đang chờ phản hồi',
+  interview: 'Được mời phỏng vấn',
+  hired: 'Đã được tuyển',
+  rejected: 'Hồ sơ chưa phù hợp',
   viewed: 'Nhà tuyển dụng đã xem',
   invited: 'Được mời phỏng vấn',
-  rejected: 'Hồ sơ chưa phù hợp',
 };
 
 function formatNotificationTime(value) {
@@ -130,6 +194,100 @@ function formatNotificationTime(value) {
 
 function sortNotificationsByTime(items) {
   return [...items].sort((left, right) => new Date(right.timestamp || 0) - new Date(left.timestamp || 0));
+}
+
+function getNotificationPanelMeta(roleCode) {
+  switch (roleCode) {
+    case 'admin':
+      return {
+        title: 'Thông báo quản trị',
+        subtitle: 'Tin chờ duyệt và hoạt động người dùng gần đây',
+      };
+    case 'employer':
+      return {
+        title: 'Thông báo tuyển dụng',
+        subtitle: 'Tin chờ duyệt, bị từ chối và ứng viên mới',
+      };
+    default:
+      return {
+        title: 'Thông báo',
+        subtitle: 'Cập nhật nhanh cho tài khoản của bạn',
+      };
+  }
+}
+
+function getEmptyNotification(roleCode) {
+  switch (roleCode) {
+    case 'admin':
+      return {
+        id: 'empty-state',
+        title: 'Hệ thống đang ổn định',
+        description: 'Hiện chưa có tin chờ duyệt hoặc biến động mới cần xử lý ngay.',
+        to: '/admin/dashboard',
+        state: { activeTab: 'overview' },
+        icon: Shield,
+        iconClass: 'bg-blue-50 text-blue-500',
+        timestamp: null,
+      };
+    case 'employer':
+      return {
+        id: 'empty-state',
+        title: 'Chưa có thông báo tuyển dụng mới',
+        description: 'Khi có ứng viên mới hoặc tin cần admin xử lý, bạn sẽ thấy tại đây.',
+        to: '/employer/dashboard',
+        state: { activeTab: 'notifications' },
+        icon: Bell,
+        iconClass: 'bg-amber-50 text-amber-500',
+        timestamp: null,
+      };
+    default:
+      return {
+        id: 'empty-state',
+        title: 'Hoàn thiện CV để tăng tốc ứng tuyển',
+        description: 'Tạo CV AI và lưu hồ sơ để ứng tuyển nhanh hơn.',
+        to: getRouteByRole(roleCode, 'cvBuilder'),
+        icon: Sparkles,
+        iconClass: 'bg-fuchsia-50 text-fuchsia-500',
+        timestamp: null,
+      };
+  }
+}
+
+function getFallbackNotification(roleCode) {
+  switch (roleCode) {
+    case 'admin':
+      return {
+        id: 'fallback',
+        title: 'Không tải được thông báo quản trị',
+        description: 'Bạn vẫn có thể mở dashboard để xem tin chờ duyệt và người dùng mới.',
+        to: '/admin/dashboard',
+        state: { activeTab: 'overview' },
+        icon: Bell,
+        iconClass: 'bg-amber-50 text-amber-500',
+        timestamp: null,
+      };
+    case 'employer':
+      return {
+        id: 'fallback',
+        title: 'Không tải được thông báo tuyển dụng',
+        description: 'Bạn vẫn có thể mở bảng điều khiển để xem tin đăng và ứng viên.',
+        to: '/employer/dashboard',
+        state: { activeTab: 'notifications' },
+        icon: Bell,
+        iconClass: 'bg-amber-50 text-amber-500',
+        timestamp: null,
+      };
+    default:
+      return {
+        id: 'fallback',
+        title: 'Không tải được thông báo',
+        description: 'Bạn vẫn có thể xem Việc đã lưu, Đã ứng tuyển và hồ sơ CV trong menu.',
+        to: getRouteByRole(roleCode, 'savedJobs'),
+        icon: Bell,
+        iconClass: 'bg-amber-50 text-amber-500',
+        timestamp: null,
+      };
+  }
 }
 
 function getTopNavClass(isActive) {
@@ -162,6 +320,10 @@ export default function Header() {
   const notificationItems = notifications || [];
   const actionableNotificationCount = notificationItems.filter((item) => !['empty-state', 'fallback'].includes(item.id)).length;
   const notificationsLoading = Boolean(token) && notifications === null;
+  const notificationPanelMeta = getNotificationPanelMeta(user?.role_code);
+  const navLinks = getNavLinks(user?.role_code);
+  const userMenuLinks = getUserMenuLinks(user?.role_code);
+  const homeRoute = getRouteByRole(user?.role_code, 'home');
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -179,90 +341,148 @@ export default function Header() {
   }, []);
 
   useEffect(() => {
-    if (!token) return;
+    if (!token || !user?.role_code) return;
 
     let cancelled = false;
+    const headers = { Authorization: `Bearer ${token}` };
 
-    Promise.all([
-      fetch('/api/jobs/applied', { headers: { Authorization: `Bearer ${token}` } }).then((res) => res.ok ? res.json() : { data: [] }),
-      fetch('/api/jobs/saved', { headers: { Authorization: `Bearer ${token}` } }).then((res) => res.ok ? res.json() : { data: [] }),
-      fetch('/api/cv/my-cvs', { headers: { Authorization: `Bearer ${token}` } }).then((res) => res.ok ? res.json() : { cvs: [] }),
-    ])
-      .then(([appliedPayload, savedPayload, cvPayload]) => {
-        if (cancelled) return;
+    const fetchJson = (url, fallbackValue) =>
+      fetch(url, { headers }).then((res) => (res.ok ? res.json() : fallbackValue));
 
-        const appliedJobs = appliedPayload?.data || [];
-        const savedJobs = savedPayload?.data || [];
-        const savedCVs = cvPayload?.cvs || [];
-        const nextNotifications = sortNotificationsByTime([
-          ...appliedJobs.map((job) => ({
-            id: `applied-${job.id}-${job.applied_at}`,
-            title: `Đã ứng tuyển: ${job.title || 'Tin tuyển dụng'}`,
-            description: [job.company_name, applicationStatusLabels[job.status] || 'Đã gửi hồ sơ']
-              .filter(Boolean)
-              .join(' • '),
-            to: '/applied-jobs',
-            icon: Send,
-            iconClass: 'bg-green-50 text-green-500',
-            timestamp: job.applied_at,
-          })),
-          ...savedJobs.map((job) => ({
-            id: `saved-${job.id}-${job.saved_at}`,
-            title: `Đã lưu: ${job.title || 'Việc làm quan tâm'}`,
-            description: job.company_name || 'Bạn có thể quay lại ứng tuyển bất cứ lúc nào',
-            to: '/saved-jobs',
-            icon: Bookmark,
-            iconClass: 'bg-red-50 text-red-500',
-            timestamp: job.saved_at,
-          })),
-          ...savedCVs.map((cv) => ({
-            id: `cv-${cv.id}-${cv.created_at}`,
-            title: `Đã lưu CV: ${cv.title || 'Hồ sơ CV'}`,
-            description: cv.target_role || 'CV của bạn đã được lưu vào thư viện hồ sơ',
-            to: '/seeker/my-cvs',
-            icon: FileText,
-            iconClass: 'bg-indigo-50 text-indigo-500',
-            timestamp: cv.created_at,
-          })),
-        ]).slice(0, 6);
+    const loadNotifications = async () => {
+      try {
+        let nextNotifications = [];
 
-        if (nextNotifications.length === 0) {
-          nextNotifications.push({
-            id: 'empty-state',
-            title: 'Hoàn thiện CV để tăng tốc ứng tuyển',
-            description: 'Tạo CV AI và lưu hồ sơ để ứng tuyển nhanh hơn.',
-            to: '/seeker/cv-builder',
-            icon: Sparkles,
-            iconClass: 'bg-fuchsia-50 text-fuchsia-500',
-            timestamp: null,
-          });
-        }
-
-        setNotifications(nextNotifications);
-      })
-      .catch(() => {
-        if (!cancelled) {
-          setNotifications([
-            {
-              id: 'fallback',
-              title: 'Không tải được thông báo',
-              description: 'Bạn vẫn có thể xem Việc đã lưu, Đã ứng tuyển và hồ sơ CV trong menu.',
-              to: '/saved-jobs',
-              icon: Bell,
-              iconClass: 'bg-amber-50 text-amber-500',
-              timestamp: null,
-            },
+        if (user.role_code === 'admin') {
+          const [pendingPayload, usersPayload] = await Promise.all([
+            fetchJson('/api/admin/jobs/pending', { data: [] }),
+            fetchJson('/api/admin/users', { data: [] }),
           ]);
+
+          const pendingJobs = pendingPayload?.data || [];
+          const recentUsers = (usersPayload?.data || [])
+            .filter((row) => {
+              const createdAt = new Date(row.created_at).getTime();
+              return Number.isFinite(createdAt) && Date.now() - createdAt <= 7 * 24 * 60 * 60 * 1000;
+            })
+            .slice(0, 3);
+
+          nextNotifications = sortNotificationsByTime([
+            ...(pendingJobs.length > 0 ? [{
+              id: 'admin-pending-summary',
+              title: `${pendingJobs.length} tin đang chờ duyệt`,
+              description: 'Mở dashboard để chấp nhận hoặc từ chối các tin tuyển dụng mới.',
+              to: '/admin/dashboard',
+              state: { activeTab: 'jobs' },
+              icon: Briefcase,
+              iconClass: 'bg-amber-50 text-amber-500',
+              timestamp: pendingJobs[0]?.created_at || null,
+            }] : []),
+            ...pendingJobs.slice(0, 3).map((job) => ({
+              id: `admin-pending-${job.id}`,
+              title: `Chờ duyệt: ${job.job_title || 'Tin tuyển dụng'}`,
+              description: [job.company_name, job.job_address].filter(Boolean).join(' • ') || 'Cần admin xử lý',
+              to: '/admin/dashboard',
+              state: { activeTab: 'jobs' },
+              icon: Briefcase,
+              iconClass: 'bg-amber-50 text-amber-500',
+              timestamp: job.created_at,
+            })),
+            ...recentUsers.map((row) => ({
+              id: `admin-user-${row.id}-${row.created_at}`,
+              title: `Người dùng mới: ${row.full_name || row.email || 'Tài khoản mới'}`,
+              description: [row.role_name || row.role_code, row.email].filter(Boolean).join(' • '),
+              to: '/admin/dashboard',
+              state: { activeTab: 'users' },
+              icon: User,
+              iconClass: 'bg-blue-50 text-blue-500',
+              timestamp: row.created_at,
+            })),
+          ]).slice(0, 6);
+        } else if (user.role_code === 'employer') {
+          const payload = await fetchJson('/api/employer/notifications', { data: [] });
+          const typeMeta = {
+            candidate: { icon: Send, iconClass: 'bg-emerald-50 text-emerald-500' },
+            warning: { icon: Bell, iconClass: 'bg-amber-50 text-amber-500' },
+            rejected: { icon: Briefcase, iconClass: 'bg-red-50 text-red-500' },
+          };
+
+          nextNotifications = sortNotificationsByTime(
+            (payload?.data || []).map((item) => ({
+              id: item.id,
+              title: item.title,
+              description: item.message,
+              to: item.to || '/employer/dashboard',
+              state: item.tab ? { activeTab: item.tab } : undefined,
+              icon: typeMeta[item.type]?.icon || Bell,
+              iconClass: typeMeta[item.type]?.iconClass || 'bg-blue-50 text-blue-500',
+              timestamp: item.time,
+            }))
+          ).slice(0, 6);
+        } else {
+          const [appliedPayload, savedPayload, cvPayload] = await Promise.all([
+            fetchJson('/api/jobs/applied', { data: [] }),
+            fetchJson('/api/jobs/saved', { data: [] }),
+            fetchJson('/api/cv/my-cvs', { cvs: [] }),
+          ]);
+
+          const appliedJobs = appliedPayload?.data || [];
+          const savedJobs = savedPayload?.data || [];
+          const savedCVs = cvPayload?.cvs || [];
+
+          nextNotifications = sortNotificationsByTime([
+            ...appliedJobs.map((job) => ({
+              id: `applied-${job.id}-${job.applied_at}`,
+              title: `Đã ứng tuyển: ${job.title || 'Tin tuyển dụng'}`,
+              description: [job.company_name, applicationStatusLabels[job.status] || 'Đã gửi hồ sơ']
+                .filter(Boolean)
+                .join(' • '),
+              to: getRouteByRole(user.role_code, 'appliedJobs'),
+              icon: Send,
+              iconClass: 'bg-green-50 text-green-500',
+              timestamp: job.applied_at,
+            })),
+            ...savedJobs.map((job) => ({
+              id: `saved-${job.id}-${job.saved_at}`,
+              title: `Đã lưu: ${job.title || 'Việc làm quan tâm'}`,
+              description: job.company_name || 'Bạn có thể quay lại ứng tuyển bất cứ lúc nào',
+              to: getRouteByRole(user.role_code, 'savedJobs'),
+              icon: Bookmark,
+              iconClass: 'bg-red-50 text-red-500',
+              timestamp: job.saved_at,
+            })),
+            ...savedCVs.map((cv) => ({
+              id: `cv-${cv.id}-${cv.created_at}`,
+              title: `Đã lưu CV: ${cv.title || 'Hồ sơ CV'}`,
+              description: cv.target_role || 'CV của bạn đã được lưu vào thư viện hồ sơ',
+              to: getRouteByRole(user.role_code, 'myCvs'),
+              icon: FileText,
+              iconClass: 'bg-indigo-50 text-indigo-500',
+              timestamp: cv.created_at,
+            })),
+          ]).slice(0, 6);
         }
-      })
-      .finally(() => {
-        if (cancelled) return;
-      });
+
+        if (!nextNotifications.length) {
+          nextNotifications = [getEmptyNotification(user.role_code)];
+        }
+
+        if (!cancelled) {
+          setNotifications(nextNotifications);
+        }
+      } catch {
+        if (!cancelled) {
+          setNotifications([getFallbackNotification(user.role_code)]);
+        }
+      }
+    };
+
+    loadNotifications();
 
     return () => {
       cancelled = true;
     };
-  }, [token]);
+  }, [token, user?.role_code]);
 
   const handleMouseEnter = () => {
     clearTimeout(timeoutRef.current);
@@ -285,7 +505,7 @@ export default function Header() {
     <header className="sticky top-0 z-50 border-b border-gray-100 bg-white shadow-sm">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between">
-          <Link to="/" className="flex shrink-0 items-center gap-2">
+          <Link to={homeRoute} className="flex shrink-0 items-center gap-2">
             <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-navy-600 to-navy-800 shadow-lg shadow-navy-700/20">
               <Briefcase className="h-5 w-5 text-white" />
             </div>
@@ -334,8 +554,8 @@ export default function Header() {
                   >
                     <div className="flex items-center justify-between border-b border-gray-100 px-4 py-4">
                       <div>
-                        <p className="text-sm font-bold text-gray-800">Thông báo</p>
-                        <p className="text-xs text-gray-500">Cập nhật nhanh cho tài khoản của bạn</p>
+                        <p className="text-sm font-bold text-gray-800">{notificationPanelMeta.title}</p>
+                        <p className="text-xs text-gray-500">{notificationPanelMeta.subtitle}</p>
                       </div>
                     </div>
 
@@ -350,6 +570,7 @@ export default function Header() {
                           <Link
                             key={item.id}
                             to={item.to}
+                            state={item.state}
                             onClick={() => setNotificationOpen(false)}
                             className="flex gap-3 px-4 py-3 transition-colors hover:bg-navy-50"
                           >
@@ -440,6 +661,7 @@ export default function Header() {
                           <Link
                             key={link.to}
                             to={link.to}
+                            state={link.state}
                             onClick={() => setDropdownOpen(false)}
                             className={getMenuItemClass(isActive)}
                           >
@@ -540,6 +762,7 @@ export default function Header() {
                     <Link
                       key={item.id}
                       to={item.to}
+                      state={item.state}
                       onClick={() => setMobileMenuOpen(false)}
                       className="block rounded-xl bg-white px-3 py-2.5"
                     >
@@ -560,6 +783,7 @@ export default function Header() {
                   <Link
                     key={link.to}
                     to={link.to}
+                    state={link.state}
                     onClick={() => setMobileMenuOpen(false)}
                     className={getMenuItemClass(isActive)}
                   >

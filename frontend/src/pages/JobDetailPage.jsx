@@ -3,6 +3,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { MapPin, DollarSign, Clock, Bookmark, BookmarkCheck, Briefcase, ArrowLeft, Send, CheckCircle2, Loader2, GraduationCap, Calendar, Bell, X, Search } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { findProvinceByName, normalizeProvinceName, normalizeSearchText } from '../data/provinceCoordinates';
+import { getCompanyFilterRoute, getDefaultRouteByRole, getJobDetailRoute } from '../utils/roleRedirect';
 
 const API = '/api/jobs';
 
@@ -24,21 +25,13 @@ const getRegionFromAddress = (...values) => {
 
 const getLocationLookupText = (...values) => getRegionFromAddress(...values) || getFirstFilledText(...values);
 
-const buildMapSearchUrl = (...values) => {
-  const queryParts = values
-    .map((value) => (typeof value === 'string' ? value.trim() : ''))
-    .filter(Boolean)
-    .filter((value, index, items) => items.indexOf(value) === index);
-
-  if (!queryParts.length) return '';
-
-  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(queryParts.join(', '))}`;
-};
+const getTags = (text) => text?.split(/[,/]/).map(tag => tag.trim().toLowerCase()).filter(Boolean) || [];
+const getSimilarityScore = (source, target) => target.reduce((score, token) => score + (source.includes(token) ? 1 : 0), 0);
 
 export default function JobDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { token, isAuthenticated } = useAuth();
+  const { token, isAuthenticated, user } = useAuth();
   const [job, setJob] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saved, setSaved] = useState(false);
@@ -65,7 +58,7 @@ export default function JobDetailPage() {
   ];
 
   useEffect(() => {
-    setLoading(true);
+    queueMicrotask(() => setLoading(true));
     fetch(`${API}/${id}`)
       .then(r => r.json())
       .then(d => { setJob(d.data); setLoading(false); })
@@ -80,7 +73,7 @@ export default function JobDetailPage() {
 
   useEffect(() => {
     if (!job) return;
-    setSimilarLoading(true);
+    queueMicrotask(() => setSimilarLoading(true));
     fetch(`${API}?page=1&limit=100`)
       .then(r => r.json())
       .then(d => {
@@ -106,12 +99,6 @@ export default function JobDetailPage() {
       })
       .catch(() => setSimilarJobs([]))
       .finally(() => setSimilarLoading(false));
-  }, [job]);
-
-  useEffect(() => {
-    if (!job) return;
-    setAlertCity(getRegionFromAddress(job.location, job.job_address, job.company_address));
-    setAlertIndustry(job.industry || '');
   }, [job]);
 
   useEffect(() => {
@@ -176,9 +163,6 @@ export default function JobDetailPage() {
     );
   };
 
-  const getTags = (text) => text?.split(/[,/]/).map(tag => tag.trim().toLowerCase()).filter(Boolean) || [];
-  const getSimilarityScore = (source, target) => target.reduce((score, token) => score + (source.includes(token) ? 1 : 0), 0);
-
   const scrollToSection = (sectionId) => {
     const section = document.getElementById(sectionId);
     if (section) {
@@ -202,15 +186,26 @@ export default function JobDetailPage() {
   const companyOverview = job.company_overview || job.company_description;
   const postedOn = formatDate(job.created_at || job.updated_at || job.posted_at);
   const remainingDays = getRemainingDays(jobDeadline);
+  const backRoute = getDefaultRouteByRole(user?.role_code);
 
   const handleCompanyClick = () => {
     if (!companyName) return;
-    navigate(`/companies?company=${encodeURIComponent(companyName)}`);
+    navigate(getCompanyFilterRoute(user?.role_code, companyName));
+  };
+
+  const handleOpenAlertModal = () => {
+    setAlertCity(getRegionFromAddress(job.location, job.job_address, job.company_address));
+    setAlertIndustry(job.industry || '');
+    setAlertLevel('');
+    setAlertSalary('');
+    setAlertFrequency('daily');
+    setSendNow(false);
+    setShowAlertModal(true);
   };
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-8">
-      <Link to="/" className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-slate-900 mb-6 transition-colors">
+      <Link to={backRoute} className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-slate-900 mb-6 transition-colors">
         <ArrowLeft className="w-4 h-4" /> Quay lại danh sách
       </Link>
 
@@ -308,7 +303,7 @@ export default function JobDetailPage() {
               </button>
               <button
                 type="button"
-                onClick={() => setShowAlertModal(true)}
+                onClick={handleOpenAlertModal}
                 className="inline-flex items-center justify-center gap-2 rounded-2xl border border-white/30 bg-white/10 px-4 py-3 text-sm font-semibold text-white transition hover:bg-white/20"
               >
                 <Bell className="w-4 h-4" />
@@ -593,7 +588,7 @@ export default function JobDetailPage() {
             ) : (
               <div className="grid gap-4 sm:grid-cols-2">
                 {similarJobs.map(similar => (
-                  <Link key={similar.id} to={`/jobs/${similar.id}`} className="group overflow-hidden rounded-[1.75rem] border border-slate-200 bg-white p-5 transition duration-200 hover:-translate-y-0.5 hover:shadow-lg">
+                  <Link key={similar.id} to={getJobDetailRoute(user?.role_code, similar.id)} className="group overflow-hidden rounded-[1.75rem] border border-slate-200 bg-white p-5 transition duration-200 hover:-translate-y-0.5 hover:shadow-lg">
                     <div className="flex items-start gap-4">
                       <div className="flex h-12 w-12 items-center justify-center rounded-3xl bg-slate-100 text-slate-700">
                         <Briefcase className="w-5 h-5" />

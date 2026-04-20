@@ -1,12 +1,13 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { Lock, Eye, EyeOff, Shield, ArrowLeft, CheckCircle2, Loader2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { getBackLabelByRole, getDefaultRouteByRole } from '../utils/roleRedirect';
 
 const API_BASE = '/api/auth';
 
 export default function ChangePasswordPage() {
-  const { token, logout } = useAuth();
+  const { token, user } = useAuth();
   const navigate = useNavigate();
   const [form, setForm] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
   const [showCurrent, setShowCurrent] = useState(false);
@@ -15,12 +16,13 @@ export default function ChangePasswordPage() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
+  const backRoute = getDefaultRouteByRole(user?.role_code);
+  const backLabel = getBackLabelByRole(user?.role_code);
 
   const handleChange = (field, value) => setForm(p => ({ ...p, [field]: value }));
 
   const handleBackHome = () => {
-    logout();
-    navigate('/');
+    navigate(backRoute);
   };
 
   const handleSubmit = async (e) => {
@@ -62,7 +64,7 @@ export default function ChangePasswordPage() {
           onClick={handleBackHome}
           className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-navy-700 mb-6 transition-colors"
         >
-          <ArrowLeft className="w-4 h-4" /> Quay lại trang chủ
+          <ArrowLeft className="w-4 h-4" /> {backLabel}
         </button>
 
         {/* Card */}

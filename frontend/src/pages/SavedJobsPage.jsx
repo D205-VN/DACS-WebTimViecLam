@@ -2,13 +2,16 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Bookmark, BookmarkX, MapPin, DollarSign, Clock, Briefcase, ArrowLeft, Loader2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { getBackLabelByRole, getDefaultRouteByRole, getJobDetailRoute } from '../utils/roleRedirect';
 
 const API = '/api/jobs';
 
 export default function SavedJobsPage() {
-  const { token } = useAuth();
+  const { token, user } = useAuth();
   const [jobs, setJobs] = useState([]);
   const [loading, setLoading] = useState(true);
+  const backRoute = getDefaultRouteByRole(user?.role_code);
+  const backLabel = getBackLabelByRole(user?.role_code);
 
   useEffect(() => {
     fetch(`${API}/saved`, { headers: { Authorization: `Bearer ${token}` } })
@@ -22,8 +25,8 @@ export default function SavedJobsPage() {
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-8">
-      <Link to="/" className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-navy-700 mb-6 transition-colors">
-        <ArrowLeft className="w-4 h-4" /> Quay lại trang chủ
+      <Link to={backRoute} className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-navy-700 mb-6 transition-colors">
+        <ArrowLeft className="w-4 h-4" /> {backLabel}
       </Link>
 
       <div className="flex items-center gap-3 mb-6">
@@ -42,7 +45,7 @@ export default function SavedJobsPage() {
         <div className="bg-white rounded-2xl border border-gray-100 p-12 text-center">
           <Bookmark className="w-12 h-12 text-gray-300 mx-auto mb-4" />
           <p className="text-gray-500">Bạn chưa lưu việc làm nào.</p>
-          <Link to="/" className="inline-block mt-4 text-sm font-semibold text-navy-700 hover:underline">Khám phá việc làm →</Link>
+          <Link to={backRoute} className="inline-block mt-4 text-sm font-semibold text-navy-700 hover:underline">Khám phá việc làm →</Link>
         </div>
       ) : (
         <div className="space-y-3">
@@ -54,7 +57,7 @@ export default function SavedJobsPage() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-start justify-between gap-2">
-                    <Link to={`/jobs/${job.id}`} className="block">
+                    <Link to={getJobDetailRoute(user?.role_code, job.id)} className="block">
                       <h3 className="text-base font-bold text-gray-800 group-hover:text-navy-700 transition-colors uppercase">{job.title}</h3>
                       <p className="text-sm text-gray-500 mt-0.5">{job.company_name || 'Đang cập nhật'}</p>
                     </Link>

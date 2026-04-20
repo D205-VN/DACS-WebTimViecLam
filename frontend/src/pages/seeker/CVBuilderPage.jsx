@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { ArrowLeft, Sparkles, Download, Loader2, User, Mail, Phone, Target, GraduationCap, Briefcase, Wrench, Award, Heart, Plus, Save, CheckCircle, ImageUp, Trash2 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import SeekerToolsNav from '../../components/seeker/SeekerToolsNav';
+import { getBackLabelByRole, getDefaultRouteByRole } from '../../utils/roleRedirect';
 
 const API = '/api/cv';
 
@@ -25,6 +26,8 @@ export default function CVBuilderPage() {
   const [kb, setKb] = useState({});
   const [availableRoles, setAvailableRoles] = useState([]);
   const [currentSuggestions, setCurrentSuggestions] = useState(null);
+  const backRoute = getDefaultRouteByRole(user?.role_code);
+  const backLabel = getBackLabelByRole(user?.role_code);
 
   useEffect(() => {
     // Fetch suggestions KB
@@ -173,8 +176,8 @@ export default function CVBuilderPage() {
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-8">
-      <Link to="/" className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-navy-700 mb-6 transition-colors">
-        <ArrowLeft className="w-4 h-4" /> Quay lại trang chủ
+      <Link to={backRoute} className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-navy-700 mb-6 transition-colors">
+        <ArrowLeft className="w-4 h-4" /> {backLabel}
       </Link>
 
       <div className="flex items-center gap-3 mb-8">

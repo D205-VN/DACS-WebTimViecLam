@@ -2,11 +2,13 @@ import { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Briefcase, LayoutDashboard, FileText, Users, Building2, Plus, Bell, LogOut, ChevronDown, User, Shield, Menu, X } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { getRouteByRole } from '../../utils/roleRedirect';
 
 export default function EmployerHeader() {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const { user, logout } = useAuth();
+  const [notificationCount, setNotificationCount] = useState(0);
+  const { user, token, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const dropdownRef = useRef(null);
@@ -28,6 +30,29 @@ export default function EmployerHeader() {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  useEffect(() => {
+    if (!token) return;
+
+    let cancelled = false;
+
+    fetch('/api/employer/notifications', {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then((res) => res.ok ? res.json() : { data: [] })
+      .then((data) => {
+        if (!cancelled) {
+          setNotificationCount((data.data || []).length);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setNotificationCount(0);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [token]);
 
   const handleMouseEnter = () => { clearTimeout(timeoutRef.current); setDropdownOpen(true); };
   const handleMouseLeave = () => { timeoutRef.current = setTimeout(() => setDropdownOpen(false), 200); };
@@ -91,9 +116,17 @@ export default function EmployerHeader() {
             </button>
 
             {/* Notification Bell */}
-            <button className="relative p-2 text-gray-500 hover:text-navy-700 hover:bg-navy-50 rounded-lg transition-colors">
+            <button
+              onClick={() => navigate('/employer/dashboard', { state: { activeTab: 'notifications' } })}
+              className="relative p-2 text-gray-500 hover:text-navy-700 hover:bg-navy-50 rounded-lg transition-colors"
+              title="Mở thông báo tuyển dụng"
+            >
               <Bell className="w-5 h-5" />
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full"></span>
+              {notificationCount > 0 && (
+                <span className="absolute right-1 top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white">
+                  {Math.min(notificationCount, 9)}
+                </span>
+              )}
             </button>
 
             {/* User Avatar + Dropdown */}
@@ -150,7 +183,7 @@ export default function EmployerHeader() {
                     </div>
                   </Link>
 
-                  <Link to="/change-password" onClick={() => setDropdownOpen(false)} className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-navy-50 hover:text-navy-700 transition-colors">
+                  <Link to={getRouteByRole(user?.role_code, 'changePassword')} onClick={() => setDropdownOpen(false)} className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-navy-50 hover:text-navy-700 transition-colors">
                     <div className="w-8 h-8 bg-amber-50 rounded-lg flex items-center justify-center">
                       <Shield className="w-4 h-4 text-amber-500" />
                     </div>
@@ -206,6 +239,20 @@ export default function EmployerHeader() {
             className="w-full flex items-center gap-2 px-4 py-3 text-sm font-semibold text-white bg-gradient-to-r from-navy-600 to-navy-800 rounded-lg"
           >
             <Plus className="w-4 h-4" /> Đăng tin mới
+          </button>
+          <button
+            onClick={() => { navigate('/employer/dashboard', { state: { activeTab: 'notifications' } }); setMobileMenuOpen(false); }}
+            className="w-full flex items-center justify-between gap-2 px-4 py-3 text-sm font-medium text-gray-600 rounded-lg hover:text-navy-700 hover:bg-navy-50"
+          >
+            <span className="flex items-center gap-2">
+              <Bell className="w-4 h-4" />
+              Thông báo
+            </span>
+            {notificationCount > 0 && (
+              <span className="rounded-full bg-red-500 px-2 py-0.5 text-[10px] font-bold text-white">
+                {Math.min(notificationCount, 9)}
+              </span>
+            )}
           </button>
           <div className="pt-3 border-t border-gray-100">
             <button onClick={() => { handleLogout(); setMobileMenuOpen(false); }} className="w-full flex items-center gap-2 px-4 py-3 text-sm text-red-600 rounded-lg hover:bg-red-50">

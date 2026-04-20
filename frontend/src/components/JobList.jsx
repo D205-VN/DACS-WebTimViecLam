@@ -2,12 +2,13 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { MapPin, DollarSign, Clock, Bookmark, BookmarkCheck, Briefcase } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { getCompanyFilterRoute, getJobDetailRoute } from '../utils/roleRedirect';
 
 const API = '/api/jobs';
 
 export default function JobList({ searchParams, title, emptyMessage }) {
   const navigate = useNavigate();
-  const { token, isAuthenticated } = useAuth();
+  const { token, isAuthenticated, user } = useAuth();
   const [jobsData, setJobsData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -100,7 +101,7 @@ export default function JobList({ searchParams, title, emptyMessage }) {
   const handleCompanyClick = (e, companyName) => {
     e.stopPropagation();
     if (!companyName) return;
-    navigate(`/companies?company=${encodeURIComponent(companyName)}`);
+    navigate(getCompanyFilterRoute(user?.role_code, companyName));
   };
 
   const heading = title || (searchParams?.company ? `Tin tuyển dụng tại ${searchParams.company}` : 'Việc làm mới nhất');
@@ -133,7 +134,7 @@ export default function JobList({ searchParams, title, emptyMessage }) {
               return (
                 <div
                   key={job.id}
-                  onClick={() => navigate(`/jobs/${job.id}`)}
+                  onClick={() => navigate(getJobDetailRoute(user?.role_code, job.id))}
                   className="group bg-white rounded-2xl border border-gray-100 p-5 cursor-pointer transition-all duration-300 hover:shadow-xl hover:shadow-navy-100/40 hover:-translate-y-0.5 hover:border-navy-100"
                 >
                   <div className="flex gap-4">

@@ -1,7 +1,9 @@
 import { useDeferredValue, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight, BookOpen, Calendar, Clock3, Search, Sparkles } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 import { blogCategories, blogPosts } from '../data/blogPosts';
+import { getBlogDetailRoute } from '../utils/roleRedirect';
 
 function formatDate(date) {
   return new Date(date).toLocaleDateString('vi-VN', {
@@ -12,6 +14,7 @@ function formatDate(date) {
 }
 
 export default function BlogPage() {
+  const { user } = useAuth();
   const [query, setQuery] = useState('');
   const [category, setCategory] = useState('Tất cả');
   const deferredQuery = useDeferredValue(query);
@@ -53,7 +56,7 @@ export default function BlogPage() {
       <section className="mt-8 grid grid-cols-1 gap-6 xl:grid-cols-[1.4fr_minmax(0,1fr)]">
         {featuredPost ? (
           <Link
-            to={`/blog/${featuredPost.slug}`}
+            to={getBlogDetailRoute(user?.role_code, featuredPost.slug)}
             className="group overflow-hidden rounded-3xl border border-gray-100 bg-white shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-xl hover:shadow-navy-100/40"
           >
             <div className={`h-56 bg-gradient-to-br ${featuredPost.color} p-6 text-white sm:h-64`}>
@@ -139,7 +142,7 @@ export default function BlogPage() {
             {visiblePosts.map((post) => (
               <Link
                 key={post.slug}
-                to={`/blog/${post.slug}`}
+                to={getBlogDetailRoute(user?.role_code, post.slug)}
                 className="group overflow-hidden rounded-3xl border border-gray-100 bg-white shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-xl hover:shadow-navy-100/40"
               >
                 <div className={`h-40 bg-gradient-to-br ${post.color} p-5 text-white`}>

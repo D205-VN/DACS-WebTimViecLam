@@ -1,25 +1,7 @@
 import { Link } from 'react-router-dom';
 import { ArrowRight, Briefcase, Mail, MapPin, Phone, Sparkles } from 'lucide-react';
-
-const navigationLinks = [
-  { label: 'Tìm việc', to: '/' },
-  { label: 'Công ty', to: '/companies' },
-  { label: 'Blog nghề nghiệp', to: '/blog' },
-  { label: 'Việc đã lưu', to: '/saved-jobs' },
-];
-
-const candidateLinks = [
-  { label: 'Tạo CV bằng AI', to: '/seeker/cv-builder' },
-  { label: 'Quản lý hồ sơ CV', to: '/seeker/my-cvs' },
-  { label: 'Cập nhật thông tin', to: '/profile' },
-  { label: 'Đổi mật khẩu', to: '/change-password' },
-];
-
-const employerLinks = [
-  { label: 'Bảng điều khiển NTD', to: '/employer/dashboard' },
-  { label: 'Đăng tin tuyển dụng', to: '/employer/post-job' },
-  { label: 'Danh sách công ty', to: '/companies' },
-];
+import { useAuth } from '../context/AuthContext';
+import { getRouteByRole } from '../utils/roleRedirect';
 
 function FooterLink({ to, label }) {
   return (
@@ -31,6 +13,25 @@ function FooterLink({ to, label }) {
 }
 
 export default function Footer() {
+  const { user } = useAuth();
+  const employerLinks = [
+    { label: 'Bảng điều khiển NTD', to: '/employer/dashboard' },
+    { label: 'Đăng tin tuyển dụng', to: '/employer/post-job' },
+    { label: 'Danh sách công ty', to: getRouteByRole(user?.role_code, 'companies') },
+  ];
+  const navigationLinks = [
+    { label: 'Tìm việc', to: getRouteByRole(user?.role_code, 'home') },
+    { label: 'Công ty', to: getRouteByRole(user?.role_code, 'companies') },
+    { label: 'Blog nghề nghiệp', to: getRouteByRole(user?.role_code, 'blog') },
+    { label: 'Việc đã lưu', to: getRouteByRole(user?.role_code, 'savedJobs') },
+  ];
+  const candidateLinks = [
+    { label: 'Tạo CV bằng AI', to: getRouteByRole(user?.role_code, 'cvBuilder') },
+    { label: 'Quản lý hồ sơ CV', to: getRouteByRole(user?.role_code, 'myCvs') },
+    { label: 'Cập nhật thông tin', to: getRouteByRole(user?.role_code, 'profile') },
+    { label: 'Đổi mật khẩu', to: getRouteByRole(user?.role_code, 'changePassword') },
+  ];
+
   return (
     <footer className="relative overflow-hidden bg-[#071421] text-slate-200">
       <div className="absolute inset-0 overflow-hidden">
@@ -116,9 +117,9 @@ export default function Footer() {
             Hệ thống được tối ưu cho tìm việc, quản lý CV và theo dõi ứng tuyển theo thời gian thực.
           </div>
           <div className="flex items-center gap-4 text-xs text-slate-400">
-            <Link to="/blog" className="transition-colors hover:text-white">Blog</Link>
-            <Link to="/companies" className="transition-colors hover:text-white">Công ty</Link>
-            <Link to="/" className="transition-colors hover:text-white">Tìm việc</Link>
+            <Link to={getRouteByRole(user?.role_code, 'blog')} className="transition-colors hover:text-white">Blog</Link>
+            <Link to={getRouteByRole(user?.role_code, 'companies')} className="transition-colors hover:text-white">Công ty</Link>
+            <Link to={getRouteByRole(user?.role_code, 'home')} className="transition-colors hover:text-white">Tìm việc</Link>
             <span>© {new Date().getFullYear()} AptertekWork</span>
           </div>
         </div>

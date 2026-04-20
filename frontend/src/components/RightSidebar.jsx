@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowRight, Briefcase, Building2, Loader2, MapPin, Sparkles, TrendingUp } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
+import { getCompanyFilterRoute, getJobDetailRoute, getRouteByRole } from '../utils/roleRedirect';
 
 const rankColors = [
   'from-amber-400 to-orange-500',
@@ -22,6 +24,7 @@ function getCompanyInitials(name = '') {
 
 export default function RightSidebar({ searchParams }) {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [topCompanies, setTopCompanies] = useState([]);
   const [loadingCompanies, setLoadingCompanies] = useState(true);
   const [suggestedJobs, setSuggestedJobs] = useState([]);
@@ -114,7 +117,7 @@ export default function RightSidebar({ searchParams }) {
             <TrendingUp className="w-5 h-5 text-navy-700" />
             <h3 className="text-base font-bold text-gray-800">Công ty hàng đầu</h3>
           </div>
-          <Link to="/companies" className="text-xs text-navy-600 hover:text-navy-800 font-medium transition-colors flex items-center gap-0.5">
+          <Link to={getRouteByRole(user?.role_code, 'companies')} className="text-xs text-navy-600 hover:text-navy-800 font-medium transition-colors flex items-center gap-0.5">
             Xem tất cả
             <ArrowRight className="w-3 h-3" />
           </Link>
@@ -136,7 +139,7 @@ export default function RightSidebar({ searchParams }) {
               <button
                 key={company.company_name}
                 type="button"
-                onClick={() => navigate(`/companies?company=${encodeURIComponent(company.company_name)}`)}
+                onClick={() => navigate(getCompanyFilterRoute(user?.role_code, company.company_name))}
                 className="w-full flex items-start gap-3 p-3 rounded-xl hover:bg-gray-50 border border-transparent hover:border-gray-100 transition-colors text-left group"
               >
                 <div className={`w-11 h-11 bg-gradient-to-br ${rankColors[index % rankColors.length]} rounded-xl flex items-center justify-center text-white shrink-0 shadow-sm font-bold text-sm`}>
@@ -207,7 +210,7 @@ export default function RightSidebar({ searchParams }) {
               <button
                 key={job.id}
                 type="button"
-                onClick={() => navigate(`/jobs/${job.id}`)}
+                onClick={() => navigate(getJobDetailRoute(user?.role_code, job.id))}
                 className="w-full rounded-xl border border-white/10 bg-white/10 p-3 text-left backdrop-blur-sm transition-all duration-200 hover:bg-white/15"
               >
                 <h4 className="text-sm font-semibold text-white">{job.title}</h4>

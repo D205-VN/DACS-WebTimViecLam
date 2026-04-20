@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowLeft, BriefcaseBusiness, CheckCircle2, Loader2, Mail, Phone, Save, User } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { getBackLabelByRole, getDefaultRouteByRole } from '../utils/roleRedirect';
 
 const API_BASE = '/api/auth';
 
@@ -29,6 +30,8 @@ export default function ProfilePage() {
   }, [user]);
 
   const isEmployer = user?.role_code === 'employer';
+  const backRoute = getDefaultRouteByRole(user?.role_code);
+  const backLabel = getBackLabelByRole(user?.role_code);
 
   const handleChange = (field, value) => {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -80,8 +83,8 @@ export default function ProfilePage() {
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-8">
-      <Link to="/" className="mb-6 inline-flex items-center gap-1.5 text-sm text-gray-500 transition-colors hover:text-navy-700">
-        <ArrowLeft className="h-4 w-4" /> Quay lại trang chủ
+      <Link to={backRoute} className="mb-6 inline-flex items-center gap-1.5 text-sm text-gray-500 transition-colors hover:text-navy-700">
+        <ArrowLeft className="h-4 w-4" /> {backLabel}
       </Link>
 
       <div className="grid gap-6 lg:grid-cols-[320px_minmax(0,1fr)]">

@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Bell, UserPlus, Clock, Info, CheckCircle2, Loader2 } from 'lucide-react';
+import { Bell, UserPlus, Clock, Info, CheckCircle2, Loader2, XCircle } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { useNavigate } from 'react-router-dom';
 
 export default function NotificationsTab() {
   const { token } = useAuth();
+  const navigate = useNavigate();
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -31,6 +33,7 @@ export default function NotificationsTab() {
     switch (type) {
       case 'candidate': return UserPlus;
       case 'warning': return Clock;
+      case 'rejected': return XCircle;
       case 'success': return CheckCircle2;
       default: return Info;
     }
@@ -40,6 +43,7 @@ export default function NotificationsTab() {
     switch (type) {
       case 'candidate': return 'text-emerald-500 bg-emerald-50';
       case 'warning': return 'text-amber-500 bg-amber-50';
+      case 'rejected': return 'text-red-500 bg-red-50';
       case 'success': return 'text-emerald-500 bg-emerald-50';
       default: return 'text-blue-500 bg-blue-50';
     }
@@ -55,8 +59,13 @@ export default function NotificationsTab() {
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
       <div className="p-5 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
-        <h3 className="font-bold text-gray-800 text-lg">Thông báo</h3>
-        <button className="text-sm text-navy-600 font-medium hover:text-navy-800 transition-colors">Đánh dấu đã đọc tất cả</button>
+        <div>
+          <h3 className="font-bold text-gray-800 text-lg">Thông báo tuyển dụng</h3>
+          <p className="text-xs text-gray-500 mt-1">Theo dõi tin chờ duyệt, tin bị từ chối và ứng viên mới.</p>
+        </div>
+        <div className="text-sm text-navy-600 font-medium">
+          {notifications.length} thông báo
+        </div>
       </div>
       
       <div className="divide-y divide-gray-100">
@@ -64,7 +73,12 @@ export default function NotificationsTab() {
           const Icon = getIcon(note.type);
           const colorClass = getColor(note.type);
           return (
-            <div key={note.id} className={`p-5 flex items-start gap-4 hover:bg-gray-50/50 transition-colors ${!note.read ? 'bg-navy-50/30' : ''}`}>
+            <button
+              key={note.id}
+              type="button"
+              onClick={() => note.to && navigate(note.to, { state: note.tab ? { activeTab: note.tab } : undefined })}
+              className={`w-full p-5 flex items-start gap-4 hover:bg-gray-50/50 transition-colors text-left ${!note.read ? 'bg-navy-50/30' : ''}`}
+            >
               <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${colorClass}`}>
                 <Icon className="w-5 h-5" />
               </div>
@@ -78,11 +92,11 @@ export default function NotificationsTab() {
                 <p className={`text-sm ${!note.read ? 'text-gray-700 font-medium' : 'text-gray-500'}`}>{note.message}</p>
               </div>
               {!note.read && <div className="w-2.5 h-2.5 bg-navy-600 rounded-full mt-2 shrink-0"></div>}
-            </div>
+            </button>
           );
         }) : (
           <div className="p-20 text-center text-gray-500">
-            Bạn không có thông báo nào.
+            Hiện chưa có thông báo nào cho nhà tuyển dụng.
           </div>
         )}
       </div>

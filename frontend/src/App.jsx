@@ -19,6 +19,7 @@ import ManageCVsPage from './pages/seeker/ManageCVsPage';
 import CVImportImagePage from './pages/seeker/CVImportImagePage';
 import EmployerDashboard from './pages/employer/EmployerDashboard';
 import PostJob from './pages/employer/PostJob';
+import { getDefaultRouteByRole } from './utils/roleRedirect';
 
 function MainLayout({ children }) {
   return (
@@ -43,7 +44,7 @@ function EmployerRoute({ children }) {
   const { user, isAuthenticated, loading } = useAuth();
   if (loading) return <div className="flex justify-center py-20"><div className="animate-spin rounded-full h-10 w-10 border-b-2 border-navy-700"></div></div>;
   if (!isAuthenticated) return <Navigate to="/login" replace />;
-  if (user?.role_code !== 'employer') return <Navigate to="/" replace />;
+  if (user?.role_code !== 'employer') return <Navigate to={getDefaultRouteByRole(user?.role_code)} replace />;
   return children;
 }
 
@@ -51,7 +52,15 @@ function AdminRoute({ children }) {
   const { user, isAuthenticated, loading } = useAuth();
   if (loading) return <div className="flex justify-center py-20"><div className="animate-spin rounded-full h-10 w-10 border-b-2 border-navy-700"></div></div>;
   if (!isAuthenticated) return <Navigate to="/login" replace />;
-  if (user?.role_code !== 'admin') return <Navigate to="/" replace />;
+  if (user?.role_code !== 'admin') return <Navigate to={getDefaultRouteByRole(user?.role_code)} replace />;
+  return children;
+}
+
+function SeekerRoute({ children }) {
+  const { user, isAuthenticated, loading } = useAuth();
+  if (loading) return <div className="flex justify-center py-20"><div className="animate-spin rounded-full h-10 w-10 border-b-2 border-navy-700"></div></div>;
+  if (!isAuthenticated) return <Navigate to="/login" replace />;
+  if (user?.role_code !== 'seeker') return <Navigate to={getDefaultRouteByRole(user?.role_code)} replace />;
   return children;
 }
 
@@ -65,12 +74,23 @@ const router = createBrowserRouter([
   { path: '/jobs/:id', element: <MainLayout><JobDetailPage /></MainLayout> },
   { path: '/profile', element: <MainLayout><ProtectedRoute><ProfilePage /></ProtectedRoute></MainLayout> },
   { path: '/change-password', element: <MainLayout><ProtectedRoute><ChangePasswordPage /></ProtectedRoute></MainLayout> },
+  { path: '/employer/change-password', element: <MainLayout><EmployerRoute><ChangePasswordPage /></EmployerRoute></MainLayout> },
+  { path: '/admin/change-password', element: <MainLayout><AdminRoute><ChangePasswordPage /></AdminRoute></MainLayout> },
   { path: '/saved-jobs', element: <MainLayout><ProtectedRoute><SavedJobsPage /></ProtectedRoute></MainLayout> },
   { path: '/applied-jobs', element: <MainLayout><ProtectedRoute><AppliedJobsPage /></ProtectedRoute></MainLayout> },
-  // Seeker routes (namespaced similar to /employer/*)
-  { path: '/seeker/cv-builder', element: <MainLayout><ProtectedRoute><CVBuilderPage /></ProtectedRoute></MainLayout> },
-  { path: '/seeker/my-cvs', element: <MainLayout><ProtectedRoute><ManageCVsPage /></ProtectedRoute></MainLayout> },
-  { path: '/seeker/cv-import', element: <MainLayout><ProtectedRoute><CVImportImagePage /></ProtectedRoute></MainLayout> },
+  { path: '/seeker', element: <Navigate to="/seeker/home" replace /> },
+  { path: '/seeker/home', element: <MainLayout><SeekerRoute><HomePage /></SeekerRoute></MainLayout> },
+  { path: '/seeker/companies', element: <MainLayout><SeekerRoute><CompaniesPage /></SeekerRoute></MainLayout> },
+  { path: '/seeker/blog', element: <MainLayout><SeekerRoute><BlogPage /></SeekerRoute></MainLayout> },
+  { path: '/seeker/blog/:slug', element: <MainLayout><SeekerRoute><BlogDetailPage /></SeekerRoute></MainLayout> },
+  { path: '/seeker/jobs/:id', element: <MainLayout><SeekerRoute><JobDetailPage /></SeekerRoute></MainLayout> },
+  { path: '/seeker/profile', element: <MainLayout><SeekerRoute><ProfilePage /></SeekerRoute></MainLayout> },
+  { path: '/seeker/change-password', element: <MainLayout><SeekerRoute><ChangePasswordPage /></SeekerRoute></MainLayout> },
+  { path: '/seeker/saved-jobs', element: <MainLayout><SeekerRoute><SavedJobsPage /></SeekerRoute></MainLayout> },
+  { path: '/seeker/applied-jobs', element: <MainLayout><SeekerRoute><AppliedJobsPage /></SeekerRoute></MainLayout> },
+  { path: '/seeker/cv-builder', element: <MainLayout><SeekerRoute><CVBuilderPage /></SeekerRoute></MainLayout> },
+  { path: '/seeker/my-cvs', element: <MainLayout><SeekerRoute><ManageCVsPage /></SeekerRoute></MainLayout> },
+  { path: '/seeker/cv-import', element: <MainLayout><SeekerRoute><CVImportImagePage /></SeekerRoute></MainLayout> },
 
   // Backwards-compatible redirects
   { path: '/cv-builder', element: <Navigate to="/seeker/cv-builder" replace /> },

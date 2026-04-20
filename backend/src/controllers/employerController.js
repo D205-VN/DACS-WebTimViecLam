@@ -468,20 +468,70 @@ async function updateProfile(req, res) {
 async function getNotifications(req, res) {
   try {
     const userId = req.user.id;
-    // Tạm thời lấy các ứng tuyển mới làm thông báo
-    const result = await pool.query(
-      `SELECT aj.id, 'candidate' as type, 'Ứng viên mới' as title, 
-              u.full_name || ' vừa ứng tuyển vào vị trí ' || j.job_title as message,
-              aj.created_at as time, FALSE as read
-       FROM applied_jobs aj
-       JOIN users u ON aj.user_id = u.id
-       JOIN jobs j ON aj.job_id = j.id
-       WHERE j.employer_id = $1
-       ORDER BY aj.created_at DESC
-       LIMIT 20`,
-      [userId]
-    );
-    res.json({ data: result.rows });
+    const [candidateResult, pendingJobResult, rejectedJobResult] = await Promise.all([
+      pool.query(
+        `SELECT
+            'candidate-' || aj.id AS id,
+            'candidate' as type,
+            'Ứng viên mới' as title,
+            u.full_name || ' vừa ứng tuyển vào vị trí ' || j.job_title as message,
+            '/employer/dashboard' as to,
+            'candidates' as tab,
+            aj.created_at as time,
+            FALSE as read
+         FROM applied_jobs aj
+         JOIN users u ON aj.user_id = u.id
+         JOIN jobs j ON aj.job_id = j.id
+         WHERE j.employer_id = $1
+         ORDER BY aj.created_at DESC
+         LIMIT 10`,
+        [userId]
+      ),
+      pool.query(
+        `SELECT
+            'pending-job-' || j.id AS id,
+            'warning' as type,
+            'Tin đang chờ duyệt' as title,
+            COALESCE(j.job_title, 'Tin tuyển dụng') || ' đang chờ admin chấp nhận hoặc từ chối.' as message,
+            '/employer/dashboard' as to,
+            'jobs' as tab,
+            COALESCE(j.updated_at, j.created_at) as time,
+            FALSE as read
+         FROM jobs j
+         WHERE j.employer_id = $1
+           AND COALESCE(NULLIF(TRIM(j.status), ''), 'approved') = 'pending'
+         ORDER BY COALESCE(j.updated_at, j.created_at) DESC
+         LIMIT 10`,
+        [userId]
+      ),
+      pool.query(
+        `SELECT
+            'rejected-job-' || j.id AS id,
+            'rejected' as type,
+            'Tin bị từ chối' as title,
+            COALESCE(j.job_title, 'Tin tuyển dụng') || ' đã bị từ chối. Hãy chỉnh sửa rồi gửi lại để admin xem xét.' as message,
+            '/employer/dashboard' as to,
+            'jobs' as tab,
+            COALESCE(j.updated_at, j.created_at) as time,
+            FALSE as read
+         FROM jobs j
+         WHERE j.employer_id = $1
+           AND COALESCE(NULLIF(TRIM(j.status), ''), 'approved') = 'rejected'
+         ORDER BY COALESCE(j.updated_at, j.created_at) DESC
+         LIMIT 10`,
+        [userId]
+      ),
+    ]);
+
+    const notifications = [
+      ...candidateResult.rows,
+      ...pendingJobResult.rows,
+      ...rejectedJobResult.rows,
+    ]
+      .sort((left, right) => new Date(right.time || 0) - new Date(left.time || 0))
+      .slice(0, 20);
+
+    res.json({ data: notifications });
   } catch (err) {
     console.error('Get notifications error:', err);
     res.status(500).json({ error: 'Lỗi khi tải thông báo' });

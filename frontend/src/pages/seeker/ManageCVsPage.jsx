@@ -3,15 +3,18 @@ import { Link } from 'react-router-dom';
 import { ArrowLeft, FileText, Trash2, Download, Loader2, Sparkles, Calendar, Briefcase, ImageUp, Search } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import SeekerToolsNav from '../../components/seeker/SeekerToolsNav';
+import { getBackLabelByRole, getDefaultRouteByRole } from '../../utils/roleRedirect';
 
 const API = '/api/cv';
 
 export default function ManageCVsPage() {
-  const { token } = useAuth();
+  const { token, user } = useAuth();
   const [cvs, setCvs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [query, setQuery] = useState('');
+  const backRoute = getDefaultRouteByRole(user?.role_code);
+  const backLabel = getBackLabelByRole(user?.role_code);
   
   // States for viewing/downloading CV
   const [viewHtml, setViewHtml] = useState(null);
@@ -81,8 +84,8 @@ export default function ManageCVsPage() {
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-8">
-      <Link to="/" className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-navy-700 mb-6 transition-colors">
-        <ArrowLeft className="w-4 h-4" /> Quay lại trang chủ
+      <Link to={backRoute} className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-navy-700 mb-6 transition-colors">
+        <ArrowLeft className="w-4 h-4" /> {backLabel}
       </Link>
 
       <div className="flex flex-col gap-4 mb-8 lg:flex-row lg:items-center lg:justify-between">

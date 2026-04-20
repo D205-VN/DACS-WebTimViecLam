@@ -1,6 +1,8 @@
 import { Link, useParams } from 'react-router-dom';
 import { ArrowLeft, BookOpen, Calendar, Clock3, User2 } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 import { blogPosts, getBlogPostBySlug } from '../data/blogPosts';
+import { getBlogDetailRoute, getRouteByRole } from '../utils/roleRedirect';
 
 function formatDate(date) {
   return new Date(date).toLocaleDateString('vi-VN', {
@@ -11,8 +13,10 @@ function formatDate(date) {
 }
 
 export default function BlogDetailPage() {
+  const { user } = useAuth();
   const { slug } = useParams();
   const post = getBlogPostBySlug(slug);
+  const blogRoute = getRouteByRole(user?.role_code, 'blog');
 
   if (!post) {
     return (
@@ -21,7 +25,7 @@ export default function BlogDetailPage() {
           <h1 className="text-2xl font-bold text-gray-800">Không tìm thấy bài viết</h1>
           <p className="mt-3 text-sm text-gray-500">Liên kết có thể không còn tồn tại hoặc bài viết chưa được xuất bản.</p>
           <Link
-            to="/blog"
+            to={blogRoute}
             className="mt-6 inline-flex items-center gap-2 rounded-xl bg-navy-700 px-5 py-2.5 text-sm font-semibold text-white"
           >
             Quay lại Blog
@@ -37,7 +41,7 @@ export default function BlogDetailPage() {
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-8">
-      <Link to="/blog" className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-navy-700 transition-colors">
+      <Link to={blogRoute} className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-navy-700 transition-colors">
         <ArrowLeft className="w-4 h-4" />
         Quay lại Blog
       </Link>
@@ -111,7 +115,7 @@ export default function BlogDetailPage() {
             {relatedPosts.map((item) => (
               <Link
                 key={item.slug}
-                to={`/blog/${item.slug}`}
+                to={getBlogDetailRoute(user?.role_code, item.slug)}
                 className="overflow-hidden rounded-3xl border border-gray-100 bg-white shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-lg hover:shadow-navy-100/40"
               >
                 <div className={`h-28 bg-gradient-to-br ${item.color} p-5 text-white`}>
