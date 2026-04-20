@@ -9,6 +9,25 @@ const SALARY_RANGE_OPTIONS = [
   { value: '30+', label: 'Trên 30 triệu' },
 ];
 
+let publicJobSchemaReady = false;
+
+async function ensureJobStatusSchema() {
+  if (publicJobSchemaReady) return;
+
+  await pool.query(`
+    ALTER TABLE jobs
+    ADD COLUMN IF NOT EXISTS status VARCHAR(20) DEFAULT 'approved'
+  `);
+
+  await pool.query(`
+    UPDATE jobs
+    SET status = 'approved'
+    WHERE status IS NULL OR TRIM(status) = ''
+  `);
+
+  publicJobSchemaReady = true;
+}
+
 function parseListParam(value) {
   if (!value) return [];
   const rawValues = Array.isArray(value) ? value : String(value).split(',');
@@ -131,6 +150,8 @@ function buildLocationLikePatterns(rawLocation) {
 // GET /api/jobs — Danh sách jobs (có phân trang)
 exports.getJobs = async (req, res) => {
   try {
+    await ensureJobStatusSchema();
+
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 20;
     const offset = (page - 1) * limit;
@@ -187,7 +208,7 @@ exports.getJobs = async (req, res) => {
     whereClause += salaryClause.clause;
     paramIndex = salaryClause.nextIndex;
 
-    const countQuery = `SELECT COUNT(*) FROM jobs WHERE 1=1${whereClause}`;
+    const countQuery = `SELECT COUNT(*) FROM jobs WHERE COALESCE(NULLIF(TRIM(status), ''), 'approved') = 'approved'${whereClause}`;
     const countResult = await pool.query(countQuery, params);
     const totalJobs = parseInt(countResult.rows[0].count);
 
@@ -196,7 +217,7 @@ exports.getJobs = async (req, res) => {
               benefits, job_address as location, job_type, years_of_experience as experience,
               salary, submission_deadline as deadline, company_name, company_overview, company_size,
               company_address, industry, career_level, created_at 
-              FROM jobs WHERE 1=1${whereClause} 
+              FROM jobs WHERE COALESCE(NULLIF(TRIM(status), ''), 'approved') = 'approved'${whereClause} 
               ORDER BY created_at DESC NULLS LAST, id DESC LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`;
     const result = await pool.query(query, params);
     
@@ -218,18 +239,22 @@ exports.getJobs = async (req, res) => {
 // GET /api/jobs/filters — Dữ liệu filter cho frontend
 exports.getJobFilters = async (_req, res) => {
   try {
+    await ensureJobStatusSchema();
+
     const [levelsResult, industriesResult] = await Promise.all([
       pool.query(
         `SELECT career_level as value, COUNT(*)::int as count
          FROM jobs
-         WHERE career_level IS NOT NULL AND TRIM(career_level) <> ''
+         WHERE COALESCE(NULLIF(TRIM(status), ''), 'approved') = 'approved'
+           AND career_level IS NOT NULL AND TRIM(career_level) <> ''
          GROUP BY career_level
          ORDER BY count DESC, value ASC`
       ),
       pool.query(
         `SELECT industry as value, COUNT(*)::int as count
          FROM jobs
-         WHERE industry IS NOT NULL AND TRIM(industry) <> ''
+         WHERE COALESCE(NULLIF(TRIM(status), ''), 'approved') = 'approved'
+           AND industry IS NOT NULL AND TRIM(industry) <> ''
          GROUP BY industry
          ORDER BY count DESC, value ASC
          LIMIT 20`
@@ -252,9 +277,12 @@ exports.getJobFilters = async (_req, res) => {
 // GET /api/jobs/companies — Danh sách công ty đang có tin tuyển dụng
 exports.getCompanies = async (req, res) => {
   try {
+    await ensureJobStatusSchema();
+
     const keyword = String(req.query.keyword || '').trim();
     const params = [];
-    let whereClause = `WHERE company_name IS NOT NULL AND TRIM(company_name) <> ''`;
+    let whereClause = `WHERE COALESCE(NULLIF(TRIM(status), ''), 'approved') = 'approved'
+      AND company_name IS NOT NULL AND TRIM(company_name) <> ''`;
 
     if (keyword) {
       whereClause += ` AND company_name ILIKE $1`;
@@ -334,12 +362,16 @@ exports.getSavedJobIds = async (req, res) => {
 // GET /api/jobs/:id — Chi tiết 1 job
 exports.getJobById = async (req, res) => {
   try {
+    await ensureJobStatusSchema();
+
     const result = await pool.query(
       `SELECT id, url_job, job_title as title, job_description as description, job_requirements as requirements,
               benefits, job_address as location, job_type, years_of_experience as experience,
               salary, submission_deadline as deadline, company_name, company_overview, company_size,
               company_address, industry, career_level, number_candidate, created_at
-       FROM jobs WHERE id = $1`, 
+       FROM jobs
+       WHERE id = $1
+         AND COALESCE(NULLIF(TRIM(status), ''), 'approved') = 'approved'`, 
       [req.params.id]
     );
     if (result.rows.length === 0) {
@@ -379,8 +411,22 @@ exports.toggleSaveJob = async (req, res) => {
 // POST /api/jobs/:id/apply — Ứng tuyển job (cần JWT)
 exports.applyJob = async (req, res) => {
   try {
+    await ensureJobStatusSchema();
+
     const jobId = req.params.id;
     const userId = req.user.id;
+
+    const jobResult = await pool.query(
+      `SELECT id
+       FROM jobs
+       WHERE id = $1
+         AND COALESCE(NULLIF(TRIM(status), ''), 'approved') = 'approved'`,
+      [jobId]
+    );
+
+    if (jobResult.rows.length === 0) {
+      return res.status(404).json({ error: 'KhÃ´ng tÃ¬m tháº¥y viá»‡c lÃ m' });
+    }
 
     const existing = await pool.query(
       'SELECT id FROM applied_jobs WHERE user_id = $1 AND job_id = $2',

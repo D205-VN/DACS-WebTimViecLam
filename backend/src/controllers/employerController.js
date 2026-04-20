@@ -27,8 +27,15 @@ async function ensureEmployerJobSchema() {
   await pool.query(`
     ALTER TABLE jobs
     ADD COLUMN IF NOT EXISTS employer_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    ADD COLUMN IF NOT EXISTS status VARCHAR(20) DEFAULT 'approved',
     ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT NOW(),
     ADD COLUMN IF NOT EXISTS tags TEXT
+  `);
+
+  await pool.query(`
+    UPDATE jobs
+    SET status = 'approved'
+    WHERE status IS NULL OR TRIM(status) = ''
   `);
 
   employerJobSchemaReady = true;
@@ -198,8 +205,8 @@ async function createJob(req, res) {
 
     const result = await pool.query(
       `INSERT INTO jobs (job_title, job_description, job_requirements, benefits, job_address, salary, 
-                         job_type, years_of_experience, submission_deadline, number_candidate, employer_id, company_name, tags, created_at, updated_at)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, NOW(), NOW())
+                         job_type, years_of_experience, submission_deadline, number_candidate, employer_id, company_name, tags, status, created_at, updated_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, 'pending', NOW(), NOW())
        RETURNING *`,
       [
         title, description, requirements || null, benefits || null,
@@ -235,7 +242,8 @@ async function getMyJobs(req, res) {
     const result = await pool.query(
       `SELECT j.id, j.job_title as title, j.job_address as location, j.job_type, 
               j.years_of_experience as experience, j.submission_deadline as deadline,
-              j.salary, j.job_description as description, j.job_requirements as requirements,
+              j.salary, COALESCE(NULLIF(TRIM(j.status), ''), 'approved') as status,
+              j.job_description as description, j.job_requirements as requirements,
               j.benefits, j.created_at, j.updated_at, j.number_candidate as positions, j.tags,
               (SELECT COUNT(*) FROM applied_jobs WHERE job_id = j.id) as applicant_count
        FROM jobs j 

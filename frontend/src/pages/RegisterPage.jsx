@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Mail, Lock, Eye, EyeOff, Briefcase, ArrowRight, User, Phone, Building2, MapPin, ChevronDown, Loader2, CheckCircle2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { getDefaultRouteByRole } from '../utils/roleRedirect';
 
 const API_BASE = '/api/auth';
 
@@ -112,7 +113,7 @@ export default function RegisterPage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
       login(data.token, data.user);
-      navigate(data.user.role_code === 'employer' ? '/employer/dashboard' : '/');
+      navigate(getDefaultRouteByRole(data.user.role_code));
     } catch (err) { setError(err.message); } finally { setLoading(false); }
   };
 
@@ -147,7 +148,7 @@ export default function RegisterPage() {
             const data = await res.json();
             if (!res.ok) throw new Error(data.error);
             login(data.token, data.user);
-            navigate(data.user.role_code === 'employer' ? '/employer/dashboard' : '/');
+            navigate(getDefaultRouteByRole(data.user.role_code));
           } catch (err) { setError(err.message); }
         },
       });

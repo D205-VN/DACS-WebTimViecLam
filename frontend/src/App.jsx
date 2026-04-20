@@ -13,6 +13,7 @@ import ProfilePage from './pages/ProfilePage';
 import JobDetailPage from './pages/JobDetailPage';
 import SavedJobsPage from './pages/SavedJobsPage';
 import AppliedJobsPage from './pages/AppliedJobsPage';
+import AdminDashboard from './pages/admin/AdminDashboard';
 import CVBuilderPage from './pages/seeker/CVBuilderPage';
 import ManageCVsPage from './pages/seeker/ManageCVsPage';
 import CVImportImagePage from './pages/seeker/CVImportImagePage';
@@ -46,6 +47,14 @@ function EmployerRoute({ children }) {
   return children;
 }
 
+function AdminRoute({ children }) {
+  const { user, isAuthenticated, loading } = useAuth();
+  if (loading) return <div className="flex justify-center py-20"><div className="animate-spin rounded-full h-10 w-10 border-b-2 border-navy-700"></div></div>;
+  if (!isAuthenticated) return <Navigate to="/login" replace />;
+  if (user?.role_code !== 'admin') return <Navigate to="/" replace />;
+  return children;
+}
+
 const router = createBrowserRouter([
   { path: '/', element: <MainLayout><HomePage /></MainLayout> },
   { path: '/companies', element: <MainLayout><CompaniesPage /></MainLayout> },
@@ -70,6 +79,8 @@ const router = createBrowserRouter([
   // Employer routes
   { path: '/employer/dashboard', element: <EmployerRoute><EmployerDashboard /></EmployerRoute> },
   { path: '/employer/post-job', element: <EmployerRoute><PostJob /></EmployerRoute> },
+  { path: '/admin', element: <Navigate to="/admin/dashboard" replace /> },
+  { path: '/admin/dashboard', element: <AdminRoute><AdminDashboard /></AdminRoute> },
 ]);
 
 function App() {
