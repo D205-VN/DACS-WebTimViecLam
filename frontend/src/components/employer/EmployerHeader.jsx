@@ -13,10 +13,10 @@ export default function EmployerHeader() {
   const timeoutRef = useRef(null);
 
   const navLinks = [
-    { name: 'Dashboard', to: '/employer/dashboard', icon: LayoutDashboard },
-    { name: 'Tin tuyển dụng', to: '/employer/jobs', icon: FileText },
-    { name: 'Ứng viên', to: '/employer/candidates', icon: Users },
-    { name: 'Hồ sơ công ty', to: '/employer/company', icon: Building2 },
+    { name: 'Bảng điều khiển', to: '/employer/dashboard', tab: 'dashboard', icon: LayoutDashboard },
+    { name: 'Quản lý tin đăng', to: '/employer/dashboard', tab: 'jobs', icon: FileText },
+    { name: 'Quản lý ứng viên', to: '/employer/dashboard', tab: 'candidates', icon: Users },
+    { name: 'Hồ sơ công ty', to: '/employer/dashboard', tab: 'company', icon: Building2 },
   ];
 
   useEffect(() => {
@@ -66,8 +66,9 @@ export default function EmployerHeader() {
               <Link
                 key={link.name}
                 to={link.to}
+                state={{ activeTab: link.tab }}
                 className={`flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 ${
-                  isActive(link.to)
+                  isActive(link.to) && location.state?.activeTab === link.tab
                     ? 'text-navy-700 bg-navy-50 font-semibold'
                     : 'text-gray-600 hover:text-navy-700 hover:bg-navy-50'
                 }`}
@@ -139,7 +140,7 @@ export default function EmployerHeader() {
                 </div>
 
                 <div className="py-1.5">
-                  <Link to="/employer/company" onClick={() => setDropdownOpen(false)} className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-navy-50 hover:text-navy-700 transition-colors">
+                  <Link to="/employer/dashboard" state={{ activeTab: 'company' }} onClick={() => setDropdownOpen(false)} className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-navy-50 hover:text-navy-700 transition-colors">
                     <div className="w-8 h-8 bg-blue-50 rounded-lg flex items-center justify-center">
                       <Building2 className="w-4 h-4 text-blue-500" />
                     </div>
@@ -159,15 +160,6 @@ export default function EmployerHeader() {
                     </div>
                   </Link>
 
-                  <Link to="/" onClick={() => setDropdownOpen(false)} className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-navy-50 hover:text-navy-700 transition-colors">
-                    <div className="w-8 h-8 bg-green-50 rounded-lg flex items-center justify-center">
-                      <User className="w-4 h-4 text-green-500" />
-                    </div>
-                    <div>
-                      <p className="font-medium">Trang chủ</p>
-                      <p className="text-[11px] text-gray-400">Xem trang ứng viên</p>
-                    </div>
-                  </Link>
                 </div>
 
                 <div className="border-t border-gray-100 py-1.5">
@@ -199,8 +191,9 @@ export default function EmployerHeader() {
             <Link
               key={link.name}
               to={link.to}
+              state={{ activeTab: link.tab }}
               className={`flex items-center gap-2 px-4 py-3 text-sm font-medium rounded-lg transition-colors ${
-                isActive(link.to) ? 'text-navy-700 bg-navy-50' : 'text-gray-600 hover:text-navy-700 hover:bg-navy-50'
+                isActive(link.to) && location.state?.activeTab === link.tab ? 'text-navy-700 bg-navy-50' : 'text-gray-600 hover:text-navy-700 hover:bg-navy-50'
               }`}
               onClick={() => setMobileMenuOpen(false)}
             >

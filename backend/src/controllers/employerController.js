@@ -1,5 +1,74 @@
 const pool = require('../config/db');
 
+let employerJobSchemaReady = false;
+let employerProfileSchemaReady = false;
+
+function normalizeDeadline(deadline) {
+  if (!deadline) return null;
+  const parsed = new Date(deadline);
+  if (Number.isNaN(parsed.getTime())) return null;
+  return parsed.toISOString().split('T')[0];
+}
+
+function normalizeSalary(salaryMin, salaryMax) {
+  const min = Number.isFinite(Number(salaryMin)) && String(salaryMin).trim() !== '' ? Number(salaryMin) : null;
+  const max = Number.isFinite(Number(salaryMax)) && String(salaryMax).trim() !== '' ? Number(salaryMax) : null;
+
+  if (min !== null && max !== null) return `${min.toLocaleString('vi-VN')} - ${max.toLocaleString('vi-VN')} VND`;
+  if (min !== null) return `Từ ${min.toLocaleString('vi-VN')} VND`;
+  if (max !== null) return `Lên đến ${max.toLocaleString('vi-VN')} VND`;
+  return 'Thỏa thuận';
+}
+
+async function ensureEmployerJobSchema() {
+  if (employerJobSchemaReady) return;
+
+  await pool.query(`
+    ALTER TABLE jobs
+    ADD COLUMN IF NOT EXISTS employer_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
+    ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT NOW(),
+    ADD COLUMN IF NOT EXISTS tags TEXT
+  `);
+
+  employerJobSchemaReady = true;
+}
+
+async function ensureEmployerProfileSchema() {
+  if (employerProfileSchemaReady) return;
+
+  await pool.query(`
+    ALTER TABLE users
+    ADD COLUMN IF NOT EXISTS company_description TEXT,
+    ADD COLUMN IF NOT EXISTS company_website VARCHAR(255),
+    ADD COLUMN IF NOT EXISTS company_size VARCHAR(255),
+    ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT NOW()
+  `);
+
+  employerProfileSchemaReady = true;
+}
+
+async function ensureEmployerJobSchemaForRequest(req, res, next) {
+  try {
+    await ensureEmployerJobSchema();
+    await ensureEmployerProfileSchema();
+    next();
+  } catch (err) {
+    console.error('Ensure employer job schema error:', err);
+    res.status(500).json({ error: 'Lỗi cấu hình dữ liệu tuyển dụng' });
+  }
+}
+
+function buildDeadlineSqlExpression(columnName) {
+  return `
+    CASE
+      WHEN ${columnName} IS NULL OR TRIM(${columnName}) = '' THEN NULL
+      WHEN ${columnName} ~ '^\\d{4}-\\d{2}-\\d{2}$' THEN TO_DATE(${columnName}, 'YYYY-MM-DD')
+      WHEN ${columnName} ~ '^\\d{2}/\\d{2}/\\d{4}$' THEN TO_DATE(${columnName}, 'DD/MM/YYYY')
+      ELSE NULL
+    END
+  `;
+}
+
 /**
  * GET /api/employer/dashboard
  * Lấy dữ liệu dashboard cho nhà tuyển dụng
@@ -7,13 +76,17 @@ const pool = require('../config/db');
 async function getDashboard(req, res) {
   try {
     const userId = req.user.id;
+    const deadlineDateSql = buildDeadlineSqlExpression('submission_deadline');
 
     // Thống kê
     const totalJobsResult = await pool.query(
       'SELECT COUNT(*) FROM jobs WHERE employer_id = $1', [userId]
     );
     const activeJobsResult = await pool.query(
-      "SELECT COUNT(*) FROM jobs WHERE employer_id = $1 AND (deadline IS NULL OR deadline >= NOW())", [userId]
+      `SELECT COUNT(*) FROM jobs
+       WHERE employer_id = $1
+         AND (${deadlineDateSql} IS NULL OR ${deadlineDateSql} >= CURRENT_DATE)`,
+      [userId]
     );
     const totalCandidatesResult = await pool.query(
       `SELECT COUNT(*) FROM applied_jobs aj 
@@ -28,13 +101,22 @@ async function getDashboard(req, res) {
 
     // Tin mới nhất
     const recentJobsResult = await pool.query(
-      `SELECT j.*, 
+      `SELECT j.id, j.job_title as title, j.job_address as location, j.salary, 
+              j.submission_deadline as deadline, j.created_at,
               (SELECT COUNT(*) FROM applied_jobs WHERE job_id = j.id) as applicant_count
        FROM jobs j 
        WHERE j.employer_id = $1 
        ORDER BY j.created_at DESC 
        LIMIT 5`, [userId]
     );
+
+    console.log(`Dashboard stats for user ${userId}:`, {
+      totalJobs: totalJobsResult.rows[0].count,
+      activeJobs: activeJobsResult.rows[0].count,
+      totalCandidates: totalCandidatesResult.rows[0].count,
+      newCandidates: newCandidatesResult.rows[0].count,
+    });
+    console.log(`Recent jobs for user ${userId}:`, recentJobsResult.rows.length);
 
     res.json({
       stats: {
@@ -73,23 +155,28 @@ async function createJob(req, res) {
       'SELECT company_name, company_city FROM users WHERE id = $1', [userId]
     );
     const company = userResult.rows[0];
+    const normalizedDeadline = normalizeDeadline(deadline);
+    const normalizedSalary = normalizeSalary(salary_min, salary_max);
+    const normalizedTags = Array.isArray(tags)
+      ? tags.map((tag) => String(tag).trim()).filter(Boolean).join(', ')
+      : null;
 
     const result = await pool.query(
-      `INSERT INTO jobs (title, description, requirements, benefits, location, salary_min, salary_max, 
-                         job_type, experience, deadline, tags, positions, employer_id, company_name, created_at)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, NOW())
+      `INSERT INTO jobs (job_title, job_description, job_requirements, benefits, job_address, salary, 
+                         job_type, years_of_experience, submission_deadline, number_candidate, employer_id, company_name, tags, created_at, updated_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, NOW(), NOW())
        RETURNING *`,
       [
         title, description, requirements || null, benefits || null,
         location || company?.company_city || null,
-        salary_min || null, salary_max || null,
+        normalizedSalary,
         job_type || 'Toàn thời gian',
         experience || 'Không yêu cầu',
-        deadline || null,
-        tags ? JSON.stringify(tags) : null,
-        positions || 1,
+        normalizedDeadline,
+        parseInt(positions) || 1,
         userId,
         company?.company_name || null,
+        normalizedTags,
       ]
     );
 
@@ -111,7 +198,10 @@ async function getMyJobs(req, res) {
   try {
     const userId = req.user.id;
     const result = await pool.query(
-      `SELECT j.*, 
+      `SELECT j.id, j.job_title as title, j.job_address as location, j.job_type, 
+              j.years_of_experience as experience, j.submission_deadline as deadline,
+              j.salary, j.job_description as description, j.job_requirements as requirements,
+              j.benefits, j.created_at, j.updated_at, j.number_candidate as positions, j.tags,
               (SELECT COUNT(*) FROM applied_jobs WHERE job_id = j.id) as applicant_count
        FROM jobs j 
        WHERE j.employer_id = $1 
@@ -125,4 +215,386 @@ async function getMyJobs(req, res) {
   }
 }
 
-module.exports = { getDashboard, createJob, getMyJobs };
+/**
+ * GET /api/employer/candidates
+ * Danh sách ứng viên đã ứng tuyển vào các tin của employer
+ */
+async function getCandidates(req, res) {
+  try {
+    const userId = req.user.id;
+    const result = await pool.query(
+      `SELECT aj.*, u.full_name as candidate_name, u.email as candidate_email, u.avatar_url,
+              j.job_title as job_title
+       FROM applied_jobs aj
+       JOIN users u ON aj.user_id = u.id
+       JOIN jobs j ON aj.job_id = j.id
+       WHERE j.employer_id = $1
+       ORDER BY aj.created_at DESC`,
+      [userId]
+    );
+    res.json({ data: result.rows });
+  } catch (err) {
+    console.error('Get candidates error:', err);
+    res.status(500).json({ error: 'Lỗi khi tải danh sách ứng viên' });
+  }
+}
+
+/**
+ * GET /api/employer/profile
+ * Lấy thông tin hồ sơ công ty
+ */
+async function getProfile(req, res) {
+  try {
+    const userId = req.user.id;
+    const result = await pool.query(
+      'SELECT id, email, full_name, company_name, company_description, company_city, company_website, company_size, phone, avatar_url FROM users WHERE id = $1',
+      [userId]
+    );
+    res.json({ data: result.rows[0] });
+  } catch (err) {
+    console.error('Get profile error:', err);
+    res.status(500).json({ error: 'Lỗi khi tải hồ sơ công ty' });
+  }
+}
+
+/**
+ * PUT /api/employer/profile
+ * Cập nhật thông tin hồ sơ công ty
+ */
+async function updateProfile(req, res) {
+  try {
+    const userId = req.user.id;
+    const { company_name, company_description, company_city, company_website, company_size, phone } = req.body;
+    
+    const result = await pool.query(
+      `UPDATE users 
+       SET company_name = $1, company_description = $2, company_city = $3, 
+           company_website = $4, company_size = $5, phone = $6, updated_at = NOW()
+       WHERE id = $7
+       RETURNING id, company_name, company_description, company_city, company_website, company_size, phone`,
+      [
+        company_name?.trim() || null,
+        company_description?.trim() || null,
+        company_city?.trim() || null,
+        company_website?.trim() || null,
+        company_size?.trim() || null,
+        phone?.trim() || null,
+        userId
+      ]
+    );
+    
+    res.json({ message: 'Cập nhật hồ sơ thành công!', data: result.rows[0] });
+  } catch (err) {
+    console.error('Update profile error:', err);
+    res.status(500).json({ error: 'Lỗi khi cập nhật hồ sơ' });
+  }
+}
+
+/**
+ * GET /api/employer/notifications
+ * Danh sách thông báo cho employer
+ */
+async function getNotifications(req, res) {
+  try {
+    const userId = req.user.id;
+    // Tạm thời lấy các ứng tuyển mới làm thông báo
+    const result = await pool.query(
+      `SELECT aj.id, 'candidate' as type, 'Ứng viên mới' as title, 
+              u.full_name || ' vừa ứng tuyển vào vị trí ' || j.job_title as message,
+              aj.created_at as time, FALSE as read
+       FROM applied_jobs aj
+       JOIN users u ON aj.user_id = u.id
+       JOIN jobs j ON aj.job_id = j.id
+       WHERE j.employer_id = $1
+       ORDER BY aj.created_at DESC
+       LIMIT 20`,
+      [userId]
+    );
+    res.json({ data: result.rows });
+  } catch (err) {
+    console.error('Get notifications error:', err);
+    res.status(500).json({ error: 'Lỗi khi tải thông báo' });
+  }
+}
+
+/**
+ * GET /api/employer/analytics
+ * Dữ liệu thống kê chi tiết
+ */
+async function getAnalytics(req, res) {
+  try {
+    const userId = req.user.id;
+    
+    // Thống kê theo tuần (7 ngày qua)
+    const weeklyStats = await pool.query(
+      `SELECT TO_CHAR(created_at, 'Dy') as day, COUNT(*) as count
+       FROM applied_jobs aj
+       JOIN jobs j ON aj.job_id = j.id
+       WHERE j.employer_id = $1 AND aj.created_at >= NOW() - INTERVAL '7 days'
+       GROUP BY TO_CHAR(created_at, 'Dy'), DATE_TRUNC('day', aj.created_at)
+       ORDER BY DATE_TRUNC('day', aj.created_at)`,
+      [userId]
+    );
+
+    // Thống kê theo nguồn (giả định)
+    const sourceStats = [
+      { source: 'Tìm kiếm hữu cơ', count: 45 },
+      { source: 'Mạng xã hội', count: 35 },
+      { source: 'Giới thiệu', count: 20 },
+    ];
+
+    res.json({
+      weekly: weeklyStats.rows,
+      sources: sourceStats,
+    });
+  } catch (err) {
+    console.error('Get analytics error:', err);
+    res.status(500).json({ error: 'Lỗi khi tải thống kê' });
+  }
+}
+
+async function getAnalyticsV2(req, res) {
+  try {
+    const userId = req.user.id;
+    const deadlineDateSql = buildDeadlineSqlExpression('j.submission_deadline');
+
+    const [summaryResult, weeklyResult, statusResult, topJobsResult] = await Promise.all([
+      pool.query(
+        `SELECT
+            COUNT(DISTINCT j.id) AS total_jobs,
+            COUNT(DISTINCT CASE WHEN ${deadlineDateSql} IS NULL OR ${deadlineDateSql} >= CURRENT_DATE THEN j.id END) AS active_jobs,
+            COUNT(aj.id) AS total_candidates,
+            COUNT(CASE WHEN aj.created_at >= NOW() - INTERVAL '7 days' THEN 1 END) AS new_candidates
+         FROM jobs j
+         LEFT JOIN applied_jobs aj ON aj.job_id = j.id
+         WHERE j.employer_id = $1`,
+        [userId]
+      ),
+      pool.query(
+        `WITH days AS (
+            SELECT generate_series(CURRENT_DATE - INTERVAL '6 days', CURRENT_DATE, INTERVAL '1 day')::date AS day_date
+          ),
+          applications AS (
+            SELECT DATE(aj.created_at) AS day_date, COUNT(*)::int AS count
+            FROM applied_jobs aj
+            JOIN jobs j ON aj.job_id = j.id
+            WHERE j.employer_id = $1
+              AND aj.created_at >= CURRENT_DATE - INTERVAL '6 days'
+            GROUP BY DATE(aj.created_at)
+          )
+          SELECT
+            TO_CHAR(days.day_date, 'DD/MM') AS label,
+            TO_CHAR(days.day_date, 'Dy') AS day,
+            COALESCE(applications.count, 0) AS count
+          FROM days
+          LEFT JOIN applications ON applications.day_date = days.day_date
+          ORDER BY days.day_date`,
+        [userId]
+      ),
+      pool.query(
+        `SELECT
+            COALESCE(NULLIF(TRIM(aj.status), ''), 'pending') AS status,
+            COUNT(*)::int AS count
+         FROM applied_jobs aj
+         JOIN jobs j ON aj.job_id = j.id
+         WHERE j.employer_id = $1
+         GROUP BY COALESCE(NULLIF(TRIM(aj.status), ''), 'pending')
+         ORDER BY count DESC, status ASC`,
+        [userId]
+      ),
+      pool.query(
+        `SELECT
+            j.id,
+            j.job_title AS title,
+            COUNT(aj.id)::int AS applicant_count
+         FROM jobs j
+         LEFT JOIN applied_jobs aj ON aj.job_id = j.id
+         WHERE j.employer_id = $1
+         GROUP BY j.id, j.job_title
+         ORDER BY applicant_count DESC, j.id DESC
+         LIMIT 5`,
+        [userId]
+      )
+    ]);
+
+    const summary = summaryResult.rows[0] || {};
+    const totalJobs = parseInt(summary.total_jobs || 0, 10);
+    const activeJobs = parseInt(summary.active_jobs || 0, 10);
+    const totalCandidates = parseInt(summary.total_candidates || 0, 10);
+    const newCandidates = parseInt(summary.new_candidates || 0, 10);
+
+    res.json({
+      summary: {
+        totalJobs,
+        activeJobs,
+        totalCandidates,
+        newCandidates,
+        conversionRate: activeJobs > 0 ? Number(((totalCandidates / activeJobs) * 100).toFixed(1)) : 0,
+      },
+      weekly: weeklyResult.rows.map((row) => ({
+        ...row,
+        count: parseInt(row.count, 10) || 0,
+      })),
+      statuses: statusResult.rows.map((row) => ({
+        ...row,
+        count: parseInt(row.count, 10) || 0,
+      })),
+      topJobs: topJobsResult.rows.map((row) => ({
+        ...row,
+        applicant_count: parseInt(row.applicant_count, 10) || 0,
+      })),
+    });
+  } catch (err) {
+    console.error('Get analytics error:', err);
+    res.status(500).json({ error: 'Lỗi khi tải thống kê' });
+  }
+}
+
+/**
+ * PUT /api/employer/jobs/:id
+ * Cập nhật tin tuyển dụng
+ */
+async function updateJob(req, res) {
+  try {
+    const userId = req.user.id;
+    const jobId = req.params.id;
+    const {
+      title, description, requirements, benefits, location,
+      salary, salary_min, salary_max, job_type, experience,
+      deadline, positions, tags
+    } = req.body;
+
+    // Kiểm tra quyền sở hữu
+    const check = await pool.query('SELECT id FROM jobs WHERE id = $1 AND employer_id = $2', [jobId, userId]);
+    if (check.rows.length === 0) {
+      return res.status(403).json({ error: 'Bạn không có quyền chỉnh sửa tin này' });
+    }
+
+    const normalizedDeadline = normalizeDeadline(deadline);
+    const normalizedSalary = salary || normalizeSalary(salary_min, salary_max);
+    const normalizedTags = Array.isArray(tags)
+      ? tags.map((tag) => String(tag).trim()).filter(Boolean).join(', ')
+      : typeof tags === 'string'
+        ? tags
+        : null;
+
+    const result = await pool.query(
+      `UPDATE jobs 
+       SET job_title = $1, job_description = $2, job_requirements = $3, benefits = $4, 
+           job_address = $5, salary = $6, job_type = $7, years_of_experience = $8, 
+           submission_deadline = $9, number_candidate = $10, tags = $11, updated_at = NOW()
+       WHERE id = $12 AND employer_id = $13
+       RETURNING *`,
+      [
+        title, description, requirements, benefits, location,
+        normalizedSalary, job_type, experience, normalizedDeadline,
+        parseInt(positions) || 1, normalizedTags, jobId, userId
+      ]
+    );
+
+    res.json({ message: 'Cập nhật thành công!', job: result.rows[0] });
+  } catch (err) {
+    console.error('Update job error:', err);
+    res.status(500).json({ error: 'Lỗi khi cập nhật tin' });
+  }
+}
+
+/**
+ * PATCH /api/employer/jobs/:id/status
+ * Cập nhật trạng thái tin (ngừng tuyển)
+ */
+async function updateJobStatus(req, res) {
+  try {
+    const userId = req.user.id;
+    const jobId = req.params.id;
+    const { status } = req.body; // VD: 'Ngừng tuyển'
+
+    // Trong database hiện tại chưa thấy cột status rõ ràng, tạm thời dùng deadline để ẩn tin nếu cần
+    // Hoặc giả định có cột status. Nếu không có, ta dùng submission_deadline = quá khứ
+    const newDeadline = status === 'Ngừng tuyển' ? new Date(Date.now() - 86400000) : null;
+
+    const result = await pool.query(
+      `UPDATE jobs SET submission_deadline = $1, updated_at = NOW() WHERE id = $2 AND employer_id = $3 RETURNING id`,
+      [newDeadline, jobId, userId]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(403).json({ error: 'Không tìm thấy tin hoặc không có quyền' });
+    }
+
+    res.json({ message: 'Đã cập nhật trạng thái tin' });
+  } catch (err) {
+    console.error('Update status error:', err);
+    res.status(500).json({ error: 'Lỗi khi cập nhật trạng thái' });
+  }
+}
+
+/**
+ * DELETE /api/employer/jobs/:id
+ * Xóa tin tuyển dụng
+ */
+async function deleteJob(req, res) {
+  try {
+    const userId = req.user.id;
+    const jobId = req.params.id;
+
+    // Xóa các ứng tuyển liên quan trước (nếu database không có ON DELETE CASCADE)
+    await pool.query('DELETE FROM applied_jobs WHERE job_id = $1', [jobId]);
+    await pool.query('DELETE FROM saved_jobs WHERE job_id = $1', [jobId]);
+
+    const result = await pool.query(
+      'DELETE FROM jobs WHERE id = $1 AND employer_id = $2 RETURNING id',
+      [jobId, userId]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(403).json({ error: 'Không tìm thấy tin hoặc không có quyền' });
+    }
+
+    res.json({ message: 'Đã xóa tin tuyển dụng thành công' });
+  } catch (err) {
+    console.error('Delete job error:', err);
+    res.status(500).json({ error: 'Lỗi khi xóa tin' });
+  }
+}
+
+/**
+ * PATCH /api/employer/applications/:id/status
+ * Cập nhật trạng thái hồ sơ ứng tuyển (Duyệt, Phỏng vấn, Từ chối...)
+ */
+async function updateApplicationStatus(req, res) {
+  try {
+    const userId = req.user.id;
+    const applicationId = req.params.id;
+    const { status } = req.body; // pending, interview, hired, rejected
+
+    // Kiểm tra quyền sở hữu (job của application này phải thuộc về employer này)
+    const check = await pool.query(
+      `SELECT aj.id FROM applied_jobs aj
+       JOIN jobs j ON aj.job_id = j.id
+       WHERE aj.id = $1 AND j.employer_id = $2`,
+      [applicationId, userId]
+    );
+
+    if (check.rows.length === 0) {
+      return res.status(403).json({ error: 'Không có quyền thay đổi hồ sơ này' });
+    }
+
+    await pool.query(
+      'UPDATE applied_jobs SET status = $1, updated_at = NOW() WHERE id = $2',
+      [status, applicationId]
+    );
+
+    res.json({ message: 'Đã cập nhật trạng thái ứng viên' });
+  } catch (err) {
+    console.error('Update app status error:', err);
+    res.status(500).json({ error: 'Lỗi khi cập nhật trạng thái' });
+  }
+}
+
+module.exports = { 
+  ensureEmployerJobSchemaForRequest,
+  getDashboard, createJob, getMyJobs, getCandidates, getProfile, 
+  updateProfile, getNotifications, getAnalytics: getAnalyticsV2,
+  updateJob, updateJobStatus, deleteJob, updateApplicationStatus 
+};

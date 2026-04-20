@@ -6,11 +6,55 @@ exports.getJobs = async (req, res) => {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 20;
     const offset = (page - 1) * limit;
+    const q = req.query.q?.trim() || '';
+    const location = req.query.location?.trim() || '';
+    const jobType = req.query.job_type?.trim() || '';
+    const params = [];
+    const conditions = [];
 
-    const countResult = await pool.query('SELECT COUNT(*) FROM jobs');
-    const totalJobs = parseInt(countResult.rows[0].count);
+    if (q) {
+      params.push(`%${q}%`);
+      const index = params.length;
+      conditions.push(`(
+        job_title ILIKE $${index}
+        OR company_name ILIKE $${index}
+        OR job_description ILIKE $${index}
+        OR job_requirements ILIKE $${index}
+      )`);
+    }
 
-    const result = await pool.query('SELECT * FROM jobs ORDER BY id ASC LIMIT $1 OFFSET $2', [limit, offset]);
+    if (location) {
+      params.push(`%${location}%`);
+      conditions.push(`job_address ILIKE $${params.length}`);
+    }
+
+    if (jobType) {
+      params.push(`%${jobType}%`);
+      conditions.push(`job_type ILIKE $${params.length}`);
+    }
+
+    const whereClause = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
+
+    const countResult = await pool.query(
+      `SELECT COUNT(*) FROM jobs ${whereClause}`,
+      params
+    );
+    const totalJobs = parseInt(countResult.rows[0].count, 10);
+
+    params.push(limit, offset);
+    const limitIndex = params.length - 1;
+    const offsetIndex = params.length;
+
+    const result = await pool.query(
+      `SELECT id, job_title as title, job_description as description, job_requirements as requirements,
+              benefits, job_address as location, job_type, years_of_experience as experience,
+              salary, submission_deadline as deadline, company_name, industry, created_at
+       FROM jobs
+       ${whereClause}
+       ORDER BY id ASC
+       LIMIT $${limitIndex} OFFSET $${offsetIndex}`,
+      params
+    );
     
     res.json({
       data: result.rows,
@@ -31,7 +75,8 @@ exports.getJobs = async (req, res) => {
 exports.getSavedJobs = async (req, res) => {
   try {
     const result = await pool.query(
-      `SELECT j.*, sj.created_at as saved_at
+      `SELECT j.id, j.job_title as title, j.job_address as location, j.salary, j.job_type,
+              sj.created_at as saved_at
        FROM saved_jobs sj
        JOIN jobs j ON j.id = sj.job_id
        WHERE sj.user_id = $1
@@ -49,7 +94,8 @@ exports.getSavedJobs = async (req, res) => {
 exports.getAppliedJobs = async (req, res) => {
   try {
     const result = await pool.query(
-      `SELECT j.*, aj.status, aj.created_at as applied_at
+      `SELECT j.id, j.job_title as title, j.job_address as location, j.salary,
+              aj.status, aj.created_at as applied_at
        FROM applied_jobs aj
        JOIN jobs j ON j.id = aj.job_id
        WHERE aj.user_id = $1
@@ -77,7 +123,13 @@ exports.getSavedJobIds = async (req, res) => {
 // GET /api/jobs/:id — Chi tiết 1 job
 exports.getJobById = async (req, res) => {
   try {
-    const result = await pool.query('SELECT * FROM jobs WHERE id = $1', [req.params.id]);
+    const result = await pool.query(
+      `SELECT id, job_title as title, job_description as description, job_requirements as requirements,
+              benefits, job_address as location, job_type, years_of_experience as experience,
+              salary, submission_deadline as deadline, company_name, created_at
+       FROM jobs WHERE id = $1`, 
+      [req.params.id]
+    );
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Không tìm thấy việc làm' });
     }

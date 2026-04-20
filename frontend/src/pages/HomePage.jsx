@@ -1,13 +1,20 @@
+import { useState } from 'react';
 import HeroSection from '../components/HeroSection';
 import FilterSidebar from '../components/FilterSidebar';
 import JobList from '../components/JobList';
 import RightSidebar from '../components/RightSidebar';
 
 export default function HomePage() {
+  const [searchParams, setSearchParams] = useState({
+    keyword: '',
+    location: '',
+    jobType: '',
+  });
+
   return (
     <>
       {/* Hero Section */}
-      <HeroSection />
+      <HeroSection onSearch={setSearchParams} />
 
       {/* Main Content: Filters + Job Feed + Sidebar */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -19,7 +26,7 @@ export default function HomePage() {
 
           {/* Center - Job List */}
           <div className="flex-1 min-w-0">
-            <JobList />
+            <JobList searchParams={searchParams} />
           </div>
 
           {/* Right Sidebar - Widgets */}
