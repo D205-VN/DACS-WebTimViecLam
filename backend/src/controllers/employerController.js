@@ -595,7 +595,7 @@ async function updateJob(req, res) {
 
     // Kiểm tra quyền sở hữu
     const check = await pool.query('SELECT id FROM jobs WHERE id = $1 AND employer_id = $2', [jobId, userId]);
-    if (!ownership || check.rows.length === 0) {
+    if (check.rows.length === 0) {
       return res.status(403).json({ error: 'Bạn không có quyền chỉnh sửa tin này' });
     }
 
@@ -700,39 +700,6 @@ async function updateApplicationStatus(req, res) {
 
     // Kiểm tra quyền sở hữu (job của application này phải thuộc về employer này)
     const ownership = await getCandidateOwnership(applicationId, userId);
-    const check = await pool.query(
-      `SELECT aj.id FROM applied_jobs aj
-       JOIN jobs j ON aj.job_id = j.id
-       WHERE aj.id = $1 AND j.employer_id = $2`,
-      [applicationId, userId]
-    );
-
-    if (!ownership || check.rows.length === 0) {
-      return res.status(403).json({ error: 'Không có quyền thay đổi hồ sơ này' });
-    }
-
-    const result = await pool.query(
-      `UPDATE applied_jobs
-       SET status = $1, updated_at = NOW()
-       WHERE id = $2
-       RETURNING id, COALESCE(NULLIF(TRIM(status), ''), 'pending') as status, updated_at`,
-      [normalizedStatus, applicationId]
-    );
-
-    res.json({ message: 'Đã cập nhật trạng thái ứng viên' });
-  } catch (err) {
-    console.error('Update app status error:', err);
-    res.status(500).json({ error: 'Lỗi khi cập nhật trạng thái' });
-  }
-}
-
-async function updateCandidateStatus(req, res) {
-  try {
-    const userId = req.user.id;
-    const applicationId = req.params.id;
-    const normalizedStatus = normalizeApplicationStatus(req.body.status);
-
-    const ownership = await getCandidateOwnership(applicationId, userId);
     if (!ownership) {
       return res.status(403).json({ error: 'Không có quyền thay đổi hồ sơ này' });
     }
@@ -747,10 +714,13 @@ async function updateCandidateStatus(req, res) {
 
     res.json({ message: 'Đã cập nhật trạng thái ứng viên', data: result.rows[0] });
   } catch (err) {
-    console.error('Update candidate status error:', err);
-    res.status(500).json({ error: 'Lỗi khi cập nhật trạng thái ứng viên' });
+    console.error('Update app status error:', err);
+    res.status(500).json({ error: 'Lỗi khi cập nhật trạng thái' });
   }
 }
+
+// updateCandidateStatus is now alias for updateApplicationStatus or redundant
+const updateCandidateStatus = updateApplicationStatus;
 
 async function saveCandidateNote(req, res) {
   try {
