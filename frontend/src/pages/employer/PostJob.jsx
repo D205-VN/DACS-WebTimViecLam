@@ -55,7 +55,7 @@ export default function PostJob() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Đăng tin thất bại');
       setSuccess(true);
-      setTimeout(() => navigate('/employer/dashboard'), 2000);
+      setTimeout(() => navigate('/employer/dashboard', { state: { activeTab: 'jobs' } }), 2200);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -75,8 +75,8 @@ export default function PostJob() {
           <div className="w-20 h-20 bg-gradient-to-br from-emerald-100 to-cyan-100 rounded-2xl flex items-center justify-center mx-auto mb-6">
             <CheckCircle2 className="w-10 h-10 text-emerald-600" />
           </div>
-          <h1 className="text-2xl font-extrabold text-gray-800 mb-3">Đăng tin thành công! 🎉</h1>
-          <p className="text-gray-500 mb-6">Tin tuyển dụng của bạn đã được tạo. Đang chuyển hướng về bảng điều khiển...</p>
+          <h1 className="text-2xl font-extrabold text-gray-800 mb-3">Đã gửi tin chờ duyệt</h1>
+          <p className="text-gray-500 mb-6">Tin tuyển dụng của bạn đang chờ admin chấp nhận hoặc từ chối. Đang chuyển hướng về bảng điều khiển...</p>
           <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-navy-700 mx-auto"></div>
         </div>
       </div>
@@ -101,6 +101,9 @@ export default function PostJob() {
         <div className="mb-8">
           <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-800 mb-2">Đăng tin tuyển dụng</h1>
           <p className="text-gray-500">Điền thông tin chi tiết để tạo tin tuyển dụng mới</p>
+          <div className="mt-4 inline-flex max-w-full rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700">
+            Sau khi gửi, tin sẽ ở trạng thái chờ duyệt cho đến khi admin chấp nhận hoặc từ chối.
+          </div>
         </div>
 
         {/* Error */}
@@ -303,7 +306,7 @@ export default function PostJob() {
               disabled={loading}
               className="flex items-center justify-center gap-2 px-8 py-3 bg-gradient-to-r from-navy-600 to-navy-800 text-white font-semibold text-sm rounded-xl hover:shadow-lg hover:shadow-navy-700/25 hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200 disabled:opacity-60"
             >
-              {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <><Briefcase className="w-4 h-4" /><span>Đăng tin tuyển dụng</span></>}
+              {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <><Briefcase className="w-4 h-4" /><span>Gửi tin chờ duyệt</span></>}
             </button>
           </div>
         </form>

@@ -2,21 +2,39 @@ import React from 'react';
 import { FileText, TrendingUp, Users, UserPlus, ChevronRight, Briefcase, MapPin, DollarSign, Calendar, Plus, Building2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
+function normalizeModerationStatus(status) {
+  const normalized = String(status || '').trim().toLowerCase();
+  return ['pending', 'approved', 'rejected'].includes(normalized) ? normalized : 'approved';
+}
+
+function getJobModerationMeta(status) {
+  switch (normalizeModerationStatus(status)) {
+    case 'pending':
+      return { label: 'Chờ duyệt', className: 'bg-amber-50 text-amber-700 border border-amber-100' };
+    case 'rejected':
+      return { label: 'Từ chối', className: 'bg-red-50 text-red-700 border border-red-100' };
+    default:
+      return { label: 'Đã duyệt', className: 'bg-emerald-50 text-emerald-700 border border-emerald-100' };
+  }
+}
+
 export default function DashboardTab({ stats, recentJobs, loading, setActiveTab }) {
   const navigate = useNavigate();
 
   const displayStats = stats || {
     totalJobs: 0,
     activeJobs: 0,
+    pendingJobs: 0,
+    rejectedJobs: 0,
     totalCandidates: 0,
     newCandidates: 0,
   };
 
   const statCards = [
     { label: 'Tổng tin đăng', value: displayStats.totalJobs, icon: FileText, color: 'from-blue-500 to-blue-600', bgLight: 'bg-blue-50', textColor: 'text-blue-600' },
-    { label: 'Tin đang tuyển', value: displayStats.activeJobs, icon: TrendingUp, color: 'from-emerald-500 to-emerald-600', bgLight: 'bg-emerald-50', textColor: 'text-emerald-600' },
+    { label: 'Tin đang hiển thị', value: displayStats.activeJobs, icon: TrendingUp, color: 'from-emerald-500 to-emerald-600', bgLight: 'bg-emerald-50', textColor: 'text-emerald-600' },
+    { label: 'Tin chờ duyệt', value: displayStats.pendingJobs, icon: UserPlus, color: 'from-amber-500 to-amber-600', bgLight: 'bg-amber-50', textColor: 'text-amber-600' },
     { label: 'Tổng ứng viên', value: displayStats.totalCandidates, icon: Users, color: 'from-violet-500 to-violet-600', bgLight: 'bg-violet-50', textColor: 'text-violet-600' },
-    { label: 'Ứng viên mới', value: displayStats.newCandidates, icon: UserPlus, color: 'from-amber-500 to-amber-600', bgLight: 'bg-amber-50', textColor: 'text-amber-600' },
   ];
 
   return (
@@ -66,7 +84,12 @@ export default function DashboardTab({ stats, recentJobs, loading, setActiveTab 
                     <Briefcase className="w-5 h-5" />
                   </div>
                   <div>
-                    <h4 className="font-bold text-gray-800 group-hover:text-navy-700 transition-colors">{job.title}</h4>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <h4 className="font-bold text-gray-800 group-hover:text-navy-700 transition-colors">{job.title}</h4>
+                      <span className={`inline-flex px-2.5 py-1 rounded-full text-[11px] font-semibold ${getJobModerationMeta(job.status).className}`}>
+                        {getJobModerationMeta(job.status).label}
+                      </span>
+                    </div>
                     <div className="flex flex-wrap items-center gap-3 mt-1">
                       {job.location && (
                         <span className="text-xs text-gray-500 flex items-center gap-1">
@@ -95,12 +118,17 @@ export default function DashboardTab({ stats, recentJobs, loading, setActiveTab 
                 </div>
 
                 <div className="flex gap-2">
-                  <button className="px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm font-semibold text-gray-700 hover:bg-gray-50 hover:border-gray-300 transition-all">
-                    Sửa
+                  <button
+                    onClick={() => setActiveTab('jobs')}
+                    className="px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm font-semibold text-gray-700 hover:bg-gray-50 hover:border-gray-300 transition-all"
+                  >
+                    Quản lý tin
                   </button>
-                  <button onClick={() => setActiveTab('candidates')} className="px-4 py-2 bg-gradient-to-r from-navy-600 to-navy-800 text-white rounded-lg text-sm font-semibold hover:shadow-md transition-all">
-                    Ứng viên
-                  </button>
+                  {normalizeModerationStatus(job.status) === 'approved' && (
+                    <button onClick={() => setActiveTab('candidates')} className="px-4 py-2 bg-gradient-to-r from-navy-600 to-navy-800 text-white rounded-lg text-sm font-semibold hover:shadow-md transition-all">
+                      Ứng viên
+                    </button>
+                  )}
                 </div>
               </div>
             ))

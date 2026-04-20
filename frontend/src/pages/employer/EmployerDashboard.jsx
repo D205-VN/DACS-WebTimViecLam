@@ -59,6 +59,8 @@ export default function EmployerDashboard() {
   const displayStats = stats || {
     totalJobs: 0,
     activeJobs: 0,
+    pendingJobs: 0,
+    rejectedJobs: 0,
     totalCandidates: 0,
     newCandidates: 0,
   };
@@ -94,9 +96,11 @@ export default function EmployerDashboard() {
               {getGreeting()}, {user?.company_name || user?.full_name || 'Nhà tuyển dụng'}! 👋
             </h1>
             <p className="text-navy-200 text-sm sm:text-base">
-              {displayStats.newCandidates > 0
-                ? `Hôm nay bạn có ${displayStats.newCandidates} ứng viên mới đang chờ phỏng vấn.`
-                : 'Chào mừng bạn đến với bảng điều khiển nhà tuyển dụng.'}
+              {displayStats.pendingJobs > 0
+                ? `Hiện có ${displayStats.pendingJobs} tin đang chờ admin chấp nhận hoặc từ chối.`
+                : displayStats.newCandidates > 0
+                  ? `Hôm nay bạn có ${displayStats.newCandidates} ứng viên mới đang chờ xử lý.`
+                  : 'Chào mừng bạn đến với bảng điều khiển nhà tuyển dụng.'}
             </p>
           </div>
         </div>

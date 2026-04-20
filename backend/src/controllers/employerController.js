@@ -21,6 +21,11 @@ function normalizeSalary(salaryMin, salaryMax) {
   return 'Thỏa thuận';
 }
 
+function normalizeJobModerationStatus(status) {
+  const normalized = String(status || '').trim().toLowerCase();
+  return ['pending', 'approved', 'rejected'].includes(normalized) ? normalized : 'approved';
+}
+
 async function ensureEmployerJobSchema() {
   if (employerJobSchemaReady) return;
 
@@ -78,8 +83,7 @@ async function ensureEmployerJobSchemaForRequest(req, res, next) {
     return next();
   } catch (err) {
     console.error('Ensure employer job schema error:', err);
-    return next();
-    res.status(500).json({ error: 'Lỗi cấu hình dữ liệu tuyển dụng' });
+    return res.status(500).json({ error: 'Lỗi cấu hình dữ liệu tuyển dụng' });
   }
 }
 
@@ -121,40 +125,68 @@ async function getDashboard(req, res) {
     const deadlineDateSql = buildDeadlineSqlExpression('submission_deadline');
 
     // Thống kê
-    const totalJobsResult = await pool.query(
-      'SELECT COUNT(*) FROM jobs WHERE employer_id = $1', [userId]
-    );
-    const activeJobsResult = await pool.query(
-      `SELECT COUNT(*) FROM jobs
-       WHERE employer_id = $1
-         AND (${deadlineDateSql} IS NULL OR ${deadlineDateSql} >= CURRENT_DATE)`,
-      [userId]
-    );
-    const totalCandidatesResult = await pool.query(
-      `SELECT COUNT(*) FROM applied_jobs aj 
-       JOIN jobs j ON aj.job_id = j.id 
-       WHERE j.employer_id = $1`, [userId]
-    );
-    const newCandidatesResult = await pool.query(
-      `SELECT COUNT(*) FROM applied_jobs aj 
-       JOIN jobs j ON aj.job_id = j.id 
-       WHERE j.employer_id = $1 AND aj.created_at >= NOW() - INTERVAL '7 days'`, [userId]
-    );
-
-    // Tin mới nhất
-    const recentJobsResult = await pool.query(
-      `SELECT j.id, j.job_title as title, j.job_address as location, j.salary, 
-              j.submission_deadline as deadline, j.created_at,
-              (SELECT COUNT(*) FROM applied_jobs WHERE job_id = j.id) as applicant_count
-       FROM jobs j 
-       WHERE j.employer_id = $1 
-       ORDER BY j.created_at DESC 
-       LIMIT 5`, [userId]
-    );
+    const [
+      totalJobsResult,
+      activeJobsResult,
+      pendingJobsResult,
+      rejectedJobsResult,
+      totalCandidatesResult,
+      newCandidatesResult,
+      recentJobsResult,
+    ] = await Promise.all([
+      pool.query(
+        'SELECT COUNT(*) FROM jobs WHERE employer_id = $1',
+        [userId]
+      ),
+      pool.query(
+        `SELECT COUNT(*) FROM jobs
+         WHERE employer_id = $1
+           AND COALESCE(NULLIF(TRIM(status), ''), 'approved') = 'approved'
+           AND (${deadlineDateSql} IS NULL OR ${deadlineDateSql} >= CURRENT_DATE)`,
+        [userId]
+      ),
+      pool.query(
+        `SELECT COUNT(*) FROM jobs
+         WHERE employer_id = $1
+           AND COALESCE(NULLIF(TRIM(status), ''), 'approved') = 'pending'`,
+        [userId]
+      ),
+      pool.query(
+        `SELECT COUNT(*) FROM jobs
+         WHERE employer_id = $1
+           AND COALESCE(NULLIF(TRIM(status), ''), 'approved') = 'rejected'`,
+        [userId]
+      ),
+      pool.query(
+        `SELECT COUNT(*) FROM applied_jobs aj 
+         JOIN jobs j ON aj.job_id = j.id 
+         WHERE j.employer_id = $1`,
+        [userId]
+      ),
+      pool.query(
+        `SELECT COUNT(*) FROM applied_jobs aj 
+         JOIN jobs j ON aj.job_id = j.id 
+         WHERE j.employer_id = $1 AND aj.created_at >= NOW() - INTERVAL '7 days'`,
+        [userId]
+      ),
+      pool.query(
+        `SELECT j.id, j.job_title as title, j.job_address as location, j.salary, 
+                j.submission_deadline as deadline, j.created_at,
+                COALESCE(NULLIF(TRIM(j.status), ''), 'approved') as status,
+                (SELECT COUNT(*) FROM applied_jobs WHERE job_id = j.id) as applicant_count
+         FROM jobs j 
+         WHERE j.employer_id = $1 
+         ORDER BY j.created_at DESC 
+         LIMIT 5`,
+        [userId]
+      ),
+    ]);
 
     console.log(`Dashboard stats for user ${userId}:`, {
       totalJobs: totalJobsResult.rows[0].count,
       activeJobs: activeJobsResult.rows[0].count,
+      pendingJobs: pendingJobsResult.rows[0].count,
+      rejectedJobs: rejectedJobsResult.rows[0].count,
       totalCandidates: totalCandidatesResult.rows[0].count,
       newCandidates: newCandidatesResult.rows[0].count,
     });
@@ -164,6 +196,8 @@ async function getDashboard(req, res) {
       stats: {
         totalJobs: parseInt(totalJobsResult.rows[0].count),
         activeJobs: parseInt(activeJobsResult.rows[0].count),
+        pendingJobs: parseInt(pendingJobsResult.rows[0].count),
+        rejectedJobs: parseInt(rejectedJobsResult.rows[0].count),
         totalCandidates: parseInt(totalCandidatesResult.rows[0].count),
         newCandidates: parseInt(newCandidatesResult.rows[0].count),
       },
@@ -223,7 +257,7 @@ async function createJob(req, res) {
     );
 
     res.status(201).json({
-      message: 'Đăng tin thành công!',
+      message: 'Tin tuyển dụng đã được gửi và đang chờ admin phê duyệt.',
       job: result.rows[0],
     });
   } catch (err) {
@@ -499,7 +533,11 @@ async function getAnalyticsV2(req, res) {
       pool.query(
         `SELECT
             COUNT(DISTINCT j.id) AS total_jobs,
-            COUNT(DISTINCT CASE WHEN ${deadlineDateSql} IS NULL OR ${deadlineDateSql} >= CURRENT_DATE THEN j.id END) AS active_jobs,
+            COUNT(DISTINCT CASE
+              WHEN COALESCE(NULLIF(TRIM(j.status), ''), 'approved') = 'approved'
+               AND (${deadlineDateSql} IS NULL OR ${deadlineDateSql} >= CURRENT_DATE)
+              THEN j.id
+            END) AS active_jobs,
             COUNT(aj.id) AS total_candidates,
             COUNT(CASE WHEN aj.created_at >= NOW() - INTERVAL '7 days' THEN 1 END) AS new_candidates
          FROM jobs j
@@ -602,10 +640,17 @@ async function updateJob(req, res) {
     } = req.body;
 
     // Kiểm tra quyền sở hữu
-    const check = await pool.query('SELECT id FROM jobs WHERE id = $1 AND employer_id = $2', [jobId, userId]);
+    const check = await pool.query(
+      `SELECT id, COALESCE(NULLIF(TRIM(status), ''), 'approved') as status
+       FROM jobs
+       WHERE id = $1 AND employer_id = $2`,
+      [jobId, userId]
+    );
     if (check.rows.length === 0) {
       return res.status(403).json({ error: 'Bạn không có quyền chỉnh sửa tin này' });
     }
+    const currentStatus = normalizeJobModerationStatus(check.rows[0].status);
+    const nextModerationStatus = currentStatus === 'approved' ? 'approved' : 'pending';
 
     const normalizedDeadline = normalizeDeadline(deadline);
     const normalizedSalary = salary || normalizeSalary(salary_min, salary_max);
@@ -619,17 +664,22 @@ async function updateJob(req, res) {
       `UPDATE jobs 
        SET job_title = $1, job_description = $2, job_requirements = $3, benefits = $4, 
            job_address = $5, salary = $6, job_type = $7, years_of_experience = $8, 
-           submission_deadline = $9, number_candidate = $10, tags = $11, updated_at = NOW()
-       WHERE id = $12 AND employer_id = $13
+           submission_deadline = $9, number_candidate = $10, tags = $11, status = $12, updated_at = NOW()
+       WHERE id = $13 AND employer_id = $14
        RETURNING *`,
       [
         title, description, requirements, benefits, location,
         normalizedSalary, job_type, experience, normalizedDeadline,
-        parseInt(positions) || 1, normalizedTags, jobId, userId
+        parseInt(positions) || 1, normalizedTags, nextModerationStatus, jobId, userId
       ]
     );
 
-    res.json({ message: 'Cập nhật thành công!', job: result.rows[0] });
+    res.json({
+      message: nextModerationStatus === 'pending'
+        ? 'Tin đã được cập nhật và gửi lại để admin phê duyệt.'
+        : 'Cập nhật thành công!',
+      job: result.rows[0],
+    });
   } catch (err) {
     console.error('Update job error:', err);
     res.status(500).json({ error: 'Lỗi khi cập nhật tin' });
@@ -646,18 +696,36 @@ async function updateJobStatus(req, res) {
     const jobId = req.params.id;
     const { status } = req.body; // VD: 'Ngừng tuyển'
 
-    // Trong database hiện tại chưa thấy cột status rõ ràng, tạm thời dùng deadline để ẩn tin nếu cần
-    // Hoặc giả định có cột status. Nếu không có, ta dùng submission_deadline = quá khứ
+    if (!['Đang tuyển', 'Ngừng tuyển'].includes(status)) {
+      return res.status(400).json({ error: 'Trạng thái cập nhật không hợp lệ' });
+    }
+
+    const ownership = await pool.query(
+      `SELECT id, COALESCE(NULLIF(TRIM(status), ''), 'approved') as status
+       FROM jobs
+       WHERE id = $1 AND employer_id = $2`,
+      [jobId, userId]
+    );
+
+    if (!ownership.rows.length) {
+      return res.status(403).json({ error: 'Không tìm thấy tin hoặc không có quyền' });
+    }
+
+    const moderationStatus = normalizeJobModerationStatus(ownership.rows[0].status);
+    if (moderationStatus !== 'approved') {
+      return res.status(400).json({
+        error: moderationStatus === 'pending'
+          ? 'Tin đang chờ admin phê duyệt nên chưa thể thay đổi trạng thái tuyển dụng'
+          : 'Tin đã bị từ chối. Hãy chỉnh sửa và gửi lại để admin xem xét',
+      });
+    }
+
     const newDeadline = status === 'Ngừng tuyển' ? new Date(Date.now() - 86400000) : null;
 
     const result = await pool.query(
       `UPDATE jobs SET submission_deadline = $1, updated_at = NOW() WHERE id = $2 AND employer_id = $3 RETURNING id`,
       [newDeadline, jobId, userId]
     );
-
-    if (result.rows.length === 0) {
-      return res.status(403).json({ error: 'Không tìm thấy tin hoặc không có quyền' });
-    }
 
     res.json({ message: 'Đã cập nhật trạng thái tin' });
   } catch (err) {

@@ -83,6 +83,7 @@ export default function AdminDashboard() {
   const [users, setUsers] = useState([]);
   const [pendingJobs, setPendingJobs] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [jobActionLoading, setJobActionLoading] = useState(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -125,50 +126,30 @@ export default function AdminDashboard() {
     navigate('/login');
   };
 
-  const handleApprove = async (id) => {
+  const handleJobModeration = async (id, status) => {
     try {
+      setJobActionLoading(id);
       const res = await fetch(`/api/admin/jobs/${id}/status`, {
         method: 'PUT',
         headers: {
           Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ status: 'approved' }),
+        body: JSON.stringify({ status }),
       });
 
       if (res.ok) {
         setPendingJobs((prev) => prev.filter((job) => job.id !== id));
         setStats((prev) => ({
           ...prev,
-          jobs: prev.jobs + 1,
+          jobs: status === 'approved' ? prev.jobs + 1 : prev.jobs,
           pendingJobs: Math.max(prev.pendingJobs - 1, 0),
         }));
       }
     } catch (err) {
-      console.error('Lỗi khi duyệt tin:', err);
-    }
-  };
-
-  const handleReject = async (id) => {
-    try {
-      const res = await fetch(`/api/admin/jobs/${id}/status`, {
-        method: 'PUT',
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ status: 'rejected' }),
-      });
-
-      if (res.ok) {
-        setPendingJobs((prev) => prev.filter((job) => job.id !== id));
-        setStats((prev) => ({
-          ...prev,
-          pendingJobs: Math.max(prev.pendingJobs - 1, 0),
-        }));
-      }
-    } catch (err) {
-      console.error('Lỗi khi từ chối tin:', err);
+      console.error('Lỗi khi cập nhật trạng thái tin:', err);
+    } finally {
+      setJobActionLoading(null);
     }
   };
 
@@ -611,7 +592,7 @@ export default function AdminDashboard() {
                                 <p className="mt-1 text-sm text-gray-400">{job.company_name || 'Chưa có công ty'}</p>
                               </div>
                               <span className="rounded-full border border-amber-500/20 bg-amber-500/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-amber-300">
-                                Pending
+                                Chờ duyệt
                               </span>
                             </div>
                             <div className="mt-4 flex flex-wrap gap-3 text-sm text-gray-500">
@@ -767,14 +748,16 @@ export default function AdminDashboard() {
                                 <td className="py-4">
                                   <div className="flex flex-wrap gap-2">
                                     <button
-                                      onClick={() => handleApprove(job.id)}
-                                      className="rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-2 text-xs font-bold uppercase tracking-[0.16em] text-emerald-300 transition-colors hover:bg-emerald-500 hover:text-white"
+                                      onClick={() => handleJobModeration(job.id, 'approved')}
+                                      disabled={jobActionLoading === job.id}
+                                      className="rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-2 text-xs font-bold uppercase tracking-[0.16em] text-emerald-300 transition-colors hover:bg-emerald-500 hover:text-white disabled:opacity-60"
                                     >
-                                      Duyệt
+                                      {jobActionLoading === job.id ? 'Đang xử lý...' : 'Chấp nhận'}
                                     </button>
                                     <button
-                                      onClick={() => handleReject(job.id)}
-                                      className="rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-2 text-xs font-bold uppercase tracking-[0.16em] text-red-300 transition-colors hover:bg-red-500 hover:text-white"
+                                      onClick={() => handleJobModeration(job.id, 'rejected')}
+                                      disabled={jobActionLoading === job.id}
+                                      className="rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-2 text-xs font-bold uppercase tracking-[0.16em] text-red-300 transition-colors hover:bg-red-500 hover:text-white disabled:opacity-60"
                                     >
                                       Từ chối
                                     </button>

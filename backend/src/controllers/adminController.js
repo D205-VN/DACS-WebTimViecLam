@@ -7,7 +7,8 @@ async function ensureAdminJobSchema() {
 
   await pool.query(`
     ALTER TABLE jobs
-    ADD COLUMN IF NOT EXISTS status VARCHAR(20) DEFAULT 'approved'
+    ADD COLUMN IF NOT EXISTS status VARCHAR(20) DEFAULT 'approved',
+    ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT NOW()
   `);
 
   await pool.query(`
@@ -107,7 +108,7 @@ exports.updateJobStatus = async (req, res) => {
     await ensureAdminJobSchema();
 
     const result = await pool.query(
-      'UPDATE jobs SET status = $1 WHERE id = $2 RETURNING *',
+      'UPDATE jobs SET status = $1, updated_at = NOW() WHERE id = $2 RETURNING *',
       [status, id]
     );
 
