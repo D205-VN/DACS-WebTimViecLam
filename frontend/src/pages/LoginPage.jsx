@@ -57,6 +57,7 @@ export default function LoginPage() {
             navigate(getDefaultRouteByRole(data.user.role_code));
           } catch (err) { setError(err.message); }
         },
+        itp_support: true,
       });
       window.google.accounts.id.renderButton(
         document.getElementById('googleSignInDiv'),
