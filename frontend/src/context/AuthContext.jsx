@@ -22,19 +22,32 @@ export function AuthProvider({ children }) {
       headers: { Authorization: `Bearer ${token}` },
     })
       .then((res) => {
-        if (!res.ok) throw new Error('Token invalid');
+        if (!res.ok) {
+          // Only clear token if server explicitly rejects it (401/403)
+          if (res.status === 401 || res.status === 403) {
+            throw new Error('Token invalid');
+          }
+          // For other errors (500, etc.), keep the cached user
+          setLoading(false);
+          return null;
+        }
         return res.json();
       })
       .then((data) => {
-        setUser(data.user);
-        localStorage.setItem('user', JSON.stringify(data.user));
+        if (data) {
+          setUser(data.user);
+          localStorage.setItem('user', JSON.stringify(data.user));
+        }
         setLoading(false);
       })
-      .catch(() => {
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
-        setToken(null);
-        setUser(null);
+      .catch((err) => {
+        if (err.message === 'Token invalid') {
+          localStorage.removeItem('token');
+          localStorage.removeItem('user');
+          setToken(null);
+          setUser(null);
+        }
+        // Network error: keep cached user, don't logout
         setLoading(false);
       });
   }, [token]);

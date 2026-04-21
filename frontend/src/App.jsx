@@ -63,9 +63,20 @@ function SeekerRoute({ children }) {
   if (user?.role_code !== 'seeker') return <Navigate to={getDefaultRouteByRole(user?.role_code)} replace />;
   return children;
 }
+// Auto-redirect based on role when visiting /
+function RoleBasedHome() {
+  const { user, isAuthenticated, loading } = useAuth();
+  if (loading) return <div className="flex justify-center py-20"><div className="animate-spin rounded-full h-10 w-10 border-b-2 border-navy-700"></div></div>;
+  if (isAuthenticated) {
+    if (user?.role_code === 'admin') return <Navigate to="/admin/dashboard" replace />;
+    if (user?.role_code === 'employer') return <Navigate to="/employer/dashboard" replace />;
+    if (user?.role_code === 'seeker') return <Navigate to="/seeker/home" replace />;
+  }
+  return <MainLayout><HomePage /></MainLayout>;
+}
 
 const router = createBrowserRouter([
-  { path: '/', element: <MainLayout><HomePage /></MainLayout> },
+  { path: '/', element: <RoleBasedHome /> },
   { path: '/companies', element: <MainLayout><CompaniesPage /></MainLayout> },
   { path: '/blog', element: <MainLayout><BlogPage /></MainLayout> },
   { path: '/blog/:slug', element: <MainLayout><BlogDetailPage /></MainLayout> },
