@@ -27,5 +27,6 @@
   },
   "devDependencies": {
     "nodemon": "^3.1.14"
-  }
+  },
+  "proxy": "https://dacs-webtimvieclam.onrender.com"
 }
