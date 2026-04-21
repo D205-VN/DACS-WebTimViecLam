@@ -64,11 +64,36 @@ async function ensureEmployerApplicationSchema() {
   if (employerApplicationSchemaReady) return;
 
   await pool.query(`
+    CREATE TABLE IF NOT EXISTS applied_jobs (
+      id SERIAL PRIMARY KEY,
+      user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+      job_id INTEGER REFERENCES jobs(id) ON DELETE CASCADE,
+      cv_text TEXT,
+      status VARCHAR(50) DEFAULT 'pending',
+      created_at TIMESTAMP DEFAULT NOW(),
+      UNIQUE(user_id, job_id)
+    )
+  `);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS user_cvs (
+      id SERIAL PRIMARY KEY,
+      user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+      title VARCHAR(255) NOT NULL,
+      target_role VARCHAR(255),
+      html_content TEXT NOT NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
+  await pool.query(`
     ALTER TABLE applied_jobs
     ADD COLUMN IF NOT EXISTS note TEXT,
     ADD COLUMN IF NOT EXISTS interview_at TIMESTAMP,
     ADD COLUMN IF NOT EXISTS interview_mode VARCHAR(50),
     ADD COLUMN IF NOT EXISTS interview_link TEXT,
+    ADD COLUMN IF NOT EXISTS candidate_interview_mode VARCHAR(20),
+    ADD COLUMN IF NOT EXISTS cv_id INTEGER REFERENCES user_cvs(id) ON DELETE SET NULL,
     ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT NOW()
   `);
 
@@ -90,6 +115,22 @@ async function ensureEmployerJobSchemaForRequest(req, res, next) {
 function normalizeApplicationStatus(status) {
   const allowed = ['pending', 'interview', 'hired', 'rejected'];
   return allowed.includes(status) ? status : 'pending';
+}
+
+function normalizeInterviewMode(value) {
+  const normalized = String(value || '').trim().toLowerCase();
+  return ['online', 'offline'].includes(normalized) ? normalized : null;
+}
+
+function stripHtml(value = '') {
+  return String(value || '')
+    .replace(/<style[\s\S]*?<\/style>/gi, ' ')
+    .replace(/<script[\s\S]*?<\/script>/gi, ' ')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/&amp;/gi, '&')
+    .replace(/\s+/g, ' ')
+    .trim();
 }
 
 async function getCandidateOwnership(applicationId, employerId) {
@@ -328,11 +369,12 @@ async function getCandidates(req, res) {
       conditions.push(`DATE(aj.created_at) <= $${params.length}`);
     }
     const result = await pool.query(
-      `SELECT aj.id, aj.user_id, aj.job_id, aj.cv_text, aj.note, aj.interview_at, aj.interview_mode,
+      `SELECT aj.id, aj.user_id, aj.job_id, aj.cv_text, aj.cv_id, aj.note, aj.interview_at, aj.interview_mode,
+              aj.candidate_interview_mode,
               aj.interview_link, aj.created_at, aj.updated_at,
               COALESCE(NULLIF(TRIM(aj.status), ''), 'pending') as status,
               u.full_name as candidate_name, u.email as candidate_email, u.phone as candidate_phone, u.avatar_url,
-              j.job_title as job_title
+              j.job_title as job_title, j.company_address, j.company_name
        FROM applied_jobs aj
        JOIN users u ON aj.user_id = u.id
        JOIN jobs j ON aj.job_id = j.id
@@ -375,14 +417,29 @@ async function getCandidateById(req, res) {
     const userId = req.user.id;
     const applicationId = req.params.id;
     const result = await pool.query(
-      `SELECT aj.id, aj.user_id, aj.job_id, aj.cv_text, aj.note, aj.interview_at, aj.interview_mode,
+      `SELECT aj.id, aj.user_id, aj.job_id, aj.cv_text, aj.cv_id, aj.note, aj.interview_at, aj.interview_mode,
+              aj.candidate_interview_mode,
               aj.interview_link, aj.created_at, aj.updated_at,
               COALESCE(NULLIF(TRIM(aj.status), ''), 'pending') as status,
               u.full_name as candidate_name, u.email as candidate_email, u.phone as candidate_phone, u.avatar_url,
-              j.job_title as job_title
+              j.job_title as job_title,
+              j.company_address,
+              j.company_name,
+              cv.id as resolved_cv_id,
+              cv.title as cv_title,
+              cv.target_role as cv_target_role,
+              cv.html_content as cv_html_content,
+              cv.created_at as cv_created_at
        FROM applied_jobs aj
        JOIN users u ON aj.user_id = u.id
        JOIN jobs j ON aj.job_id = j.id
+       LEFT JOIN LATERAL (
+         SELECT id, title, target_role, html_content, created_at
+         FROM user_cvs
+         WHERE user_id = aj.user_id
+         ORDER BY CASE WHEN id = aj.cv_id THEN 0 ELSE 1 END, created_at DESC, id DESC
+         LIMIT 1
+       ) cv ON TRUE
        WHERE aj.id = $1 AND j.employer_id = $2`,
       [applicationId, userId]
     );
@@ -392,16 +449,18 @@ async function getCandidateById(req, res) {
     }
 
     const candidate = result.rows[0];
-    const skills = candidate.cv_text
-      ? candidate.cv_text.split(/[\n,|]/).map((item) => item.trim()).filter(Boolean).slice(0, 10)
+    const cvPlainText = stripHtml(candidate.cv_html_content || candidate.cv_text || '');
+    const skills = cvPlainText
+      ? cvPlainText.split(/[\n,|]/).map((item) => item.trim()).filter(Boolean).slice(0, 10)
       : [];
 
     res.json({
       data: {
         ...candidate,
         skills,
-        experience_summary: candidate.cv_text || '',
+        experience_summary: cvPlainText || '',
         cv_file_url: null,
+        cv_html_content: candidate.cv_html_content || null,
       }
     });
   } catch (err) {
@@ -880,14 +939,29 @@ async function scheduleInterview(req, res) {
     const applicationId = req.params.id;
     const { interview_at, interview_mode, interview_link } = req.body;
 
-    const ownership = await getCandidateOwnership(applicationId, userId);
-    if (!ownership) {
+    const ownership = await pool.query(
+      `SELECT aj.id, aj.candidate_interview_mode, j.company_address
+       FROM applied_jobs aj
+       JOIN jobs j ON aj.job_id = j.id
+       WHERE aj.id = $1 AND j.employer_id = $2`,
+      [applicationId, userId]
+    );
+    if (!ownership.rows.length) {
       return res.status(403).json({ error: 'Không có quyền lên lịch phỏng vấn cho ứng viên này' });
     }
+    const application = ownership.rows[0];
 
     const normalizedAt = interview_at ? new Date(interview_at) : null;
     if (!normalizedAt || Number.isNaN(normalizedAt.getTime())) {
       return res.status(400).json({ error: 'Ngày giờ phỏng vấn không hợp lệ' });
+    }
+
+    const lockedMode = normalizeInterviewMode(application.candidate_interview_mode);
+    const normalizedMode = lockedMode || normalizeInterviewMode(interview_mode) || 'online';
+    const normalizedLink = normalizedMode === 'online' ? interview_link?.trim() || null : null;
+
+    if (normalizedMode === 'online' && !normalizedLink) {
+      return res.status(400).json({ error: 'Phỏng vấn online cần có link video call' });
     }
 
     const result = await pool.query(
@@ -899,11 +973,17 @@ async function scheduleInterview(req, res) {
            updated_at = NOW()
        WHERE id = $4
        RETURNING id, COALESCE(NULLIF(TRIM(status), ''), 'pending') as status,
-                 interview_at, interview_mode, interview_link, updated_at`,
-      [normalizedAt.toISOString(), interview_mode?.trim() || 'online', interview_link?.trim() || null, applicationId]
+                 interview_at, interview_mode, interview_link, candidate_interview_mode, updated_at`,
+      [normalizedAt.toISOString(), normalizedMode, normalizedLink, applicationId]
     );
 
-    res.json({ message: 'Đã lên lịch phỏng vấn', data: result.rows[0] });
+    res.json({
+      message: 'Đã lên lịch phỏng vấn',
+      data: {
+        ...result.rows[0],
+        company_address: application.company_address || null,
+      },
+    });
   } catch (err) {
     console.error('Schedule interview error:', err);
     res.status(500).json({ error: 'Lỗi khi lên lịch phỏng vấn' });

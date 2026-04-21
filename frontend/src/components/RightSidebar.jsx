@@ -59,13 +59,22 @@ export default function RightSidebar({ searchParams }) {
       page: '1',
       limit: '4',
     });
+    const hasGeoLocation =
+      searchParams?.locationSource === 'geolocation' &&
+      Number.isFinite(searchParams?.userCoordinates?.lat) &&
+      Number.isFinite(searchParams?.userCoordinates?.lng);
 
     if (searchParams?.keyword) params.set('keyword', searchParams.keyword);
-    if (searchParams?.location) params.set('location', searchParams.location);
+    if (searchParams?.location && !hasGeoLocation) params.set('location', searchParams.location);
     if (searchParams?.jobType) params.set('jobType', searchParams.jobType);
     if (searchParams?.salaryRange) params.set('salaryRange', searchParams.salaryRange);
     if (searchParams?.levels?.length) params.set('levels', searchParams.levels.join(','));
     if (searchParams?.industries?.length) params.set('industries', searchParams.industries.join(','));
+    if (hasGeoLocation) {
+      params.set('lat', String(searchParams.userCoordinates.lat));
+      params.set('lng', String(searchParams.userCoordinates.lng));
+      params.set('locationSource', 'geolocation');
+    }
 
     queueMicrotask(() => {
       if (!cancelled) {
@@ -98,15 +107,24 @@ export default function RightSidebar({ searchParams }) {
     searchParams?.salaryRange,
     searchParams?.levels,
     searchParams?.industries,
+    searchParams?.locationSource,
+    searchParams?.userCoordinates?.lat,
+    searchParams?.userCoordinates?.lng,
   ]);
 
-  const suggestionTitle = searchParams?.location
-    ? `Việc gần ${searchParams.location}`
+  const isGeolocationSearch =
+    searchParams?.locationSource === 'geolocation' &&
+    Number.isFinite(searchParams?.userCoordinates?.lat) &&
+    Number.isFinite(searchParams?.userCoordinates?.lng);
+  const suggestionTitle = isGeolocationSearch
+    ? 'Việc gần vị trí của bạn'
+    : searchParams?.location
+      ? `Việc gần ${searchParams.location}`
     : 'Gợi ý cho bạn';
-  const suggestionDescription = searchParams?.location
-    ? searchParams?.locationSource === 'geolocation'
-      ? 'Ưu tiên theo vị trí hiện tại bạn vừa lấy.'
-      : 'Ưu tiên theo khu vực bạn đang tìm kiếm.'
+  const suggestionDescription = isGeolocationSearch
+    ? 'Sắp xếp theo khoảng cách từ vị trí GPS hiện tại của bạn.'
+    : searchParams?.location
+      ? 'Ưu tiên theo khu vực bạn đang tìm kiếm.'
     : 'Làm mới theo từ khóa, bộ lọc và tin tuyển dụng mới nhất.';
 
   return (
@@ -216,7 +234,12 @@ export default function RightSidebar({ searchParams }) {
                 <h4 className="text-sm font-semibold text-white">{job.title}</h4>
                 <p className="mt-0.5 text-xs text-navy-200">{job.company_name || 'Đang cập nhật công ty'}</p>
                 <div className="mt-3 flex items-start justify-between gap-3">
-                  <div className="text-xs font-semibold text-emerald-300">{job.salary || 'Thỏa thuận'}</div>
+                  <div>
+                    <div className="text-xs font-semibold text-emerald-300">{job.salary || 'Thỏa thuận'}</div>
+                    {isGeolocationSearch && Number.isFinite(job.distance_km) ? (
+                      <div className="mt-1 text-[11px] text-amber-200">Cách bạn {job.distance_km} km</div>
+                    ) : null}
+                  </div>
                   <div className="flex items-center gap-1 text-right text-xs text-navy-200">
                     <MapPin className="mt-0.5 h-3 w-3 shrink-0" />
                     <span className="line-clamp-2">{job.location || 'Chưa rõ địa điểm'}</span>

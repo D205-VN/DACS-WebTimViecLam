@@ -28,12 +28,22 @@ export default function JobList({ searchParams, title, emptyMessage }) {
         limit: '20',
       });
       if (searchParams?.keyword) params.set('keyword', searchParams.keyword);
-      if (searchParams?.location) params.set('location', searchParams.location);
+      const hasGeoLocation =
+        searchParams?.locationSource === 'geolocation' &&
+        Number.isFinite(searchParams?.userCoordinates?.lat) &&
+        Number.isFinite(searchParams?.userCoordinates?.lng);
+
+      if (searchParams?.location && !hasGeoLocation) params.set('location', searchParams.location);
       if (searchParams?.jobType) params.set('jobType', searchParams.jobType);
       if (searchParams?.salaryRange) params.set('salaryRange', searchParams.salaryRange);
       if (searchParams?.company) params.set('company', searchParams.company);
       if (selectedLevels.length) params.set('levels', selectedLevels.join(','));
       if (selectedIndustries.length) params.set('industries', selectedIndustries.join(','));
+      if (hasGeoLocation) {
+        params.set('lat', String(searchParams.userCoordinates.lat));
+        params.set('lng', String(searchParams.userCoordinates.lng));
+        params.set('locationSource', 'geolocation');
+      }
 
       const res = await fetch(`${API}?${params.toString()}`);
       const payload = await res.json();
@@ -54,6 +64,9 @@ export default function JobList({ searchParams, title, emptyMessage }) {
     searchParams?.jobType,
     searchParams?.salaryRange,
     searchParams?.company,
+    searchParams?.locationSource,
+    searchParams?.userCoordinates?.lat,
+    searchParams?.userCoordinates?.lng,
     selectedLevels,
     selectedIndustries,
   ]);
@@ -104,10 +117,22 @@ export default function JobList({ searchParams, title, emptyMessage }) {
     navigate(getCompanyFilterRoute(user?.role_code, companyName));
   };
 
-  const heading = title || (searchParams?.company ? `Tin tuyển dụng tại ${searchParams.company}` : 'Việc làm mới nhất');
+  const isGeolocationSearch =
+    searchParams?.locationSource === 'geolocation' &&
+    Number.isFinite(searchParams?.userCoordinates?.lat) &&
+    Number.isFinite(searchParams?.userCoordinates?.lng);
+  const heading = title || (
+    searchParams?.company
+      ? `Tin tuyển dụng tại ${searchParams.company}`
+      : isGeolocationSearch
+        ? 'Việc làm gần vị trí của bạn'
+        : 'Việc làm mới nhất'
+  );
   const description = searchParams?.company
     ? `Tìm thấy ${loading && page === 1 ? '...' : totalJobs.toLocaleString()} tin tuyển dụng của công ty này`
-    : `Tìm thấy ${loading && page === 1 ? '...' : totalJobs.toLocaleString()} việc làm`;
+    : isGeolocationSearch
+      ? `Hiển thị ${loading && page === 1 ? '...' : totalJobs.toLocaleString()} việc làm, ưu tiên theo khoảng cách từ vị trí GPS hiện tại`
+      : `Tìm thấy ${loading && page === 1 ? '...' : totalJobs.toLocaleString()} việc làm`;
 
   return (
     <div>
@@ -180,6 +205,11 @@ export default function JobList({ searchParams, title, emptyMessage }) {
                       </div>
                       <div className="flex items-center justify-between mt-3">
                         <div className="flex flex-wrap gap-1.5">
+                          {isGeolocationSearch && Number.isFinite(job.distance_km) ? (
+                            <span className="px-2.5 py-1 text-[11px] font-medium text-emerald-700 bg-emerald-50 rounded-lg truncate max-w-[140px]">
+                              Cách bạn {job.distance_km} km
+                            </span>
+                          ) : null}
                           {job.career_level ? (
                             <span className="px-2.5 py-1 text-[11px] font-medium text-amber-700 bg-amber-50 rounded-lg truncate max-w-[140px]">
                               {job.career_level}

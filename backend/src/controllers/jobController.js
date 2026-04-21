@@ -1,4 +1,5 @@
 const pool = require('../config/db');
+const { getNearestDistanceForAddress } = require('../utils/locationCoordinates');
 
 const SALARY_RANGE_OPTIONS = [
   { value: '', label: 'Tất cả' },
@@ -10,6 +11,7 @@ const SALARY_RANGE_OPTIONS = [
 ];
 
 let publicJobSchemaReady = false;
+let publicApplicationSchemaReady = false;
 
 async function ensureJobStatusSchema() {
   if (publicJobSchemaReady) return;
@@ -26,6 +28,46 @@ async function ensureJobStatusSchema() {
   `);
 
   publicJobSchemaReady = true;
+}
+
+async function ensurePublicApplicationSchema() {
+  if (publicApplicationSchemaReady) return;
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS applied_jobs (
+      id SERIAL PRIMARY KEY,
+      user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+      job_id INTEGER REFERENCES jobs(id) ON DELETE CASCADE,
+      cv_text TEXT,
+      status VARCHAR(50) DEFAULT 'pending',
+      created_at TIMESTAMP DEFAULT NOW(),
+      UNIQUE(user_id, job_id)
+    )
+  `);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS user_cvs (
+      id SERIAL PRIMARY KEY,
+      user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+      title VARCHAR(255) NOT NULL,
+      target_role VARCHAR(255),
+      html_content TEXT NOT NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
+  await pool.query(`
+    ALTER TABLE applied_jobs
+    ADD COLUMN IF NOT EXISTS note TEXT,
+    ADD COLUMN IF NOT EXISTS interview_at TIMESTAMP,
+    ADD COLUMN IF NOT EXISTS interview_mode VARCHAR(50),
+    ADD COLUMN IF NOT EXISTS interview_link TEXT,
+    ADD COLUMN IF NOT EXISTS candidate_interview_mode VARCHAR(20),
+    ADD COLUMN IF NOT EXISTS cv_id INTEGER REFERENCES user_cvs(id) ON DELETE SET NULL,
+    ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT NOW()
+  `);
+
+  publicApplicationSchemaReady = true;
 }
 
 function parseListParam(value) {
@@ -147,6 +189,46 @@ function buildLocationLikePatterns(rawLocation) {
   return Array.from(patterns);
 }
 
+function toFiniteNumber(value) {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function normalizeInterviewMode(value) {
+  const normalized = String(value || '').trim().toLowerCase();
+  return ['online', 'offline'].includes(normalized) ? normalized : null;
+}
+
+function sortJobsByDistance(origin, jobs) {
+  if (!origin) return jobs;
+
+  return jobs
+    .map((job) => {
+      const distanceKm = getNearestDistanceForAddress(
+        origin,
+        [job.location, job.company_address, job.company_name].filter(Boolean).join(' ')
+      );
+
+      return {
+        ...job,
+        distance_km: distanceKm === null ? null : Number(distanceKm.toFixed(1)),
+      };
+    })
+    .sort((left, right) => {
+      const leftHasDistance = Number.isFinite(left.distance_km);
+      const rightHasDistance = Number.isFinite(right.distance_km);
+
+      if (leftHasDistance && rightHasDistance) {
+        return left.distance_km - right.distance_km || new Date(right.created_at || 0) - new Date(left.created_at || 0) || right.id - left.id;
+      }
+
+      if (leftHasDistance) return -1;
+      if (rightHasDistance) return 1;
+
+      return new Date(right.created_at || 0) - new Date(left.created_at || 0) || right.id - left.id;
+    });
+}
+
 // GET /api/jobs — Danh sách jobs (có phân trang)
 exports.getJobs = async (req, res) => {
   try {
@@ -163,6 +245,10 @@ exports.getJobs = async (req, res) => {
     const company = String(req.query.company || '').trim();
     const levels = parseListParam(req.query.levels);
     const industries = parseListParam(req.query.industries);
+    const lat = toFiniteNumber(req.query.lat);
+    const lng = toFiniteNumber(req.query.lng);
+    const hasUserCoordinates = lat !== null && lng !== null;
+    const origin = hasUserCoordinates ? { lat, lng } : null;
 
     let whereClause = '';
     const params = [];
@@ -174,7 +260,7 @@ exports.getJobs = async (req, res) => {
       paramIndex++;
     }
 
-    if (location) {
+    if (location && !hasUserCoordinates) {
       const patterns = buildLocationLikePatterns(location);
       if (patterns.length > 0) {
         const placeholders = patterns.map((_, i) => `$${paramIndex + i}`).join(', ');
@@ -208,21 +294,33 @@ exports.getJobs = async (req, res) => {
     whereClause += salaryClause.clause;
     paramIndex = salaryClause.nextIndex;
 
-    const countQuery = `SELECT COUNT(*) FROM jobs WHERE COALESCE(NULLIF(TRIM(status), ''), 'approved') = 'approved'${whereClause}`;
-    const countResult = await pool.query(countQuery, params);
-    const totalJobs = parseInt(countResult.rows[0].count);
-
-    params.push(limit, offset);
-    const query = `SELECT id, job_title as title, job_description as description, job_requirements as requirements,
+    const selectClause = `SELECT id, job_title as title, job_description as description, job_requirements as requirements,
               benefits, job_address as location, job_type, years_of_experience as experience,
               salary, submission_deadline as deadline, company_name, company_overview, company_size,
               company_address, industry, career_level, created_at 
-              FROM jobs WHERE COALESCE(NULLIF(TRIM(status), ''), 'approved') = 'approved'${whereClause} 
-              ORDER BY created_at DESC NULLS LAST, id DESC LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`;
-    const result = await pool.query(query, params);
-    
+              FROM jobs WHERE COALESCE(NULLIF(TRIM(status), ''), 'approved') = 'approved'${whereClause}`;
+
+    let jobs = [];
+    let totalJobs = 0;
+
+    if (hasUserCoordinates) {
+      const result = await pool.query(`${selectClause} ORDER BY created_at DESC NULLS LAST, id DESC`, params);
+      jobs = sortJobsByDistance(origin, result.rows);
+      totalJobs = jobs.length;
+      jobs = jobs.slice(offset, offset + limit);
+    } else {
+      const countQuery = `SELECT COUNT(*) FROM jobs WHERE COALESCE(NULLIF(TRIM(status), ''), 'approved') = 'approved'${whereClause}`;
+      const countResult = await pool.query(countQuery, params);
+      totalJobs = parseInt(countResult.rows[0].count);
+
+      const pagedParams = [...params, limit, offset];
+      const query = `${selectClause} ORDER BY created_at DESC NULLS LAST, id DESC LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`;
+      const result = await pool.query(query, pagedParams);
+      jobs = result.rows;
+    }
+
     res.json({
-      data: result.rows,
+      data: jobs,
       meta: {
         total: totalJobs,
         page,
@@ -332,9 +430,20 @@ exports.getSavedJobs = async (req, res) => {
 // GET /api/jobs/applied — Danh sách job đã ứng tuyển (cần JWT)
 exports.getAppliedJobs = async (req, res) => {
   try {
+    await ensurePublicApplicationSchema();
+
     const result = await pool.query(
       `SELECT j.id, j.job_title as title, j.company_name, j.job_address as location, j.salary,
-              aj.status, aj.created_at as applied_at
+              j.company_address,
+              aj.id as application_id,
+              COALESCE(NULLIF(TRIM(aj.status), ''), 'pending') as status,
+              aj.created_at as applied_at,
+              aj.updated_at,
+              aj.interview_at,
+              aj.interview_mode,
+              aj.interview_link,
+              aj.candidate_interview_mode,
+              aj.cv_id
        FROM applied_jobs aj
        JOIN jobs j ON j.id = aj.job_id
        WHERE aj.user_id = $1
@@ -412,6 +521,7 @@ exports.toggleSaveJob = async (req, res) => {
 exports.applyJob = async (req, res) => {
   try {
     await ensureJobStatusSchema();
+    await ensurePublicApplicationSchema();
 
     const jobId = req.params.id;
     const userId = req.user.id;
@@ -437,14 +547,74 @@ exports.applyJob = async (req, res) => {
       return res.status(400).json({ error: 'Bạn đã ứng tuyển việc làm này rồi' });
     }
 
+    const latestCvResult = await pool.query(
+      `SELECT id
+       FROM user_cvs
+       WHERE user_id = $1
+       ORDER BY created_at DESC, id DESC
+       LIMIT 1`,
+      [userId]
+    );
+    const latestCvId = latestCvResult.rows[0]?.id || null;
+
     await pool.query(
-      'INSERT INTO applied_jobs (user_id, job_id) VALUES ($1, $2)',
-      [userId, jobId]
+      'INSERT INTO applied_jobs (user_id, job_id, cv_id) VALUES ($1, $2, $3)',
+      [userId, jobId, latestCvId]
     );
 
     res.json({ message: 'Ứng tuyển thành công!' });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Lỗi khi ứng tuyển' });
+  }
+};
+
+exports.updateInterviewPreference = async (req, res) => {
+  try {
+    await ensurePublicApplicationSchema();
+
+    const applicationId = req.params.id;
+    const userId = req.user.id;
+    const interviewMode = normalizeInterviewMode(req.body?.interview_mode);
+
+    if (!interviewMode) {
+      return res.status(400).json({ error: 'Hình thức phỏng vấn không hợp lệ' });
+    }
+
+    const ownership = await pool.query(
+      `SELECT id,
+              COALESCE(NULLIF(TRIM(status), ''), 'pending') as status,
+              interview_mode
+       FROM applied_jobs
+       WHERE id = $1 AND user_id = $2`,
+      [applicationId, userId]
+    );
+
+    if (!ownership.rows.length) {
+      return res.status(404).json({ error: 'Không tìm thấy hồ sơ ứng tuyển' });
+    }
+
+    const application = ownership.rows[0];
+    if (application.status !== 'interview') {
+      return res.status(400).json({ error: 'Nhà tuyển dụng chưa chuyển hồ sơ này sang vòng phỏng vấn' });
+    }
+
+    if (normalizeInterviewMode(application.interview_mode)) {
+      return res.status(400).json({ error: 'Nhà tuyển dụng đã chốt hình thức phỏng vấn cho hồ sơ này' });
+    }
+
+    const result = await pool.query(
+      `UPDATE applied_jobs
+       SET candidate_interview_mode = $1,
+           updated_at = NOW()
+       WHERE id = $2 AND user_id = $3
+       RETURNING id, candidate_interview_mode, updated_at`,
+      [interviewMode, applicationId, userId]
+    );
+
+    res.json({ message: 'Đã lưu lựa chọn phỏng vấn', data: result.rows[0] });
+  } catch (err) {
+    console.error('Update interview preference error:', err);
+    res.status(500).json({ error: 'Lỗi khi lưu lựa chọn phỏng vấn' });
   }
 };

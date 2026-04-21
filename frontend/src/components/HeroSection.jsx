@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { Search, MapPin, Briefcase, ChevronDown, Sparkles, TrendingUp, Users, Loader2, LocateFixed } from 'lucide-react';
-import { findNearestProvince, normalizeProvinceName } from '../data/provinceCoordinates';
+import { findNearestProvince, locationCenters, normalizeProvinceName } from '../data/provinceCoordinates';
 
 const jobTypes = [
   { value: '', label: 'Tất cả' },
@@ -11,6 +11,7 @@ const jobTypes = [
 ];
 
 const popularTags = ['Lập trình viên', 'Marketing', 'Kế toán', 'Nhân sự', 'Bán hàng'];
+const CURRENT_LOCATION_LABEL = 'Vị trí hiện tại';
 
 const stats = [
   { label: 'Việc làm mới / ngày', value: '12,500+', icon: TrendingUp },
@@ -23,29 +24,23 @@ export default function HeroSection({ onSearch }) {
   const [location, setLocation] = useState('');
   const [jobType, setJobType] = useState('');
   const [jobTypeOpen, setJobTypeOpen] = useState(false);
-  const [locations, setLocations] = useState([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [detectingLocation, setDetectingLocation] = useState(false);
   const [locationNotice, setLocationNotice] = useState(null);
   const [selectedCoordinates, setSelectedCoordinates] = useState(null);
   const [locationSource, setLocationSource] = useState('manual');
   const locationBoxRef = useRef(null);
-
-  useEffect(() => {
-    fetch('/data/vietnam_34_provinces.json')
-      .then((res) => res.json())
-      .then((data) => {
-        const uniqueLocations = Array.from(
-          new Set(
-            (data || [])
-              .map((item) => normalizeProvinceName(item.name))
-              .filter(Boolean)
-          )
-        );
-        setLocations(uniqueLocations);
-      })
-      .catch(console.error);
-  }, []);
+  const locations = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          locationCenters
+            .map((item) => normalizeProvinceName(item.name))
+            .filter(Boolean)
+        )
+      ).sort((left, right) => left.localeCompare(right, 'vi')),
+    []
+  );
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -70,12 +65,15 @@ export default function HeroSection({ onSearch }) {
     Object.prototype.hasOwnProperty.call(next, key) ? next[key] : currentValue;
 
   const triggerSearch = (next = {}) => {
+    const nextLocation = next.location ?? location;
+    const nextSource = resolveNextValue(next, 'locationSource', locationSource);
+
     onSearch?.({
       keyword: (next.keyword ?? keyword).trim(),
-      location: normalizeProvinceName(next.location ?? location),
+      location: nextSource === 'geolocation' ? nextLocation : normalizeProvinceName(nextLocation),
       jobType: next.jobType ?? jobType,
       userCoordinates: resolveNextValue(next, 'userCoordinates', selectedCoordinates),
-      locationSource: resolveNextValue(next, 'locationSource', locationSource),
+      locationSource: nextSource,
     });
   };
 
@@ -98,28 +96,22 @@ export default function HeroSection({ onSearch }) {
           lng: position.coords.longitude,
         };
         const nearestProvince = findNearestProvince(coords);
+        const accuracy = Number.isFinite(position.coords.accuracy)
+          ? Math.round(position.coords.accuracy)
+          : null;
+        const referenceLocation = nearestProvince ? normalizeProvinceName(nearestProvince.name) : null;
 
-        if (!nearestProvince) {
-          setDetectingLocation(false);
-          setLocationNotice({
-            type: 'error',
-            message: 'Không xác định được tỉnh/thành gần bạn. Hãy nhập địa điểm thủ công.',
-          });
-          return;
-        }
-
-        const nextLocation = normalizeProvinceName(nearestProvince.name);
         setSelectedCoordinates(coords);
         setLocationSource('geolocation');
-        setLocation(nextLocation);
+        setLocation(CURRENT_LOCATION_LABEL);
         setShowSuggestions(false);
         setDetectingLocation(false);
         setLocationNotice({
           type: 'success',
-          message: `Đã lấy vị trí gần bạn: ${nextLocation}. Danh sách việc làm sẽ ưu tiên khu vực này.`,
+          message: `Đã lấy vị trí GPS hiện tại${accuracy ? ` (sai số khoảng ${accuracy}m)` : ''}. Hệ thống sẽ sắp xếp việc làm theo khoảng cách gần bạn nhất${referenceLocation ? `, tham chiếu khu vực ${referenceLocation}` : ''}.`,
         });
         triggerSearch({
-          location: nextLocation,
+          location: CURRENT_LOCATION_LABEL,
           userCoordinates: coords,
           locationSource: 'geolocation',
         });

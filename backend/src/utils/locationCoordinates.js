@@ -1,13 +1,13 @@
-import rawLocationCenters from './locationCenters.json';
+const rawLocationCenters = require('../../../frontend/src/data/locationCenters.json');
 
-export function normalizeProvinceName(name = '') {
+function normalizeProvinceName(name = '') {
   return String(name)
     .replace(/^(Thành phố|Tỉnh)\s+/i, '')
     .replace(/\s+/g, ' ')
     .trim();
 }
 
-export function normalizeSearchText(value = '') {
+function normalizeSearchText(value = '') {
   return normalizeProvinceName(value)
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
@@ -19,7 +19,7 @@ export function normalizeSearchText(value = '') {
     .trim();
 }
 
-export const locationCenters = rawLocationCenters.map((location) => ({
+const locationCenters = rawLocationCenters.map((location) => ({
   ...location,
   normalizedName: normalizeSearchText(location.name),
   normalizedAliases: (location.aliases || []).map((alias) => normalizeSearchText(alias)),
@@ -29,7 +29,7 @@ function toRadians(value) {
   return (value * Math.PI) / 180;
 }
 
-export function getDistanceKm(from, to) {
+function getDistanceKm(from, to) {
   if (!from || !to) return Number.POSITIVE_INFINITY;
 
   const earthRadiusKm = 6371;
@@ -53,19 +53,7 @@ function matchesAlias(normalizedInput, alias) {
   return normalizedInput === alias || normalizedInput.includes(alias);
 }
 
-export function findProvinceByName(input) {
-  const normalizedInput = normalizeSearchText(input);
-  if (!normalizedInput) return null;
-
-  return (
-    locationCenters.find((location) => {
-      const variants = [location.normalizedName, ...location.normalizedAliases];
-      return variants.some((alias) => matchesAlias(normalizedInput, alias));
-    }) || null
-  );
-}
-
-export function findNearestProvince(coords) {
+function findNearestLocation(coords) {
   if (!coords || !Number.isFinite(coords.lat) || !Number.isFinite(coords.lng)) {
     return null;
   }
@@ -83,3 +71,40 @@ export function findNearestProvince(coords) {
 
   return nearestLocation;
 }
+
+function findLocationsInText(input) {
+  const normalizedInput = normalizeSearchText(input);
+  if (!normalizedInput) return [];
+
+  return locationCenters.filter((location) => {
+    const variants = [location.normalizedName, ...location.normalizedAliases];
+    return variants.some((alias) => matchesAlias(normalizedInput, alias));
+  });
+}
+
+function getNearestDistanceForAddress(coords, address) {
+  if (!coords || !address) return null;
+
+  const matches = findLocationsInText(address);
+  if (!matches.length) return null;
+
+  let nearestDistance = Number.POSITIVE_INFINITY;
+
+  matches.forEach((location) => {
+    const distance = getDistanceKm(coords, location);
+    if (distance < nearestDistance) {
+      nearestDistance = distance;
+    }
+  });
+
+  return Number.isFinite(nearestDistance) ? nearestDistance : null;
+}
+
+module.exports = {
+  findNearestLocation,
+  getDistanceKm,
+  getNearestDistanceForAddress,
+  locationCenters,
+  normalizeProvinceName,
+  normalizeSearchText,
+};
