@@ -21,6 +21,7 @@ const navItems = [
   { id: 'overview', label: 'Tổng quan', icon: LayoutDashboard },
   { id: 'users', label: 'Người dùng', icon: Users },
   { id: 'jobs', label: 'Việc làm', icon: Briefcase },
+  { id: 'notifications', label: 'Thông báo', icon: Bell },
   { id: 'settings', label: 'Cài đặt', icon: Settings },
 ];
 
@@ -28,6 +29,7 @@ const searchPlaceholderByTab = {
   overview: 'Tìm người dùng hoặc tin chờ duyệt...',
   users: 'Tìm theo tên, email hoặc vai trò...',
   jobs: 'Tìm theo vị trí hoặc công ty...',
+  notifications: 'Tìm theo tiêu đề hoặc nội dung thông báo...',
   settings: 'Tìm trong bảng điều khiển...',
 };
 
@@ -82,6 +84,8 @@ export default function AdminDashboard() {
   const [stats, setStats] = useState({ users: 0, jobs: 0, pendingJobs: 0, applied: 0 });
   const [users, setUsers] = useState([]);
   const [pendingJobs, setPendingJobs] = useState([]);
+  const [notifications, setNotifications] = useState([]);
+  const [unreadNotificationCount, setUnreadNotificationCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [jobActionLoading, setJobActionLoading] = useState(null);
 
@@ -121,9 +125,75 @@ export default function AdminDashboard() {
     }
   }, [token]);
 
+  useEffect(() => {
+    if (!token) return;
+
+    let cancelled = false;
+    const headers = { Authorization: `Bearer ${token}` };
+
+    const loadNotifications = async () => {
+      try {
+        const [notificationsRes, unreadRes] = await Promise.all([
+          fetch('/api/notifications?limit=20', { headers }),
+          fetch('/api/notifications/unread-count', { headers }),
+        ]);
+
+        const notificationsData = notificationsRes.ok ? await notificationsRes.json() : { data: [] };
+        const unreadData = unreadRes.ok ? await unreadRes.json() : { unread: 0 };
+
+        if (!cancelled) {
+          setNotifications(notificationsData.data || []);
+          setUnreadNotificationCount(unreadData.unread || 0);
+        }
+      } catch (err) {
+        console.error('Lỗi khi tải thông báo admin:', err);
+        if (!cancelled) {
+          setNotifications([]);
+          setUnreadNotificationCount(0);
+        }
+      }
+    };
+
+    const handleNotificationsUpdated = () => {
+      loadNotifications();
+    };
+
+    loadNotifications();
+    const intervalId = window.setInterval(loadNotifications, 30000);
+    window.addEventListener('notifications-updated', handleNotificationsUpdated);
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(intervalId);
+      window.removeEventListener('notifications-updated', handleNotificationsUpdated);
+    };
+  }, [token]);
+
   const handleLogout = () => {
     logout();
     navigate('/login');
+  };
+
+  const markNotificationsAsRead = async () => {
+    if (!token) return;
+
+    try {
+      await fetch('/api/notifications/read-all', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      setNotifications((prev) => prev.map((item) => ({ ...item, read: true })));
+      setUnreadNotificationCount(0);
+      window.dispatchEvent(new Event('notifications-updated'));
+    } catch (err) {
+      console.error('Lỗi khi đánh dấu thông báo admin đã xem:', err);
+    }
+  };
+
+  const handleOpenNotifications = async () => {
+    setActiveTab('notifications');
+    await markNotificationsAsRead();
   };
 
   const handleJobModeration = async (id, status) => {
@@ -176,6 +246,17 @@ export default function AdminDashboard() {
     if (!normalizedQuery) return true;
 
     const haystack = [job.job_title, job.company_name, job.job_address]
+      .filter(Boolean)
+      .join(' ')
+      .toLowerCase();
+
+    return haystack.includes(normalizedQuery);
+  });
+
+  const filteredNotifications = notifications.filter((note) => {
+    if (!normalizedQuery) return true;
+
+    const haystack = [note.title, note.message, note.type]
       .filter(Boolean)
       .join(' ')
       .toLowerCase();
@@ -265,14 +346,14 @@ export default function AdminDashboard() {
 
           <div className="flex items-center gap-3">
             <button
-              onClick={() => setActiveTab(stats.pendingJobs > 0 ? 'jobs' : 'users')}
+              onClick={handleOpenNotifications}
               className="relative hidden rounded-2xl border border-white/10 bg-white/5 p-3 text-gray-400 transition-colors hover:border-blue-500/20 hover:text-white md:flex"
-              title={stats.pendingJobs > 0 ? 'Mở danh sách tin chờ duyệt' : 'Mở danh sách người dùng mới'}
+              title="Mở thông báo quản trị"
             >
               <Bell className="h-5 w-5" />
-              {stats.pendingJobs > 0 && (
+              {unreadNotificationCount > 0 && (
                 <span className="absolute right-1.5 top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-amber-500 px-1 text-[10px] font-bold text-white">
-                  {Math.min(stats.pendingJobs, 9)}
+                  {Math.min(unreadNotificationCount, 9)}
                 </span>
               )}
             </button>
@@ -395,7 +476,13 @@ export default function AdminDashboard() {
                     return (
                       <button
                         key={item.id}
-                        onClick={() => setActiveTab(item.id)}
+                        onClick={() => {
+                          if (item.id === 'notifications') {
+                            handleOpenNotifications();
+                            return;
+                          }
+                          setActiveTab(item.id);
+                        }}
                         className={`flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-sm font-medium transition-all duration-200 ${
                           isActive
                             ? 'bg-blue-500/10 text-blue-300 shadow-[inset_0_0_0_1px_rgba(59,130,246,0.18)]'
@@ -778,6 +865,59 @@ export default function AdminDashboard() {
                         </table>
                       </div>
                     )}
+                  </section>
+                )}
+
+                {activeTab === 'notifications' && (
+                  <section className="rounded-3xl border border-white/10 bg-gray-900/90 p-6 shadow-[0_20px_40px_rgba(0,0,0,0.25)]">
+                    <div className="mb-6 flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
+                      <div>
+                        <h2 className="text-xl font-bold text-white">Thông báo quản trị</h2>
+                        <p className="mt-1 text-sm text-gray-500">
+                          Mọi tin mới nhà tuyển dụng gửi lên chờ duyệt sẽ xuất hiện tại đây.
+                        </p>
+                      </div>
+
+                      <div className="rounded-2xl border border-blue-500/20 bg-blue-500/10 px-4 py-3 text-sm text-blue-200">
+                        Tổng số: <span className="font-semibold text-white">{filteredNotifications.length.toLocaleString()}</span> thông báo
+                      </div>
+                    </div>
+
+                    <div className="space-y-3">
+                      {filteredNotifications.length > 0 ? (
+                        filteredNotifications.map((note) => (
+                          <button
+                            key={note.id}
+                            type="button"
+                            onClick={() => setActiveTab(note.tab || 'jobs')}
+                            className={`w-full rounded-2xl border p-4 text-left transition ${
+                              note.read
+                                ? 'border-white/10 bg-white/[0.03] hover:bg-white/[0.05]'
+                                : 'border-blue-500/20 bg-blue-500/10'
+                            }`}
+                          >
+                            <div className="flex items-start justify-between gap-4">
+                              <div>
+                                <p className={`text-sm font-semibold ${note.read ? 'text-white' : 'text-blue-100'}`}>
+                                  {note.title}
+                                </p>
+                                <p className={`mt-2 text-sm leading-6 ${note.read ? 'text-gray-400' : 'text-gray-200'}`}>
+                                  {note.message}
+                                </p>
+                              </div>
+                              <span className="shrink-0 text-[11px] text-gray-500">
+                                {formatDate(note.created_at)}
+                              </span>
+                            </div>
+                          </button>
+                        ))
+                      ) : (
+                        <div className="rounded-2xl border border-dashed border-white/10 bg-white/[0.02] py-16 text-center text-gray-500">
+                          <Bell className="mx-auto mb-4 h-12 w-12 opacity-20" />
+                          Chưa có thông báo quản trị nào.
+                        </div>
+                      )}
+                    </div>
                   </section>
                 )}
 

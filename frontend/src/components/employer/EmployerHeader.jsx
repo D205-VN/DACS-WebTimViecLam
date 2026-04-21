@@ -36,21 +36,33 @@ export default function EmployerHeader() {
 
     let cancelled = false;
 
-    fetch('/api/employer/notifications', {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-      .then((res) => res.ok ? res.json() : { data: [] })
-      .then((data) => {
-        if (!cancelled) {
-          setNotificationCount((data.data || []).length);
-        }
+    const loadUnreadCount = () => {
+      fetch('/api/notifications/unread-count', {
+        headers: { Authorization: `Bearer ${token}` },
       })
-      .catch(() => {
-        if (!cancelled) setNotificationCount(0);
-      });
+        .then((res) => res.ok ? res.json() : { unread: 0 })
+        .then((data) => {
+          if (!cancelled) {
+            setNotificationCount(data.unread || 0);
+          }
+        })
+        .catch(() => {
+          if (!cancelled) setNotificationCount(0);
+        });
+    };
+
+    const handleNotificationsUpdated = () => {
+      loadUnreadCount();
+    };
+
+    loadUnreadCount();
+    const intervalId = window.setInterval(loadUnreadCount, 30000);
+    window.addEventListener('notifications-updated', handleNotificationsUpdated);
 
     return () => {
       cancelled = true;
+      window.clearInterval(intervalId);
+      window.removeEventListener('notifications-updated', handleNotificationsUpdated);
     };
   }, [token]);
 
@@ -60,6 +72,7 @@ export default function EmployerHeader() {
   const handleLogout = () => {
     logout();
     setDropdownOpen(false);
+    setNotificationCount(0);
     navigate('/');
   };
 

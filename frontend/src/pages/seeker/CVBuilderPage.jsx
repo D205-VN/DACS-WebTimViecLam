@@ -18,6 +18,7 @@ export default function CVBuilderPage() {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const [saveMessage, setSaveMessage] = useState('');
   const [error, setError] = useState('');
   const cvRef = useRef(null);
   const portraitInputRef = useRef(null);
@@ -101,12 +102,10 @@ export default function CVBuilderPage() {
   };
 
   const handleGenerate = async () => {
-    if (!form.portraitDataUrl) {
-      setError('Vui lòng tải ảnh thẻ chân dung trước khi tạo CV AI.');
-      return;
-    }
-
-    setError(''); setLoading(true); setCvHtml('');
+    setError('');
+    setSaveMessage('');
+    setLoading(true);
+    setCvHtml('');
     try {
       const res = await fetch(`${API}/generate`, {
         method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
@@ -141,8 +140,14 @@ export default function CVBuilderPage() {
           html_content: cvHtml
         }),
       });
-      if (!res.ok) throw new Error('Không thể lưu CV');
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'Không thể lưu CV');
       setSaveSuccess(true);
+      setSaveMessage(
+        data.is_primary
+          ? 'CV đã lưu và đang là hồ sơ chính dùng để nộp hồ sơ.'
+          : 'CV đã lưu. Bạn có thể vào Quản lý hồ sơ CV để chọn bản này làm CV chính.'
+      );
       setTimeout(() => setSaveSuccess(false), 3000);
     } catch (err) {
       alert(err.message);
@@ -193,6 +198,7 @@ export default function CVBuilderPage() {
       <SeekerToolsNav />
 
       {error && <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-600">{error}</div>}
+      {saveMessage && <div className="mb-4 p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-sm text-emerald-700">{saveMessage}</div>}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* Form */}
@@ -263,10 +269,10 @@ export default function CVBuilderPage() {
 
                   <div className="flex-1">
                     <p className="text-sm font-medium text-gray-700">
-                      Tải ảnh chân dung nền sáng, nhìn thẳng, bố cục gọn.
+                      Tải ảnh chân dung nền sáng, nhìn thẳng, bố cục gọn nếu bạn muốn CV có ảnh.
                     </p>
                     <p className="mt-1 text-xs leading-5 text-gray-500">
-                      Ảnh này sẽ được chèn trực tiếp vào CV AI và giữ nguyên khi lưu hoặc tải PDF.
+                      Đây là tuỳ chọn. Nếu có ảnh, hệ thống sẽ chèn trực tiếp vào CV AI và giữ nguyên khi lưu hoặc tải PDF.
                     </p>
                     <button
                       type="button"
@@ -349,6 +355,7 @@ export default function CVBuilderPage() {
                     <li>Click vào các <b>Tag Gợi ý</b> để hệ thống tự điền dữ liệu chuẩn</li>
                     <li>Chỉnh sửa lại theo ý bạn</li>
                     <li>Bấm Tạo CV để AI định dạng và viết lại trau chuốt hơn</li>
+                    <li>Sau khi lưu, hãy chọn <b>1 CV chính</b> trong Quản lý hồ sơ CV để dùng khi nộp hồ sơ</li>
                   </ul>
                 </div>
               )}

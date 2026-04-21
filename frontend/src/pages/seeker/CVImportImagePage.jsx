@@ -15,6 +15,7 @@ export default function CVImportImagePage() {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const [saveMessage, setSaveMessage] = useState('');
   const [error, setError] = useState('');
 
   const [extracted, setExtracted] = useState(null);
@@ -36,6 +37,7 @@ export default function CVImportImagePage() {
     setExtracted(null);
     setCvHtml('');
     setSaveSuccess(false);
+    setSaveMessage('');
     setFile(f || null);
     // Allow selecting same file again
     e.target.value = '';
@@ -44,6 +46,7 @@ export default function CVImportImagePage() {
   const handleImport = async () => {
     if (!file) return;
     setError('');
+    setSaveMessage('');
     setLoading(true);
     setExtracted(null);
     setCvHtml('');
@@ -91,6 +94,11 @@ export default function CVImportImagePage() {
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || 'Không thể lưu CV');
       setSaveSuccess(true);
+      setSaveMessage(
+        data.is_primary
+          ? 'CV import đã lưu và đang là hồ sơ chính dùng để nộp hồ sơ.'
+          : 'CV import đã lưu. Bạn có thể vào Quản lý hồ sơ CV để chọn bản này làm CV chính.'
+      );
       setTimeout(() => setSaveSuccess(false), 3000);
     } catch (err) {
       setError(err.message);
@@ -133,6 +141,7 @@ export default function CVImportImagePage() {
       <SeekerToolsNav />
 
       {error && <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-600">{error}</div>}
+      {saveMessage && <div className="mb-4 p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-sm text-emerald-700">{saveMessage}</div>}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm">
@@ -159,19 +168,26 @@ export default function CVImportImagePage() {
             </div>
           ) : (
             <div className="rounded-xl border border-dashed border-gray-200 bg-gray-50 p-10 text-center text-gray-500">
-              Chọn một ảnh CV (PNG/JPG) để bắt đầu.
+              Chọn một ảnh CV rõ nét (PNG/JPG). Hệ thống sẽ scan nội dung và dựng lại thành một bản CV HTML gần với bố cục gốc.
             </div>
           )}
 
           {extracted && (
             <div className="mt-5">
               <h3 className="text-sm font-bold text-gray-800 mb-2">Dữ liệu trích xuất</h3>
-              <div className="text-sm text-gray-600 space-y-1">
+              <div className="grid gap-2 text-sm text-gray-600 sm:grid-cols-2">
                 <div><b>Họ tên:</b> {extracted.fullName || '(trống)'}</div>
                 <div><b>Email:</b> {extracted.email || '(trống)'}</div>
                 <div><b>SĐT:</b> {extracted.phone || '(trống)'}</div>
                 <div><b>Vị trí:</b> {extracted.role || '(trống)'}</div>
+                <div><b>Bố cục:</b> {extracted.layoutStyle || '(đang suy luận)'}</div>
+                <div><b>Màu nhấn:</b> {extracted.primaryColor || '(đang suy luận)'}</div>
               </div>
+              {extracted.sectionOrder ? (
+                <p className="mt-2 text-xs text-gray-500">
+                  <b>Thứ tự section:</b> {extracted.sectionOrder}
+                </p>
+              ) : null}
             </div>
           )}
         </div>

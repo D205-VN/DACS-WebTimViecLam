@@ -23,7 +23,7 @@ function getStatusMeta(status) {
     case 'interview':
       return { label: 'Phỏng vấn', className: 'bg-blue-100 text-blue-700' };
     case 'hired':
-      return { label: 'Đã tuyển', className: 'bg-emerald-100 text-emerald-700' };
+      return { label: 'Duyệt hồ sơ', className: 'bg-emerald-100 text-emerald-700' };
     case 'rejected':
       return { label: 'Từ chối', className: 'bg-red-100 text-red-700' };
     default:
@@ -237,7 +237,7 @@ export default function ManageCandidatesTab() {
     { id: 'all', label: 'Tất cả', count: candidates.length },
     { id: 'pending', label: 'Chờ xử lý', count: candidates.filter((c) => c.status === 'pending' || !c.status).length },
     { id: 'interview', label: 'Phỏng vấn', count: candidates.filter((c) => c.status === 'interview').length },
-    { id: 'hired', label: 'Đã tuyển', count: candidates.filter((c) => c.status === 'hired').length },
+    { id: 'hired', label: 'Duyệt hồ sơ', count: candidates.filter((c) => c.status === 'hired').length },
     { id: 'rejected', label: 'Từ chối', count: candidates.filter((c) => c.status === 'rejected').length },
   ];
 
@@ -361,37 +361,33 @@ export default function ManageCandidatesTab() {
                             onClick={() => openCandidateModal(candidate.id, 'profile')}
                             className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-4 py-2 bg-white border border-gray-200 text-gray-700 rounded-lg text-sm font-semibold hover:bg-gray-50 transition-colors"
                           >
-                            <Eye className="w-4 h-4" /> Hồ sơ
+                            <Eye className="w-4 h-4" /> Xem hồ sơ
                           </button>
 
-                          {candidate.status !== 'hired' && candidate.status !== 'rejected' ? (
+                          {candidate.status === 'pending' || !candidate.status ? (
+                            <>
+                              <button
+                                type="button"
+                                onClick={() => handleStatusUpdate(candidate.id, 'hired')}
+                                className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-4 py-2 bg-emerald-50 text-emerald-600 rounded-lg text-sm font-semibold hover:bg-emerald-100 transition-colors"
+                              >
+                                <CheckCircle className="w-4 h-4" /> Duyệt hồ sơ
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleStatusUpdate(candidate.id, 'rejected')}
+                                className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-4 py-2 bg-red-50 text-red-600 rounded-lg text-sm font-semibold hover:bg-red-100 transition-colors"
+                              >
+                                <XCircle className="w-4 h-4" /> Từ chối
+                              </button>
+                            </>
+                          ) : candidate.status === 'hired' ? (
                             <button
                               type="button"
                               onClick={() => openCandidateModal(candidate.id, 'interview')}
                               className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-4 py-2 bg-blue-50 text-blue-600 rounded-lg text-sm font-semibold hover:bg-blue-100 transition-colors"
                             >
-                              <Clock className="w-4 h-4" />
-                              {candidate.status === 'interview' ? 'Lịch phỏng vấn' : 'Chấp nhận phỏng vấn'}
-                            </button>
-                          ) : null}
-
-                          {candidate.status !== 'hired' ? (
-                            <button
-                              type="button"
-                              onClick={() => handleStatusUpdate(candidate.id, 'hired')}
-                              className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-4 py-2 bg-emerald-50 text-emerald-600 rounded-lg text-sm font-semibold hover:bg-emerald-100 transition-colors"
-                            >
-                              <CheckCircle className="w-4 h-4" /> Tuyển
-                            </button>
-                          ) : null}
-
-                          {candidate.status !== 'rejected' ? (
-                            <button
-                              type="button"
-                              onClick={() => handleStatusUpdate(candidate.id, 'rejected')}
-                              className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-4 py-2 bg-red-50 text-red-600 rounded-lg text-sm font-semibold hover:bg-red-100 transition-colors"
-                            >
-                              <XCircle className="w-4 h-4" /> Từ chối
+                              <Video className="w-4 h-4" /> Phỏng vấn
                             </button>
                           ) : null}
                         </>
@@ -434,6 +430,75 @@ export default function ManageCandidatesTab() {
               </button>
             </div>
 
+            {candidateDetail && (candidateDetail.status === 'hired' || candidateDetail.status === 'rejected') ? (
+              <div className="border-b border-slate-200 px-6">
+                <div className="flex gap-1 overflow-x-auto">
+                  {candidateDetail.status === 'hired' ? (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => setModalSection('profile')}
+                        className={`px-5 py-3.5 text-sm font-semibold border-b-2 transition ${
+                          modalSection === 'profile'
+                            ? 'border-navy-700 text-navy-700'
+                            : 'border-transparent text-slate-500 hover:text-slate-700'
+                        }`}
+                      >
+                        <Eye className="w-4 h-4 inline mr-1.5" /> Hồ sơ
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setModalSection('interview')}
+                        className={`px-5 py-3.5 text-sm font-semibold border-b-2 transition ${
+                          modalSection === 'interview'
+                            ? 'border-navy-700 text-navy-700'
+                            : 'border-transparent text-slate-500 hover:text-slate-700'
+                        }`}
+                      >
+                        <Video className="w-4 h-4 inline mr-1.5" /> Phỏng vấn
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setModalSection('approved')}
+                        className={`px-5 py-3.5 text-sm font-semibold border-b-2 transition ${
+                          modalSection === 'approved'
+                            ? 'border-navy-700 text-navy-700'
+                            : 'border-transparent text-slate-500 hover:text-slate-700'
+                        }`}
+                      >
+                        <CheckCircle className="w-4 h-4 inline mr-1.5" /> Đã duyệt hồ sơ
+                      </button>
+                    </>
+                  ) : candidateDetail.status === 'rejected' ? (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => setModalSection('profile')}
+                        className={`px-5 py-3.5 text-sm font-semibold border-b-2 transition ${
+                          modalSection === 'profile'
+                            ? 'border-navy-700 text-navy-700'
+                            : 'border-transparent text-slate-500 hover:text-slate-700'
+                        }`}
+                      >
+                        <Eye className="w-4 h-4 inline mr-1.5" /> Hồ sơ
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setModalSection('rejected')}
+                        className={`px-5 py-3.5 text-sm font-semibold border-b-2 transition ${
+                          modalSection === 'rejected'
+                            ? 'border-navy-700 text-navy-700'
+                            : 'border-transparent text-slate-500 hover:text-slate-700'
+                        }`}
+                      >
+                        <XCircle className="w-4 h-4 inline mr-1.5" /> Từ chối
+                      </button>
+                    </>
+                  ) : null}
+                </div>
+              </div>
+            ) : null}
+
             <div className="max-h-[calc(92vh-96px)] overflow-y-auto p-6">
               {detailLoading ? (
                 <div className="flex flex-col items-center justify-center py-24 text-slate-500">
@@ -445,8 +510,10 @@ export default function ManageCandidatesTab() {
                   {detailError}
                 </div>
               ) : candidateDetail ? (
-                <div className="grid gap-6 xl:grid-cols-[360px_minmax(0,1fr)]">
-                  <div className="space-y-6">
+                <>
+                  {(modalSection === 'profile' || (candidateDetail.status !== 'hired' && candidateDetail.status !== 'rejected')) && (
+                    <div className="grid gap-6 xl:grid-cols-[360px_minmax(0,1fr)]">
+                      <div className="space-y-6">
                     <div className="rounded-[1.75rem] border border-slate-200 bg-slate-50 p-5">
                       <div className="flex items-center gap-3">
                         {candidateDetail.avatar_url ? (
@@ -501,134 +568,18 @@ export default function ManageCandidatesTab() {
                         ) : null}
                       </div>
                     </div>
-
-                    <div className="rounded-[1.75rem] border border-slate-200 bg-white p-5 shadow-sm">
-                      <div className="flex items-center justify-between gap-3">
-                        <div>
-                          <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Lịch phỏng vấn</p>
-                          <h4 className="mt-2 text-lg font-bold text-slate-900">
-                            {modalSection === 'interview' ? 'Chấp nhận phỏng vấn' : 'Thông tin phỏng vấn'}
-                          </h4>
-                        </div>
-                      </div>
-
-                      <div className="mt-5 space-y-4">
-                        {lockedInterviewMode ? (
-                          <div className="rounded-2xl bg-slate-50 px-4 py-3">
-                            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
-                              Hình thức đã chọn
-                            </p>
-                            <p className="mt-2 text-sm font-semibold text-slate-800">
-                              {formatInterviewMode(lockedInterviewMode)}
-                            </p>
-                          </div>
-                        ) : (
-                          <div>
-                            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
-                              Chọn hình thức phỏng vấn
-                            </p>
-                            <div className="mt-3 grid grid-cols-2 gap-2">
-                              {['online', 'offline'].map((mode) => (
-                                <button
-                                  key={mode}
-                                  type="button"
-                                  onClick={() => setInterviewForm((prev) => ({ ...prev, interview_mode: mode }))}
-                                  className={`rounded-2xl border px-4 py-3 text-sm font-semibold transition ${
-                                    interviewForm.interview_mode === mode
-                                      ? 'border-navy-700 bg-navy-50 text-navy-700'
-                                      : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
-                                  }`}
-                                >
-                                  {formatInterviewMode(mode)}
-                                </button>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-
-                        <div>
-                          <label className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
-                            Thời gian phỏng vấn
-                          </label>
-                          <input
-                            type="datetime-local"
-                            value={interviewForm.interview_at}
-                            onChange={(event) =>
-                              setInterviewForm((prev) => ({ ...prev, interview_at: event.target.value }))
-                            }
-                            className="mt-3 w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-navy-400 focus:ring-2 focus:ring-navy-100"
-                          />
-                        </div>
-
-                        {resolvedInterviewMode === 'online' ? (
-                          <div>
-                            <label className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
-                              Link video call
-                            </label>
-                            <input
-                              type="url"
-                              value={interviewForm.interview_link}
-                              onChange={(event) =>
-                                setInterviewForm((prev) => ({ ...prev, interview_link: event.target.value }))
-                              }
-                              placeholder="https://meet.google.com/..."
-                              className="mt-3 w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-navy-400 focus:ring-2 focus:ring-navy-100"
-                            />
-                          </div>
-                        ) : (
-                          <div className="rounded-2xl bg-slate-50 px-4 py-4 text-sm text-slate-600">
-                            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
-                              Địa chỉ phỏng vấn offline
-                            </p>
-                            <p className="mt-2 font-medium text-slate-800">
-                              {candidateDetail.company_address || 'Chưa cập nhật địa chỉ công ty'}
-                            </p>
-                          </div>
-                        )}
-
-                        {candidateDetail.interview_at ? (
-                          <div className="rounded-2xl border border-emerald-100 bg-emerald-50 px-4 py-4 text-sm text-emerald-700">
-                            <p className="font-semibold">Lịch hiện tại</p>
-                            <p className="mt-2">Thời gian: {formatDateTime(candidateDetail.interview_at)}</p>
-                            <p className="mt-1">Hình thức: {formatInterviewMode(candidateDetail.interview_mode || resolvedInterviewMode)}</p>
-                            {candidateDetail.interview_mode === 'online' && candidateDetail.interview_link ? (
-                              <a
-                                href={candidateDetail.interview_link}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="mt-3 inline-flex items-center gap-1.5 font-semibold text-emerald-800 hover:underline"
-                              >
-                                Mở link video call <ExternalLink className="h-4 w-4" />
-                              </a>
-                            ) : null}
-                          </div>
-                        ) : null}
-
-                        {candidateDetail.status !== 'hired' && candidateDetail.status !== 'rejected' ? (
-                          <button
-                            type="button"
-                            onClick={handleScheduleInterview}
-                            disabled={scheduleLoading}
-                            className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-navy-600 to-navy-800 px-5 py-3 text-sm font-semibold text-white transition hover:shadow-lg hover:shadow-navy-700/20 disabled:cursor-not-allowed disabled:opacity-60"
-                          >
-                            {scheduleLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <CalendarClock className="h-4 w-4" />}
-                            {candidateDetail.interview_at ? 'Cập nhật lịch phỏng vấn' : 'Lưu lịch phỏng vấn'}
-                          </button>
-                        ) : null}
-                      </div>
-                    </div>
                   </div>
 
                   <div className="rounded-[1.75rem] border border-slate-200 bg-white shadow-sm">
-                    <div className="flex items-center justify-between gap-3 border-b border-slate-200 px-5 py-4">
-                      <div>
-                        <p className="text-xs uppercase tracking-[0.2em] text-slate-400">CV ứng viên</p>
-                        <h4 className="mt-1 text-lg font-bold text-slate-900">
-                          {candidateDetail.cv_title || 'Hồ sơ CV đính kèm'}
-                        </h4>
-                        {candidateDetail.cv_target_role ? (
-                          <p className="mt-1 text-sm text-slate-500">{candidateDetail.cv_target_role}</p>
-                        ) : null}
+                      <div className="flex items-center justify-between gap-3 border-b border-slate-200 px-5 py-4">
+                        <div>
+                          <p className="text-xs uppercase tracking-[0.2em] text-slate-400">CV ứng viên</p>
+                          <h4 className="mt-1 text-lg font-bold text-slate-900">
+                            {candidateDetail.cv_title || 'Hồ sơ CV đính kèm'}
+                          </h4>
+                          {candidateDetail.cv_target_role ? (
+                            <p className="mt-1 text-sm text-slate-500">{candidateDetail.cv_target_role}</p>
+                          ) : null}
                       </div>
                       <div className="rounded-full bg-slate-100 p-2 text-slate-500">
                         <FileText className="h-5 w-5" />
@@ -654,8 +605,190 @@ export default function ManageCandidatesTab() {
                         <p className="mt-4 text-sm font-medium">Ứng viên chưa có CV đính kèm để xem trực tiếp.</p>
                       </div>
                     )}
+                    </div>
                   </div>
-                </div>
+                )}
+
+                  {modalSection === 'interview' && candidateDetail.status === 'hired' && (
+                    <div className="rounded-[1.75rem] border border-slate-200 bg-white p-6 shadow-sm max-h-[60vh] overflow-y-auto">
+                      <div className="mb-6">
+                        <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Lịch phỏng vấn</p>
+                        <h4 className="mt-2 text-lg font-bold text-slate-900">Thông tin phỏng vấn</h4>
+                      </div>
+
+                      <div className="space-y-4">
+                          {lockedInterviewMode ? (
+                            <div className="rounded-2xl bg-slate-50 px-4 py-3">
+                              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+                                Hình thức đã chọn
+                              </p>
+                              <p className="mt-2 text-sm font-semibold text-slate-800">
+                                {formatInterviewMode(lockedInterviewMode)}
+                              </p>
+                            </div>
+                          ) : (
+                            <div>
+                              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+                                Chọn hình thức phỏng vấn
+                              </p>
+                              <div className="mt-3 grid grid-cols-2 gap-2">
+                                {['online', 'offline'].map((mode) => (
+                                  <button
+                                    key={mode}
+                                    type="button"
+                                    onClick={() => setInterviewForm((prev) => ({ ...prev, interview_mode: mode }))}
+                                    className={`rounded-2xl border px-4 py-3 text-sm font-semibold transition ${
+                                      interviewForm.interview_mode === mode
+                                        ? 'border-navy-700 bg-navy-50 text-navy-700'
+                                        : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+                                    }`}
+                                  >
+                                    {formatInterviewMode(mode)}
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          <div>
+                            <label className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+                              Thời gian phỏng vấn
+                            </label>
+                            <input
+                              type="datetime-local"
+                              value={interviewForm.interview_at}
+                              onChange={(event) =>
+                                setInterviewForm((prev) => ({ ...prev, interview_at: event.target.value }))
+                              }
+                              className="mt-3 w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-navy-400 focus:ring-2 focus:ring-navy-100"
+                            />
+                          </div>
+
+                          {resolvedInterviewMode === 'online' ? (
+                            <div>
+                              <label className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+                                Link video call
+                              </label>
+                              <input
+                                type="url"
+                                value={interviewForm.interview_link}
+                                onChange={(event) =>
+                                  setInterviewForm((prev) => ({ ...prev, interview_link: event.target.value }))
+                                }
+                                placeholder="https://meet.google.com/..."
+                                className="mt-3 w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-navy-400 focus:ring-2 focus:ring-navy-100"
+                              />
+                            </div>
+                          ) : (
+                            <div className="rounded-2xl bg-slate-50 px-4 py-4 text-sm text-slate-600">
+                              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+                                Địa chỉ phỏng vấn offline
+                              </p>
+                              <p className="mt-2 font-medium text-slate-800">
+                                {candidateDetail.company_address || 'Chưa cập nhật địa chỉ công ty'}
+                              </p>
+                            </div>
+                          )}
+
+                          {candidateDetail.interview_at ? (
+                            <div className="rounded-2xl border border-emerald-100 bg-emerald-50 px-4 py-4 text-sm text-emerald-700">
+                              <p className="font-semibold">Lịch hiện tại</p>
+                              <p className="mt-2">Thời gian: {formatDateTime(candidateDetail.interview_at)}</p>
+                              <p className="mt-1">
+                                Hình thức: {formatInterviewMode(candidateDetail.interview_mode || resolvedInterviewMode)}
+                              </p>
+                              {candidateDetail.interview_mode === 'online' && candidateDetail.interview_link ? (
+                                <a
+                                  href={candidateDetail.interview_link}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="mt-3 inline-flex items-center gap-1.5 font-semibold text-emerald-800 hover:underline"
+                                >
+                                  Mở link video call <ExternalLink className="h-4 w-4" />
+                                </a>
+                              ) : null}
+                            </div>
+                          ) : null}
+
+                          <button
+                            type="button"
+                            onClick={handleScheduleInterview}
+                            disabled={scheduleLoading}
+                            className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-navy-600 to-navy-800 px-5 py-3 text-sm font-semibold text-white transition hover:shadow-lg hover:shadow-navy-700/20 disabled:cursor-not-allowed disabled:opacity-60"
+                          >
+                            {scheduleLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <CalendarClock className="h-4 w-4" />}
+                            {candidateDetail.interview_at ? 'Cập nhật lịch phỏng vấn' : 'Lưu lịch phỏng vấn'}
+                          </button>
+                        </div>
+                    </div>
+                  )}
+
+                  {modalSection === 'approved' && candidateDetail.status === 'hired' && (
+                    <div className="rounded-[1.75rem] border border-emerald-100 bg-emerald-50 p-8 shadow-sm max-h-[60vh] overflow-y-auto">
+                      <div className="flex items-center justify-center mb-6">
+                        <CheckCircle className="w-16 h-16 text-emerald-600" />
+                      </div>
+                        <h3 className="text-center text-2xl font-bold text-emerald-900 mb-2">Hồ sơ đã được duyệt</h3>
+                        <p className="text-center text-emerald-700 mb-6">
+                          Ứng viên {candidateDetail.candidate_name} đã được duyệt vào ngày{' '}
+                          {formatDateTime(candidateDetail.updated_at || candidateDetail.created_at)}
+                        </p>
+                        <div className="flex flex-col gap-3">
+                          <div className="bg-white rounded-2xl p-4 border border-emerald-200">
+                            <p className="text-xs uppercase tracking-[0.18em] text-emerald-600 font-semibold">Tên ứng viên</p>
+                            <p className="mt-2 text-lg font-bold text-emerald-900">{candidateDetail.candidate_name}</p>
+                          </div>
+                          <div className="bg-white rounded-2xl p-4 border border-emerald-200">
+                            <p className="text-xs uppercase tracking-[0.18em] text-emerald-600 font-semibold">Email</p>
+                            <p className="mt-2 text-lg font-bold text-emerald-900">{candidateDetail.candidate_email}</p>
+                          </div>
+                          {candidateDetail.candidate_phone && (
+                            <div className="bg-white rounded-2xl p-4 border border-emerald-200">
+                              <p className="text-xs uppercase tracking-[0.18em] text-emerald-600 font-semibold">Số điện thoại</p>
+                              <p className="mt-2 text-lg font-bold text-emerald-900">{candidateDetail.candidate_phone}</p>
+                            </div>
+                          )}
+                          <div className="bg-white rounded-2xl p-4 border border-emerald-200">
+                            <p className="text-xs uppercase tracking-[0.18em] text-emerald-600 font-semibold">Vị trí ứng tuyển</p>
+                            <p className="mt-2 text-lg font-bold text-emerald-900">{candidateDetail.job_title}</p>
+                          </div>
+                        </div>
+                    </div>
+                  )}
+
+                  {modalSection === 'rejected' && candidateDetail.status === 'rejected' && (
+                    <div className="rounded-[1.75rem] border border-red-100 bg-red-50 p-8 shadow-sm max-h-[60vh] overflow-y-auto">
+                      <div className="flex items-center justify-center mb-6">
+                        <XCircle className="w-16 h-16 text-red-600" />
+                      </div>
+                        <h3 className="text-center text-2xl font-bold text-red-900 mb-2">Hồ sơ đã bị từ chối</h3>
+                        <p className="text-center text-red-700 mb-6">
+                          Hồ sơ của {candidateDetail.candidate_name} đã bị từ chối vào ngày{' '}
+                          {formatDateTime(candidateDetail.updated_at || candidateDetail.created_at)}
+                        </p>
+                        <div className="flex flex-col gap-3">
+                          <div className="bg-white rounded-2xl p-4 border border-red-200">
+                            <p className="text-xs uppercase tracking-[0.18em] text-red-600 font-semibold">Tên ứng viên</p>
+                            <p className="mt-2 text-lg font-bold text-red-900">{candidateDetail.candidate_name}</p>
+                          </div>
+                          <div className="bg-white rounded-2xl p-4 border border-red-200">
+                            <p className="text-xs uppercase tracking-[0.18em] text-red-600 font-semibold">Email</p>
+                            <p className="mt-2 text-lg font-bold text-red-900">{candidateDetail.candidate_email}</p>
+                          </div>
+                          {candidateDetail.candidate_phone && (
+                            <div className="bg-white rounded-2xl p-4 border border-red-200">
+                              <p className="text-xs uppercase tracking-[0.18em] text-red-600 font-semibold">Số điện thoại</p>
+                              <p className="mt-2 text-lg font-bold text-red-900">{candidateDetail.candidate_phone}</p>
+                            </div>
+                          )}
+                          <div className="bg-white rounded-2xl p-4 border border-red-200">
+                            <p className="text-xs uppercase tracking-[0.18em] text-red-600 font-semibold">Vị trí ứng tuyển</p>
+                            <p className="mt-2 text-lg font-bold text-red-900">{candidateDetail.job_title}</p>
+                          </div>
+                        </div>
+                    </div>
+                  )}
+                </>
               ) : null}
             </div>
           </div>

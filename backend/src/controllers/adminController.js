@@ -1,4 +1,5 @@
 const pool = require('../config/db');
+const { createNotification } = require('../services/notificationService');
 
 let adminJobSchemaReady = false;
 
@@ -114,6 +115,24 @@ exports.updateJobStatus = async (req, res) => {
 
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Không tìm thấy việc làm' });
+    }
+
+    const job = result.rows[0];
+    if (job.employer_id) {
+      await createNotification({
+        userId: job.employer_id,
+        type: status === 'approved' ? 'employer_job_approved' : 'employer_job_rejected',
+        title: status === 'approved' ? 'Tin tuyển dụng đã được duyệt' : 'Tin tuyển dụng bị từ chối',
+        message:
+          status === 'approved'
+            ? `Admin đã duyệt tin ${job.job_title || 'tuyển dụng'} của bạn.`
+            : `Admin đã từ chối tin ${job.job_title || 'tuyển dụng'} của bạn.`,
+        to: '/employer/dashboard',
+        tab: 'jobs',
+        meta: { job_id: job.id },
+      }).catch((notificationError) => {
+        console.error('Create employer moderation notification error:', notificationError);
+      });
     }
 
     res.json({ message: 'Cập nhật trạng thái thành công', data: result.rows[0] });

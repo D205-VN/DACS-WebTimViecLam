@@ -5,7 +5,7 @@ import { useAuth } from '../../context/AuthContext';
 const STATUS_META = {
   pending: { label: 'Chờ xử lý', color: 'bg-amber-500' },
   interview: { label: 'Phỏng vấn', color: 'bg-blue-500' },
-  hired: { label: 'Đã tuyển', color: 'bg-emerald-500' },
+  hired: { label: 'Duyệt hồ sơ', color: 'bg-emerald-500' },
   rejected: { label: 'Từ chối', color: 'bg-red-500' },
 };
 

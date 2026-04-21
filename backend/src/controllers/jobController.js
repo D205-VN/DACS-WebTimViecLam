@@ -1,5 +1,6 @@
 const pool = require('../config/db');
 const { getNearestDistanceForAddress } = require('../utils/locationCoordinates');
+const { createNotification } = require('../services/notificationService');
 
 const SALARY_RANGE_OPTIONS = [
   { value: '', label: 'Tất cả' },
@@ -52,6 +53,7 @@ async function ensurePublicApplicationSchema() {
       title VARCHAR(255) NOT NULL,
       target_role VARCHAR(255),
       html_content TEXT NOT NULL,
+      is_primary BOOLEAN DEFAULT FALSE,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )
   `);
@@ -65,6 +67,11 @@ async function ensurePublicApplicationSchema() {
     ADD COLUMN IF NOT EXISTS candidate_interview_mode VARCHAR(20),
     ADD COLUMN IF NOT EXISTS cv_id INTEGER REFERENCES user_cvs(id) ON DELETE SET NULL,
     ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT NOW()
+  `);
+
+  await pool.query(`
+    ALTER TABLE user_cvs
+    ADD COLUMN IF NOT EXISTS is_primary BOOLEAN DEFAULT FALSE
   `);
 
   publicApplicationSchemaReady = true;
@@ -527,7 +534,7 @@ exports.applyJob = async (req, res) => {
     const userId = req.user.id;
 
     const jobResult = await pool.query(
-      `SELECT id
+      `SELECT id, employer_id, job_title, company_name
        FROM jobs
        WHERE id = $1
          AND COALESCE(NULLIF(TRIM(status), ''), 'approved') = 'approved'`,
@@ -535,7 +542,7 @@ exports.applyJob = async (req, res) => {
     );
 
     if (jobResult.rows.length === 0) {
-      return res.status(404).json({ error: 'KhÃ´ng tÃ¬m tháº¥y viá»‡c lÃ m' });
+      return res.status(404).json({ error: 'Không tìm thấy việc làm' });
     }
 
     const existing = await pool.query(
@@ -547,20 +554,68 @@ exports.applyJob = async (req, res) => {
       return res.status(400).json({ error: 'Bạn đã ứng tuyển việc làm này rồi' });
     }
 
-    const latestCvResult = await pool.query(
+    const primaryCvResult = await pool.query(
       `SELECT id
        FROM user_cvs
        WHERE user_id = $1
+         AND is_primary = TRUE
        ORDER BY created_at DESC, id DESC
        LIMIT 1`,
       [userId]
     );
-    const latestCvId = latestCvResult.rows[0]?.id || null;
 
-    await pool.query(
-      'INSERT INTO applied_jobs (user_id, job_id, cv_id) VALUES ($1, $2, $3)',
-      [userId, jobId, latestCvId]
+    let selectedCvId = primaryCvResult.rows[0]?.id || null;
+
+    if (!selectedCvId) {
+      const latestCvResult = await pool.query(
+        `SELECT id
+         FROM user_cvs
+         WHERE user_id = $1
+         ORDER BY created_at DESC, id DESC
+         LIMIT 1`,
+        [userId]
+      );
+
+      selectedCvId = latestCvResult.rows[0]?.id || null;
+
+      if (selectedCvId) {
+        await pool.query(
+          `UPDATE user_cvs
+           SET is_primary = TRUE
+           WHERE id = $1 AND user_id = $2`,
+          [selectedCvId, userId]
+        );
+      }
+    }
+
+    if (!selectedCvId) {
+      return res.status(400).json({ error: 'Bạn chưa có CV để nộp hồ sơ. Hãy tạo CV và chọn 1 CV chính trước khi ứng tuyển.' });
+    }
+
+    const applicationResult = await pool.query(
+      'INSERT INTO applied_jobs (user_id, job_id, cv_id) VALUES ($1, $2, $3) RETURNING id',
+      [userId, jobId, selectedCvId]
     );
+
+    const job = jobResult.rows[0];
+    if (job?.employer_id) {
+      await createNotification({
+        userId: job.employer_id,
+        type: 'employer_new_candidate',
+        title: 'Có ứng viên mới',
+        message: `${req.user.full_name || 'Một ứng viên'} vừa ứng tuyển vào vị trí ${job.job_title || 'tin tuyển dụng'}.`,
+        to: '/employer/dashboard',
+        tab: 'candidates',
+        meta: {
+          application_id: applicationResult.rows[0]?.id || null,
+          cv_id: selectedCvId,
+          job_id: jobId,
+          company_name: job.company_name || null,
+        },
+      }).catch((notificationError) => {
+        console.error('Create employer application notification error:', notificationError);
+      });
+    }
 
     res.json({ message: 'Ứng tuyển thành công!' });
   } catch (err) {
@@ -595,8 +650,8 @@ exports.updateInterviewPreference = async (req, res) => {
     }
 
     const application = ownership.rows[0];
-    if (application.status !== 'interview') {
-      return res.status(400).json({ error: 'Nhà tuyển dụng chưa chuyển hồ sơ này sang vòng phỏng vấn' });
+    if (!['hired', 'interview'].includes(application.status)) {
+      return res.status(400).json({ error: 'Nhà tuyển dụng chưa duyệt hồ sơ này để chọn hình thức phỏng vấn' });
     }
 
     if (normalizeInterviewMode(application.interview_mode)) {

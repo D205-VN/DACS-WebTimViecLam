@@ -168,15 +168,6 @@ function getInitials(name) {
     .toUpperCase();
 }
 
-const applicationStatusLabels = {
-  pending: 'Đang chờ phản hồi',
-  interview: 'Được mời phỏng vấn',
-  hired: 'Đã được tuyển',
-  rejected: 'Hồ sơ chưa phù hợp',
-  viewed: 'Nhà tuyển dụng đã xem',
-  invited: 'Được mời phỏng vấn',
-};
-
 function formatNotificationTime(value) {
   if (!value) return '';
 
@@ -290,6 +281,33 @@ function getFallbackNotification(roleCode) {
   }
 }
 
+function getNotificationTypeMeta(type) {
+  switch (type) {
+    case 'admin_job_pending':
+      return { icon: Briefcase, iconClass: 'bg-amber-50 text-amber-500' };
+    case 'employer_new_candidate':
+      return { icon: Send, iconClass: 'bg-emerald-50 text-emerald-500' };
+    case 'employer_job_approved':
+      return { icon: Briefcase, iconClass: 'bg-emerald-50 text-emerald-500' };
+    case 'employer_job_rejected':
+      return { icon: Bell, iconClass: 'bg-red-50 text-red-500' };
+    case 'seeker_application_interview':
+      return { icon: Bell, iconClass: 'bg-blue-50 text-blue-500' };
+    case 'seeker_application_hired':
+      return { icon: Send, iconClass: 'bg-emerald-50 text-emerald-500' };
+    case 'seeker_application_rejected':
+      return { icon: Bell, iconClass: 'bg-red-50 text-red-500' };
+    default:
+      return { icon: Bell, iconClass: 'bg-blue-50 text-blue-500' };
+  }
+}
+
+function getDefaultNotificationDestination(roleCode) {
+  if (roleCode === 'admin') return '/admin/dashboard';
+  if (roleCode === 'employer') return '/employer/dashboard';
+  return getRouteByRole(roleCode, 'appliedJobs');
+}
+
 function getTopNavClass(isActive) {
   return `flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-medium transition-all duration-200 ${
     isActive
@@ -311,6 +329,7 @@ export default function Header() {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [notificationOpen, setNotificationOpen] = useState(false);
   const [notifications, setNotifications] = useState(null);
+  const [unreadCount, setUnreadCount] = useState(0);
   const { user, token, isAuthenticated, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -318,7 +337,6 @@ export default function Header() {
   const notificationRef = useRef(null);
   const timeoutRef = useRef(null);
   const notificationItems = notifications || [];
-  const actionableNotificationCount = notificationItems.filter((item) => !['empty-state', 'fallback'].includes(item.id)).length;
   const notificationsLoading = Boolean(token) && notifications === null;
   const notificationPanelMeta = getNotificationPanelMeta(user?.role_code);
   const navLinks = getNavLinks(user?.role_code);
@@ -341,127 +359,36 @@ export default function Header() {
   }, []);
 
   useEffect(() => {
-    if (!token || !user?.role_code) return;
+    if (!token || !user?.role_code) return undefined;
 
     let cancelled = false;
     const headers = { Authorization: `Bearer ${token}` };
 
-    const fetchJson = (url, fallbackValue) =>
-      fetch(url, { headers }).then((res) => (res.ok ? res.json() : fallbackValue));
-
     const loadNotifications = async () => {
       try {
-        let nextNotifications = [];
+        const [notificationsRes, unreadRes] = await Promise.all([
+          fetch('/api/notifications?limit=12', { headers }),
+          fetch('/api/notifications/unread-count', { headers }),
+        ]);
+        const payload = notificationsRes.ok ? await notificationsRes.json() : { data: [] };
+        const unreadPayload = unreadRes.ok ? await unreadRes.json() : { unread: 0 };
 
-        if (user.role_code === 'admin') {
-          const [pendingPayload, usersPayload] = await Promise.all([
-            fetchJson('/api/admin/jobs/pending', { data: [] }),
-            fetchJson('/api/admin/users', { data: [] }),
-          ]);
-
-          const pendingJobs = pendingPayload?.data || [];
-          const recentUsers = (usersPayload?.data || [])
-            .filter((row) => {
-              const createdAt = new Date(row.created_at).getTime();
-              return Number.isFinite(createdAt) && Date.now() - createdAt <= 7 * 24 * 60 * 60 * 1000;
-            })
-            .slice(0, 3);
-
-          nextNotifications = sortNotificationsByTime([
-            ...(pendingJobs.length > 0 ? [{
-              id: 'admin-pending-summary',
-              title: `${pendingJobs.length} tin đang chờ duyệt`,
-              description: 'Mở dashboard để chấp nhận hoặc từ chối các tin tuyển dụng mới.',
-              to: '/admin/dashboard',
-              state: { activeTab: 'jobs' },
-              icon: Briefcase,
-              iconClass: 'bg-amber-50 text-amber-500',
-              timestamp: pendingJobs[0]?.created_at || null,
-            }] : []),
-            ...pendingJobs.slice(0, 3).map((job) => ({
-              id: `admin-pending-${job.id}`,
-              title: `Chờ duyệt: ${job.job_title || 'Tin tuyển dụng'}`,
-              description: [job.company_name, job.job_address].filter(Boolean).join(' • ') || 'Cần admin xử lý',
-              to: '/admin/dashboard',
-              state: { activeTab: 'jobs' },
-              icon: Briefcase,
-              iconClass: 'bg-amber-50 text-amber-500',
-              timestamp: job.created_at,
-            })),
-            ...recentUsers.map((row) => ({
-              id: `admin-user-${row.id}-${row.created_at}`,
-              title: `Người dùng mới: ${row.full_name || row.email || 'Tài khoản mới'}`,
-              description: [row.role_name || row.role_code, row.email].filter(Boolean).join(' • '),
-              to: '/admin/dashboard',
-              state: { activeTab: 'users' },
-              icon: User,
-              iconClass: 'bg-blue-50 text-blue-500',
-              timestamp: row.created_at,
-            })),
-          ]).slice(0, 6);
-        } else if (user.role_code === 'employer') {
-          const payload = await fetchJson('/api/employer/notifications', { data: [] });
-          const typeMeta = {
-            candidate: { icon: Send, iconClass: 'bg-emerald-50 text-emerald-500' },
-            warning: { icon: Bell, iconClass: 'bg-amber-50 text-amber-500' },
-            rejected: { icon: Briefcase, iconClass: 'bg-red-50 text-red-500' },
-          };
-
-          nextNotifications = sortNotificationsByTime(
-            (payload?.data || []).map((item) => ({
+        let nextNotifications = sortNotificationsByTime(
+          (payload?.data || []).map((item) => {
+            const typeMeta = getNotificationTypeMeta(item.type);
+            return {
               id: item.id,
               title: item.title,
               description: item.message,
-              to: item.to || '/employer/dashboard',
+              to: item.to || getDefaultNotificationDestination(user.role_code),
               state: item.tab ? { activeTab: item.tab } : undefined,
-              icon: typeMeta[item.type]?.icon || Bell,
-              iconClass: typeMeta[item.type]?.iconClass || 'bg-blue-50 text-blue-500',
-              timestamp: item.time,
-            }))
-          ).slice(0, 6);
-        } else {
-          const [appliedPayload, savedPayload, cvPayload] = await Promise.all([
-            fetchJson('/api/jobs/applied', { data: [] }),
-            fetchJson('/api/jobs/saved', { data: [] }),
-            fetchJson('/api/cv/my-cvs', { cvs: [] }),
-          ]);
-
-          const appliedJobs = appliedPayload?.data || [];
-          const savedJobs = savedPayload?.data || [];
-          const savedCVs = cvPayload?.cvs || [];
-
-          nextNotifications = sortNotificationsByTime([
-            ...appliedJobs.map((job) => ({
-              id: `applied-${job.id}-${job.applied_at}`,
-              title: `Đã ứng tuyển: ${job.title || 'Tin tuyển dụng'}`,
-              description: [job.company_name, applicationStatusLabels[job.status] || 'Đã gửi hồ sơ']
-                .filter(Boolean)
-                .join(' • '),
-              to: getRouteByRole(user.role_code, 'appliedJobs'),
-              icon: Send,
-              iconClass: 'bg-green-50 text-green-500',
-              timestamp: job.applied_at,
-            })),
-            ...savedJobs.map((job) => ({
-              id: `saved-${job.id}-${job.saved_at}`,
-              title: `Đã lưu: ${job.title || 'Việc làm quan tâm'}`,
-              description: job.company_name || 'Bạn có thể quay lại ứng tuyển bất cứ lúc nào',
-              to: getRouteByRole(user.role_code, 'savedJobs'),
-              icon: Bookmark,
-              iconClass: 'bg-red-50 text-red-500',
-              timestamp: job.saved_at,
-            })),
-            ...savedCVs.map((cv) => ({
-              id: `cv-${cv.id}-${cv.created_at}`,
-              title: `Đã lưu CV: ${cv.title || 'Hồ sơ CV'}`,
-              description: cv.target_role || 'CV của bạn đã được lưu vào thư viện hồ sơ',
-              to: getRouteByRole(user.role_code, 'myCvs'),
-              icon: FileText,
-              iconClass: 'bg-indigo-50 text-indigo-500',
-              timestamp: cv.created_at,
-            })),
-          ]).slice(0, 6);
-        }
+              icon: typeMeta.icon,
+              iconClass: typeMeta.iconClass,
+              timestamp: item.created_at,
+              read: item.read,
+            };
+          })
+        ).slice(0, 6);
 
         if (!nextNotifications.length) {
           nextNotifications = [getEmptyNotification(user.role_code)];
@@ -469,20 +396,51 @@ export default function Header() {
 
         if (!cancelled) {
           setNotifications(nextNotifications);
+          setUnreadCount(unreadPayload?.unread || 0);
         }
       } catch {
         if (!cancelled) {
           setNotifications([getFallbackNotification(user.role_code)]);
+          setUnreadCount(0);
         }
       }
     };
 
+    const handleNotificationsUpdated = () => {
+      loadNotifications();
+    };
+
     loadNotifications();
+    const intervalId = window.setInterval(loadNotifications, 30000);
+    window.addEventListener('notifications-updated', handleNotificationsUpdated);
 
     return () => {
       cancelled = true;
+      window.clearInterval(intervalId);
+      window.removeEventListener('notifications-updated', handleNotificationsUpdated);
     };
   }, [token, user?.role_code]);
+
+  const markAllNotificationsAsRead = async () => {
+    if (!token) return;
+
+    try {
+      await fetch('/api/notifications/read-all', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      setNotifications((prev) =>
+        (prev || []).map((item) =>
+          ['empty-state', 'fallback'].includes(item.id) ? item : { ...item, read: true }
+        )
+      );
+      setUnreadCount(0);
+      window.dispatchEvent(new Event('notifications-updated'));
+    } catch (err) {
+      console.error('Mark notifications as read error:', err);
+    }
+  };
 
   const handleMouseEnter = () => {
     clearTimeout(timeoutRef.current);
@@ -498,6 +456,7 @@ export default function Header() {
     setDropdownOpen(false);
     setNotificationOpen(false);
     setNotifications([]);
+    setUnreadCount(0);
     navigate('/');
   };
 
@@ -534,15 +493,19 @@ export default function Header() {
                 <div ref={notificationRef} className="relative">
                   <button
                     onClick={() => {
-                      setNotificationOpen((prev) => !prev);
+                      const nextOpen = !notificationOpen;
+                      setNotificationOpen(nextOpen);
                       setDropdownOpen(false);
+                      if (nextOpen) {
+                        markAllNotificationsAsRead();
+                      }
                     }}
                     className="relative rounded-lg p-2 text-gray-500 transition-colors hover:bg-navy-50 hover:text-navy-700"
                   >
                     <Bell className="h-5 w-5" />
-                    {actionableNotificationCount > 0 ? (
+                    {unreadCount > 0 ? (
                       <span className="absolute right-1.5 top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white">
-                        {Math.min(actionableNotificationCount, 9)}
+                        {Math.min(unreadCount, 99)}
                       </span>
                     ) : null}
                   </button>

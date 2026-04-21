@@ -21,7 +21,7 @@ const API = '/api/jobs';
 const statusMap = {
   pending: { label: 'Đang chờ', color: 'bg-amber-50 text-amber-600 border-amber-200' },
   interview: { label: 'Mời phỏng vấn', color: 'bg-blue-50 text-blue-600 border-blue-200' },
-  hired: { label: 'Đã trúng tuyển', color: 'bg-emerald-50 text-emerald-600 border-emerald-200' },
+  hired: { label: 'Đã được duyệt', color: 'bg-emerald-50 text-emerald-600 border-emerald-200' },
   rejected: { label: 'Từ chối', color: 'bg-red-50 text-red-600 border-red-200' },
 };
 
@@ -126,8 +126,15 @@ export default function AppliedJobsPage() {
           {jobs.map((job) => {
             const status = statusMap[job.status] || statusMap.pending;
             const selectedMode = job.interview_mode || job.candidate_interview_mode || '';
-            const canChooseMode = job.status === 'interview' && !job.interview_mode;
-            const hasSchedule = job.status === 'interview' && Boolean(job.interview_at);
+            const hasInterviewFlow = Boolean(
+              job.status === 'interview' ||
+              job.interview_at ||
+              job.interview_mode ||
+              job.interview_link ||
+              job.candidate_interview_mode
+            );
+            const canChooseMode = hasInterviewFlow && !job.interview_mode;
+            const hasSchedule = Boolean(job.interview_at);
 
             return (
               <div key={job.application_id || job.id} className="bg-white rounded-2xl border border-gray-100 p-5 hover:shadow-lg hover:border-navy-100 transition-all group">
@@ -150,7 +157,7 @@ export default function AppliedJobsPage() {
                       <span className="flex items-center gap-1 text-sm text-gray-500"><Clock className="w-3.5 h-3.5" />{new Date(job.applied_at).toLocaleString('vi-VN')}</span>
                     </div>
 
-                    {job.status === 'interview' ? (
+                    {hasInterviewFlow ? (
                       <div className="mt-4 rounded-[1.5rem] border border-blue-100 bg-blue-50/70 p-4">
                         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                           <div>

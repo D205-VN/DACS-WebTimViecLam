@@ -1,4 +1,5 @@
 const pool = require('../config/db');
+const { createNotification, createNotificationsForUsers } = require('../services/notificationService');
 
 let employerJobSchemaReady = false;
 let employerProfileSchemaReady = false;
@@ -82,6 +83,7 @@ async function ensureEmployerApplicationSchema() {
       title VARCHAR(255) NOT NULL,
       target_role VARCHAR(255),
       html_content TEXT NOT NULL,
+      is_primary BOOLEAN DEFAULT FALSE,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )
   `);
@@ -95,6 +97,11 @@ async function ensureEmployerApplicationSchema() {
     ADD COLUMN IF NOT EXISTS candidate_interview_mode VARCHAR(20),
     ADD COLUMN IF NOT EXISTS cv_id INTEGER REFERENCES user_cvs(id) ON DELETE SET NULL,
     ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT NOW()
+  `);
+
+  await pool.query(`
+    ALTER TABLE user_cvs
+    ADD COLUMN IF NOT EXISTS is_primary BOOLEAN DEFAULT FALSE
   `);
 
   employerApplicationSchemaReady = true;
@@ -143,6 +150,17 @@ async function getCandidateOwnership(applicationId, employerId) {
   );
 
   return result.rows[0] || null;
+}
+
+async function getAdminUserIds() {
+  const result = await pool.query(
+    `SELECT u.id
+     FROM users u
+     JOIN roles r ON u.role_id = r.id
+     WHERE r.code = 'admin'`
+  );
+
+  return result.rows.map((row) => row.id);
 }
 
 function buildDeadlineSqlExpression(columnName) {
@@ -296,6 +314,18 @@ async function createJob(req, res) {
         normalizedTags,
       ]
     );
+
+    const adminUserIds = await getAdminUserIds();
+    await createNotificationsForUsers(adminUserIds, {
+      type: 'admin_job_pending',
+      title: 'Có tin tuyển dụng mới chờ duyệt',
+      message: `${company?.company_name || 'Nhà tuyển dụng'} vừa gửi tin ${title} để admin phê duyệt.`,
+      to: '/admin/dashboard',
+      tab: 'jobs',
+      meta: { job_id: result.rows[0]?.id || null, employer_id: userId },
+    }).catch((notificationError) => {
+      console.error('Create admin pending job notifications error:', notificationError);
+    });
 
     res.status(201).json({
       message: 'Tin tuyển dụng đã được gửi và đang chờ admin phê duyệt.',
@@ -783,6 +813,20 @@ async function updateJob(req, res) {
       ]
     );
 
+    if (nextModerationStatus === 'pending') {
+      const adminUserIds = await getAdminUserIds();
+      await createNotificationsForUsers(adminUserIds, {
+        type: 'admin_job_pending',
+        title: 'Có tin tuyển dụng cập nhật cần duyệt lại',
+        message: `${result.rows[0]?.company_name || 'Nhà tuyển dụng'} vừa cập nhật tin ${title || 'tuyển dụng'} và cần admin duyệt lại.`,
+        to: '/admin/dashboard',
+        tab: 'jobs',
+        meta: { job_id: jobId, employer_id: userId },
+      }).catch((notificationError) => {
+        console.error('Create admin re-review notifications error:', notificationError);
+      });
+    }
+
     res.json({
       message: nextModerationStatus === 'pending'
         ? 'Tin đã được cập nhật và gửi lại để admin phê duyệt.'
@@ -883,10 +927,30 @@ async function updateApplicationStatus(req, res) {
     const { status } = req.body; // pending, interview, hired, rejected
     const normalizedStatus = normalizeApplicationStatus(status);
 
-    // Kiểm tra quyền sở hữu (job của application này phải thuộc về employer này)
-    const ownership = await getCandidateOwnership(applicationId, userId);
-    if (!ownership) {
+    if (!['hired', 'rejected'].includes(normalizedStatus)) {
+      return res.status(400).json({ error: 'Chỉ được duyệt hồ sơ hoặc từ chối hồ sơ' });
+    }
+
+    const ownershipResult = await pool.query(
+      `SELECT aj.id,
+              aj.user_id,
+              COALESCE(NULLIF(TRIM(aj.status), ''), 'pending') as current_status,
+              j.job_title,
+              j.company_name
+       FROM applied_jobs aj
+       JOIN jobs j ON aj.job_id = j.id
+       WHERE aj.id = $1
+         AND j.employer_id = $2`,
+      [applicationId, userId]
+    );
+
+    if (!ownershipResult.rows.length) {
       return res.status(403).json({ error: 'Không có quyền thay đổi hồ sơ này' });
+    }
+
+    const ownership = ownershipResult.rows[0];
+    if (['hired', 'rejected'].includes(ownership.current_status)) {
+      return res.status(400).json({ error: 'Hồ sơ này đã được quyết định trước đó và không thể đổi lại' });
     }
 
     const result = await pool.query(
@@ -896,6 +960,20 @@ async function updateApplicationStatus(req, res) {
        RETURNING id, COALESCE(NULLIF(TRIM(status), ''), 'pending') as status, updated_at`,
       [normalizedStatus, applicationId]
     );
+
+    await createNotification({
+      userId: ownership.user_id,
+      type: normalizedStatus === 'hired' ? 'seeker_application_hired' : 'seeker_application_rejected',
+      title: normalizedStatus === 'hired' ? 'Hồ sơ đã được duyệt' : 'Hồ sơ bị từ chối',
+      message:
+        normalizedStatus === 'hired'
+          ? `Nhà tuyển dụng đã duyệt hồ sơ của bạn cho vị trí ${ownership.job_title || 'ứng tuyển'}.`
+          : `Nhà tuyển dụng đã từ chối hồ sơ của bạn cho vị trí ${ownership.job_title || 'ứng tuyển'}.`,
+      to: '/seeker/applied-jobs',
+      meta: { application_id: applicationId, company_name: ownership.company_name || null },
+    }).catch((notificationError) => {
+      console.error('Create seeker application status notification error:', notificationError);
+    });
 
     res.json({ message: 'Đã cập nhật trạng thái ứng viên', data: result.rows[0] });
   } catch (err) {
@@ -940,7 +1018,13 @@ async function scheduleInterview(req, res) {
     const { interview_at, interview_mode, interview_link } = req.body;
 
     const ownership = await pool.query(
-      `SELECT aj.id, aj.candidate_interview_mode, j.company_address
+      `SELECT aj.id,
+              aj.user_id,
+              aj.candidate_interview_mode,
+              COALESCE(NULLIF(TRIM(aj.status), ''), 'pending') as status,
+              j.company_address,
+              j.job_title,
+              j.company_name
        FROM applied_jobs aj
        JOIN jobs j ON aj.job_id = j.id
        WHERE aj.id = $1 AND j.employer_id = $2`,
@@ -966,16 +1050,32 @@ async function scheduleInterview(req, res) {
 
     const result = await pool.query(
       `UPDATE applied_jobs
-       SET status = 'interview',
-           interview_at = $1,
-           interview_mode = $2,
-           interview_link = $3,
+       SET status = $1,
+           interview_at = $2,
+           interview_mode = $3,
+           interview_link = $4,
            updated_at = NOW()
-       WHERE id = $4
+       WHERE id = $5
        RETURNING id, COALESCE(NULLIF(TRIM(status), ''), 'pending') as status,
                  interview_at, interview_mode, interview_link, candidate_interview_mode, updated_at`,
-      [normalizedAt.toISOString(), normalizedMode, normalizedLink, applicationId]
+      ['interview', normalizedAt.toISOString(), normalizedMode, normalizedLink, applicationId]
     );
+
+    await createNotification({
+      userId: application.user_id,
+      type: 'seeker_application_interview',
+      title: 'Bạn có lịch phỏng vấn mới',
+      message: `Nhà tuyển dụng đã cập nhật lịch phỏng vấn cho vị trí ${application.job_title || 'ứng tuyển'}.`,
+      to: '/seeker/applied-jobs',
+      meta: {
+        application_id: applicationId,
+        company_name: application.company_name || null,
+        interview_at: normalizedAt.toISOString(),
+        interview_mode: normalizedMode,
+      },
+    }).catch((notificationError) => {
+      console.error('Create seeker interview notification error:', notificationError);
+    });
 
     res.json({
       message: 'Đã lên lịch phỏng vấn',

@@ -126,8 +126,16 @@ export default function JobDetailPage() {
     if (!isAuthenticated) { navigate('/login'); return; }
     if (applied) return;
     setActionLoading('apply');
-    const res = await fetch(`${API}/${id}/apply`, { method: 'POST', headers: { Authorization: `Bearer ${token}` } });
-    if (res.ok) setApplied(true);
+    try {
+      const res = await fetch(`${API}/${id}/apply`, { method: 'POST', headers: { Authorization: `Bearer ${token}` } });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data.error || 'Không thể nộp hồ sơ lúc này');
+      }
+      setApplied(true);
+    } catch (err) {
+      alert(err.message);
+    }
     setActionLoading('');
   };
 
@@ -313,6 +321,15 @@ export default function JobDetailPage() {
             <div className="mt-3 rounded-3xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-slate-200">
               Nhận thông báo phù hợp khi có việc tương tự.
             </div>
+            {isAuthenticated && user?.role_code === 'seeker' ? (
+              <div className="mt-3 rounded-3xl border border-cyan-200/20 bg-cyan-300/10 px-4 py-3 text-sm text-cyan-50">
+                Khi bấm ứng tuyển, hệ thống sẽ dùng <b>CV chính</b> trong{' '}
+                <Link to="/seeker/my-cvs" className="font-semibold underline underline-offset-2">
+                  Quản lý hồ sơ CV
+                </Link>
+                .
+              </div>
+            ) : null}
 
             <div className="mt-6 border-t border-white/15 pt-4">
               <div className="rounded-3xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-slate-200">

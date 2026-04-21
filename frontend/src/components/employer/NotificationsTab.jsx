@@ -12,12 +12,17 @@ export default function NotificationsTab() {
   useEffect(() => {
     const fetchNotifications = async () => {
       try {
-        const res = await fetch('/api/employer/notifications', {
+        const res = await fetch('/api/notifications?limit=50', {
           headers: { Authorization: `Bearer ${token}` },
         });
         const data = await res.json();
         if (res.ok) {
-          setNotifications(data.data || []);
+          setNotifications((data.data || []).map((item) => ({ ...item, read: true })));
+          await fetch('/api/notifications/read-all', {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          window.dispatchEvent(new Event('notifications-updated'));
         }
       } catch (err) {
         console.error('Fetch notifications error:', err);
@@ -31,20 +36,28 @@ export default function NotificationsTab() {
 
   const getIcon = (type) => {
     switch (type) {
-      case 'candidate': return UserPlus;
-      case 'warning': return Clock;
-      case 'rejected': return XCircle;
-      case 'success': return CheckCircle2;
+      case 'employer_new_candidate': return UserPlus;
+      case 'admin_job_pending': return Clock;
+      case 'employer_job_rejected':
+      case 'seeker_application_rejected':
+        return XCircle;
+      case 'employer_job_approved':
+      case 'seeker_application_hired':
+        return CheckCircle2;
       default: return Info;
     }
   };
 
   const getColor = (type) => {
     switch (type) {
-      case 'candidate': return 'text-emerald-500 bg-emerald-50';
-      case 'warning': return 'text-amber-500 bg-amber-50';
-      case 'rejected': return 'text-red-500 bg-red-50';
-      case 'success': return 'text-emerald-500 bg-emerald-50';
+      case 'employer_new_candidate': return 'text-emerald-500 bg-emerald-50';
+      case 'admin_job_pending': return 'text-amber-500 bg-amber-50';
+      case 'employer_job_rejected':
+      case 'seeker_application_rejected':
+        return 'text-red-500 bg-red-50';
+      case 'employer_job_approved':
+      case 'seeker_application_hired':
+        return 'text-emerald-500 bg-emerald-50';
       default: return 'text-blue-500 bg-blue-50';
     }
   };
@@ -86,7 +99,7 @@ export default function NotificationsTab() {
                 <div className="flex justify-between items-start mb-1">
                   <h4 className={`text-sm font-semibold ${!note.read ? 'text-gray-900' : 'text-gray-700'}`}>{note.title}</h4>
                   <span className="text-xs text-gray-400 whitespace-nowrap ml-4">
-                    {new Date(note.time).toLocaleString('vi-VN')}
+                    {new Date(note.created_at).toLocaleString('vi-VN')}
                   </span>
                 </div>
                 <p className={`text-sm ${!note.read ? 'text-gray-700 font-medium' : 'text-gray-500'}`}>{note.message}</p>
