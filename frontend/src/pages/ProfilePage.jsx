@@ -3,8 +3,9 @@ import { Link } from 'react-router-dom';
 import { ArrowLeft, BriefcaseBusiness, CheckCircle2, Loader2, Mail, Phone, Save, User } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { getBackLabelByRole, getDefaultRouteByRole } from '../utils/roleRedirect';
+import API_BASE_URL from '../config/api';
 
-const API_BASE = '/api/auth';
+const API_BASE = `${API_BASE_URL}/api/auth`;
 
 function buildInitialForm(user) {
   return {

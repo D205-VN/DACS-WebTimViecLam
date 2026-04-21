@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Building2, Globe, MapPin, Mail, Phone, Users, Image as ImageIcon, Save, Loader2, Info, CheckCircle2 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import API_BASE_URL from '../../config/api';
 
 export default function CompanyProfileTab() {
   const { token } = useAuth();
@@ -14,7 +15,7 @@ export default function CompanyProfileTab() {
   useEffect(() => {
     const fetchProfile = async () => {
       try {
-        const res = await fetch('/api/employer/profile', {
+        const res = await fetch(`${API_BASE_URL}/api/employer/profile`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         const data = await res.json();
@@ -39,7 +40,7 @@ export default function CompanyProfileTab() {
     setMessage('');
     setError('');
     try {
-      const res = await fetch('/api/employer/profile', {
+      const res = await fetch(`${API_BASE_URL}/api/employer/profile`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

@@ -17,6 +17,7 @@ import {
   FileText,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import API_BASE_URL from '../../config/api';
 
 function getStatusMeta(status) {
   switch (status) {
@@ -81,7 +82,7 @@ export default function ManageCandidatesTab() {
 
   const fetchCandidates = useCallback(async () => {
     try {
-      const res = await fetch('/api/employer/candidates', {
+      const res = await fetch(`${API_BASE_URL}/api/employer/candidates`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await res.json();
@@ -108,7 +109,7 @@ export default function ManageCandidatesTab() {
     setDetailError('');
 
     try {
-      const res = await fetch(`/api/employer/candidates/${applicationId}`, {
+      const res = await fetch(`${API_BASE_URL}/api/employer/candidates/${applicationId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await res.json();
@@ -154,7 +155,7 @@ export default function ManageCandidatesTab() {
   const handleStatusUpdate = async (applicationId, newStatus) => {
     setActionLoading(applicationId);
     try {
-      const res = await fetch(`/api/employer/applications/${applicationId}/status`, {
+      const res = await fetch(`${API_BASE_URL}/api/employer/applications/${applicationId}/status`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -187,7 +188,7 @@ export default function ManageCandidatesTab() {
 
     setScheduleLoading(true);
     try {
-      const res = await fetch(`/api/employer/candidates/${candidateDetail.id}/interview`, {
+      const res = await fetch(`${API_BASE_URL}/api/employer/candidates/${candidateDetail.id}/interview`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

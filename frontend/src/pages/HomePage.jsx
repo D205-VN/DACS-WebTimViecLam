@@ -3,6 +3,7 @@ import HeroSection from '../components/HeroSection';
 import FilterSidebar from '../components/FilterSidebar';
 import JobList from '../components/JobList';
 import RightSidebar from '../components/RightSidebar';
+import API_BASE_URL from '../config/api';
 
 const fallbackFilterOptions = {
   salaryRanges: [
@@ -44,7 +45,7 @@ export default function HomePage() {
   const [filterOptions, setFilterOptions] = useState(fallbackFilterOptions);
 
   useEffect(() => {
-    fetch('/api/jobs/filters')
+    fetch(`${API_BASE_URL}/api/jobs/filters`)
       .then((res) => res.json())
       .then((payload) => {
         if (payload?.data) {

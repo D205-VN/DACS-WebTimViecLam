@@ -3,8 +3,9 @@ import { Link } from 'react-router-dom';
 import { Bookmark, BookmarkX, MapPin, DollarSign, Clock, Briefcase, ArrowLeft, Loader2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { getBackLabelByRole, getDefaultRouteByRole, getJobDetailRoute } from '../utils/roleRedirect';
+import API_BASE_URL from '../config/api';
 
-const API = '/api/jobs';
+const API = `${API_BASE_URL}/api/jobs`;
 
 export default function SavedJobsPage() {
   const { token, user } = useAuth();

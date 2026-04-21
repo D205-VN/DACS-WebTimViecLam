@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { LayoutDashboard, FileText, Users, Building2, Plus } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import API_BASE_URL from '../../config/api';
 import EmployerHeader from '../../components/employer/EmployerHeader';
 import ManageJobsTab from '../../components/employer/ManageJobsTab';
 import ManageCandidatesTab from '../../components/employer/ManageCandidatesTab';
@@ -31,7 +32,7 @@ export default function EmployerDashboard() {
     const fetchDashboard = async () => {
       console.log('Fetching dashboard data with token:', token ? 'Exists' : 'Missing');
       try {
-        const res = await fetch('/api/employer/dashboard', {
+        const res = await fetch(`${API_BASE_URL}/api/employer/dashboard`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         console.log('Dashboard response status:', res.status);

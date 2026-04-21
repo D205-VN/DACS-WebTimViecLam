@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Briefcase, MapPin, DollarSign, Clock, FileText, Users, Tag, Calendar, Loader2, CheckCircle2, Building2 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import API_BASE_URL from '../../config/api';
 import EmployerHeader from '../../components/employer/EmployerHeader';
 
 const JOB_TYPES = ['Toàn thời gian', 'Bán thời gian', 'Thực tập', 'Freelance', 'Remote'];
@@ -37,7 +38,7 @@ export default function PostJob() {
     setLoading(true);
 
     try {
-      const res = await fetch('/api/employer/jobs', {
+      const res = await fetch(`${API_BASE_URL}/api/employer/jobs`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

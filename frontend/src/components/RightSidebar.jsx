@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { ArrowRight, Briefcase, Building2, Loader2, MapPin, Sparkles, TrendingUp } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { getCompanyFilterRoute, getJobDetailRoute, getRouteByRole } from '../utils/roleRedirect';
+import API_BASE_URL from '../config/api';
 
 const rankColors = [
   'from-amber-400 to-orange-500',
@@ -33,7 +34,7 @@ export default function RightSidebar({ searchParams }) {
   useEffect(() => {
     let cancelled = false;
 
-    fetch('/api/jobs/companies')
+    fetch(`${API_BASE_URL}/api/jobs/companies`)
       .then((res) => res.json())
       .then((payload) => {
         if (!cancelled) {
@@ -82,7 +83,7 @@ export default function RightSidebar({ searchParams }) {
       }
     });
 
-    fetch(`/api/jobs?${params.toString()}`)
+    fetch(`${API_BASE_URL}/api/jobs?${params.toString()}`)
       .then((res) => res.json())
       .then((payload) => {
         if (!cancelled) {

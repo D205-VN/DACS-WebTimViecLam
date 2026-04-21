@@ -16,6 +16,7 @@ import {
   FileText,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import API_BASE_URL from '../../config/api';
 import { useNavigate } from 'react-router-dom';
 
 function parseJobDeadline(deadline) {
@@ -109,7 +110,7 @@ export default function ManageJobsTab() {
     setError('');
 
     try {
-      const res = await fetch('/api/employer/jobs', {
+      const res = await fetch(`${API_BASE_URL}/api/employer/jobs`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await res.json();
@@ -145,7 +146,7 @@ export default function ManageJobsTab() {
     setNotice(null);
 
     try {
-      const res = await fetch(`/api/employer/jobs/${job.id}/status`, {
+      const res = await fetch(`${API_BASE_URL}/api/employer/jobs/${job.id}/status`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -177,7 +178,7 @@ export default function ManageJobsTab() {
     setNotice(null);
 
     try {
-      const res = await fetch(`/api/employer/jobs/${jobId}`, {
+      const res = await fetch(`${API_BASE_URL}/api/employer/jobs/${jobId}`, {
         method: 'DELETE',
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -222,7 +223,7 @@ export default function ManageJobsTab() {
     setNotice(null);
 
     try {
-      const res = await fetch(`/api/employer/jobs/${editingJob.id}`, {
+      const res = await fetch(`${API_BASE_URL}/api/employer/jobs/${editingJob.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

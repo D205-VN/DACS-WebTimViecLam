@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { BarChart3, TrendingUp, Users, Briefcase, Loader2, AlertCircle } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import API_BASE_URL from '../../config/api';
 
 const STATUS_META = {
   pending: { label: 'Chờ xử lý', color: 'bg-amber-500' },
@@ -22,7 +23,7 @@ export default function AnalyticsTab() {
   useEffect(() => {
     const fetchAnalytics = async () => {
       try {
-        const res = await fetch('/api/employer/analytics', {
+        const res = await fetch(`${API_BASE_URL}/api/employer/analytics`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         const json = await res.json();

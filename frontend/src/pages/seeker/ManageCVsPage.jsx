@@ -4,8 +4,9 @@ import { ArrowLeft, FileText, Trash2, Download, Loader2, Sparkles, Calendar, Bri
 import { useAuth } from '../../context/AuthContext';
 import SeekerToolsNav from '../../components/seeker/SeekerToolsNav';
 import { getBackLabelByRole, getDefaultRouteByRole } from '../../utils/roleRedirect';
+import API_BASE_URL from '../../config/api';
 
-const API = '/api/cv';
+const API = `${API_BASE_URL}/api/cv`;
 
 export default function ManageCVsPage() {
   const { token, user } = useAuth();

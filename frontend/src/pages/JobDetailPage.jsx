@@ -4,8 +4,9 @@ import { MapPin, DollarSign, Clock, Bookmark, BookmarkCheck, Briefcase, ArrowLef
 import { useAuth } from '../context/AuthContext';
 import { findProvinceByName, normalizeProvinceName, normalizeSearchText } from '../data/provinceCoordinates';
 import { getCompanyFilterRoute, getDefaultRouteByRole, getJobDetailRoute } from '../utils/roleRedirect';
+import API_BASE_URL from '../config/api';
 
-const API = '/api/jobs';
+const API = `${API_BASE_URL}/api/jobs`;
 
 const getFirstFilledText = (...values) =>
   values

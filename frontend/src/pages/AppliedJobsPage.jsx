@@ -15,8 +15,9 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { getBackLabelByRole, getDefaultRouteByRole, getJobDetailRoute } from '../utils/roleRedirect';
+import API_BASE_URL from '../config/api';
 
-const API = '/api/jobs';
+const API = `${API_BASE_URL}/api/jobs`;
 
 const statusMap = {
   pending: { label: 'Đang chờ', color: 'bg-amber-50 text-amber-600 border-amber-200' },

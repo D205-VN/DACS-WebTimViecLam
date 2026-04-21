@@ -3,8 +3,9 @@ import { Link } from 'react-router-dom';
 import { ArrowLeft, ImageUp, Loader2, Save, Download, CheckCircle } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import SeekerToolsNav from '../../components/seeker/SeekerToolsNav';
+import API_BASE_URL from '../../config/api';
 
-const API = '/api/cv';
+const API = `${API_BASE_URL}/api/cv`;
 
 export default function CVImportImagePage() {
   const { token } = useAuth();

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Bell, UserPlus, Clock, Info, CheckCircle2, Loader2, XCircle } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import API_BASE_URL from '../../config/api';
 import { useNavigate } from 'react-router-dom';
 
 export default function NotificationsTab() {
@@ -12,13 +13,13 @@ export default function NotificationsTab() {
   useEffect(() => {
     const fetchNotifications = async () => {
       try {
-        const res = await fetch('/api/notifications?limit=50', {
+        const res = await fetch(`${API_BASE_URL}/api/notifications?limit=50`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         const data = await res.json();
         if (res.ok) {
           setNotifications((data.data || []).map((item) => ({ ...item, read: true })));
-          await fetch('/api/notifications/read-all', {
+          await fetch(`${API_BASE_URL}/api/notifications/read-all`, {
             method: 'POST',
             headers: { Authorization: `Bearer ${token}` },
           });

@@ -16,6 +16,7 @@ import {
   Users,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import API_BASE_URL from '../../config/api';
 
 const navItems = [
   { id: 'overview', label: 'Tổng quan', icon: LayoutDashboard },
@@ -97,9 +98,9 @@ export default function AdminDashboard() {
         const headers = { Authorization: `Bearer ${token}` };
 
         const [statsRes, usersRes, jobsRes] = await Promise.all([
-          fetch('/api/admin/stats', { headers }),
-          fetch('/api/admin/users', { headers }),
-          fetch('/api/admin/jobs/pending', { headers }),
+          fetch(`${API_BASE_URL}/api/admin/stats`, { headers }),
+          fetch(`${API_BASE_URL}/api/admin/users`, { headers }),
+          fetch(`${API_BASE_URL}/api/admin/jobs/pending`, { headers }),
         ]);
 
         const [statsData, usersData, jobsData] = await Promise.all([
@@ -134,8 +135,8 @@ export default function AdminDashboard() {
     const loadNotifications = async () => {
       try {
         const [notificationsRes, unreadRes] = await Promise.all([
-          fetch('/api/notifications?limit=20', { headers }),
-          fetch('/api/notifications/unread-count', { headers }),
+          fetch(`${API_BASE_URL}/api/notifications?limit=20`, { headers }),
+          fetch(`${API_BASE_URL}/api/notifications/unread-count`, { headers }),
         ]);
 
         const notificationsData = notificationsRes.ok ? await notificationsRes.json() : { data: [] };
@@ -178,7 +179,7 @@ export default function AdminDashboard() {
     if (!token) return;
 
     try {
-      await fetch('/api/notifications/read-all', {
+      await fetch(`${API_BASE_URL}/api/notifications/read-all`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -199,7 +200,7 @@ export default function AdminDashboard() {
   const handleJobModeration = async (id, status) => {
     try {
       setJobActionLoading(id);
-      const res = await fetch(`/api/admin/jobs/${id}/status`, {
+      const res = await fetch(`${API_BASE_URL}/api/admin/jobs/${id}/status`, {
         method: 'PUT',
         headers: {
           Authorization: `Bearer ${token}`,

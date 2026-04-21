@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { getRouteByRole } from '../utils/roleRedirect';
+import API_BASE_URL from '../config/api';
 
 function getNavLinks(roleCode) {
   return [
@@ -367,8 +368,8 @@ export default function Header() {
     const loadNotifications = async () => {
       try {
         const [notificationsRes, unreadRes] = await Promise.all([
-          fetch('/api/notifications?limit=12', { headers }),
-          fetch('/api/notifications/unread-count', { headers }),
+          fetch(`${API_BASE_URL}/api/notifications?limit=12`, { headers }),
+          fetch(`${API_BASE_URL}/api/notifications/unread-count`, { headers }),
         ]);
         const payload = notificationsRes.ok ? await notificationsRes.json() : { data: [] };
         const unreadPayload = unreadRes.ok ? await unreadRes.json() : { unread: 0 };
@@ -425,7 +426,7 @@ export default function Header() {
     if (!token) return;
 
     try {
-      await fetch('/api/notifications/read-all', {
+      await fetch(`${API_BASE_URL}/api/notifications/read-all`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` },
       });

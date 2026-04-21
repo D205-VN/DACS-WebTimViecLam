@@ -3,6 +3,7 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Briefcase, LayoutDashboard, FileText, Users, Building2, Plus, Bell, LogOut, ChevronDown, User, Shield, Menu, X } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { getRouteByRole } from '../../utils/roleRedirect';
+import API_BASE_URL from '../../config/api';
 
 export default function EmployerHeader() {
   const [dropdownOpen, setDropdownOpen] = useState(false);
@@ -37,7 +38,7 @@ export default function EmployerHeader() {
     let cancelled = false;
 
     const loadUnreadCount = () => {
-      fetch('/api/notifications/unread-count', {
+      fetch(`${API_BASE_URL}/api/notifications/unread-count`, {
         headers: { Authorization: `Bearer ${token}` },
       })
         .then((res) => res.ok ? res.json() : { unread: 0 })

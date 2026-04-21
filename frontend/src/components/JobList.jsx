@@ -3,8 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import { MapPin, DollarSign, Clock, Bookmark, BookmarkCheck, Briefcase } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { getCompanyFilterRoute, getJobDetailRoute } from '../utils/roleRedirect';
+import API_BASE_URL from '../config/api';
 
-const API = '/api/jobs';
+const API = `${API_BASE_URL}/api/jobs`;
 
 export default function JobList({ searchParams, title, emptyMessage }) {
   const navigate = useNavigate();
