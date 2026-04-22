@@ -197,7 +197,8 @@ Yêu cầu format CV:
 5. Dùng màu xanh navy (#1e3a5f) làm accent color chính.
 6. Nếu thông tin nào còn thiếu thì viết gợi ý mẫu ngắn, tự nhiên và phù hợp vị trí ứng tuyển.
 7. Nếu có ảnh chân dung thì đặt ảnh ở header, kích thước gọn, chuyên nghiệp.
-8. Chỉ trả về HTML, không thêm markdown hay giải thích.`;
+8. TUYỆT ĐỐI KHÔNG chèn bất kỳ ảnh placeholder nào từ các nguồn bên ngoài (như via.placeholder.com).
+9. Chỉ trả về HTML, không thêm markdown hay giải thích.`;
 }
 
 function buildImportHtmlPrompt({
@@ -244,7 +245,8 @@ Yêu cầu dựng HTML:
 3. Tối ưu để hiển thị đẹp trên khổ A4, khoảng rộng tối đa 800px.
 4. Làm sạch lỗi OCR, viết lại câu chữ cho mượt nhưng không tự bịa quá xa dữ liệu gốc.
 5. Header phải rõ họ tên, vị trí ứng tuyển, thông tin liên hệ.
-6. Chỉ trả về HTML hoàn chỉnh, không markdown, không giải thích.`;
+6. TUYỆT ĐỐI KHÔNG chèn bất kỳ ảnh placeholder nào từ các nguồn bên ngoài (như via.placeholder.com hay ui-avatars) vào mã HTML. Bỏ qua hoàn toàn việc hiển thị ảnh chân dung nếu có trong ảnh gốc.
+7. Chỉ trả về HTML hoàn chỉnh, không markdown, không giải thích.`;
 }
 
 /**
@@ -301,7 +303,7 @@ exports.generateCV = async (req, res) => {
       return res.status(500).json({ error: 'Chưa cấu hình API Key cho AI. Vui lòng thêm GEMINI_API_KEY hoặc bật Kaggle Model.' });
     }
 
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-flash-latest' });
     const result = await model.generateContent(prompt);
     const response = result.response;
     let text = cleanModelHtml(response.text());
@@ -463,7 +465,7 @@ Nếu không chắc trường nào, để chuỗi rỗng.
 "primaryColor" là màu nhấn nổi bật nếu nhận diện được.
 "sectionOrder" mô tả ngắn thứ tự các section chính trong CV.`;
 
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-flash-latest' });
 
     const extractResult = await model.generateContent([
       { text: extractPrompt },

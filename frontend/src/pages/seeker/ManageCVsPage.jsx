@@ -261,7 +261,7 @@ export default function ManageCVsPage() {
 
             <div className="max-h-[calc(92vh-96px)] overflow-auto bg-slate-50 p-5">
               <div
-                className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"
+                className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm min-w-[800px] mx-auto"
                 dangerouslySetInnerHTML={{ __html: previewCv.html_content }}
               />
             </div>

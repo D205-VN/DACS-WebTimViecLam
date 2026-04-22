@@ -344,9 +344,9 @@ export default function CVBuilderPage() {
                 </div>
               )}
             </div>
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden min-h-[600px] flex flex-col">
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-x-auto min-h-[600px] flex flex-col">
               {cvHtml ? (
-                <div ref={cvRef} className="p-6 flex-1" dangerouslySetInnerHTML={{ __html: cvHtml }} />
+                <div ref={cvRef} className="p-6 flex-1 min-w-[800px]" dangerouslySetInnerHTML={{ __html: cvHtml }} />
               ) : (
                 <div className="flex flex-col items-center justify-center flex-1 text-gray-400 p-8 text-center">
                   <Sparkles className="w-16 h-16 mb-4 opacity-30" />
