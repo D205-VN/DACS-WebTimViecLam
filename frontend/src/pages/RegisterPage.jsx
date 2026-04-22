@@ -152,10 +152,12 @@ export default function RegisterPage() {
             navigate(getDefaultRouteByRole(data.user.role_code));
           } catch (err) { setError(err.message); }
         },
+        itp_support: true,
+        use_fedcm_for_prompt: true,
       });
       window.google.accounts.id.renderButton(
         document.getElementById('googleSignInDiv'),
-        { theme: 'outline', size: 'large', text: 'signup_with', width: '100%' }
+        { theme: 'outline', size: 'large', text: 'signup_with', width: 350 }
       );
     };
     document.head.appendChild(script);

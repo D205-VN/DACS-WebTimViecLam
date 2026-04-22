@@ -58,6 +58,7 @@ export default function LoginPage() {
           } catch (err) { setError(err.message); }
         },
         itp_support: true,
+        use_fedcm_for_prompt: true,
       });
       window.google.accounts.id.renderButton(
         document.getElementById('googleSignInDiv'),
