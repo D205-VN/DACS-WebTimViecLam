@@ -216,6 +216,17 @@ function normalizeInterviewMode(value) {
   return ['online', 'offline'].includes(normalized) ? normalized : null;
 }
 
+function buildDeadlineSqlExpression(columnName) {
+  return `
+    CASE
+      WHEN ${columnName} IS NULL OR TRIM(${columnName}) = '' THEN NULL
+      WHEN ${columnName} ~ '^\\d{4}-\\d{2}-\\d{2}$' THEN TO_DATE(${columnName}, 'YYYY-MM-DD')
+      WHEN ${columnName} ~ '^\\d{2}/\\d{2}/\\d{4}$' THEN TO_DATE(${columnName}, 'DD/MM/YYYY')
+      ELSE NULL
+    END
+  `;
+}
+
 function sortJobsByDistance(origin, jobs) {
   if (!origin) return jobs;
 
@@ -270,6 +281,9 @@ exports.getJobs = async (req, res) => {
     let whereClause = '';
     const params = [];
     let paramIndex = 1;
+
+    const deadlineDateSql = buildDeadlineSqlExpression('submission_deadline');
+    whereClause += ` AND (${deadlineDateSql} IS NULL OR ${deadlineDateSql} >= CURRENT_DATE)`;
 
     if (keyword) {
       whereClause += ` AND (job_title ILIKE $${paramIndex} OR company_name ILIKE $${paramIndex} OR industry ILIKE $${paramIndex} OR job_description ILIKE $${paramIndex} OR job_requirements ILIKE $${paramIndex})`;
@@ -396,8 +410,10 @@ exports.getCompanies = async (req, res) => {
 
     const keyword = String(req.query.keyword || '').trim();
     const params = [];
+    const deadlineDateSql = buildDeadlineSqlExpression('submission_deadline');
     let whereClause = `WHERE COALESCE(NULLIF(TRIM(status), ''), 'approved') = 'approved'
-      AND company_name IS NOT NULL AND TRIM(company_name) <> ''`;
+      AND company_name IS NOT NULL AND TRIM(company_name) <> ''
+      AND (${deadlineDateSql} IS NULL OR ${deadlineDateSql} >= CURRENT_DATE)`;
 
     if (keyword) {
       whereClause += ` AND company_name ILIKE $1`;

@@ -37,9 +37,10 @@ export const NotificationProvider = ({ children }) => {
   useEffect(() => {
     if (user && token) {
       // Connect to Socket.io
-      // API_BASE_URL might be "https://.../api", we need the root URL for socket.io
-      const socketUrl = API_BASE_URL.endsWith('/api') ? API_BASE_URL.slice(0, -4) : API_BASE_URL;
-      const newSocket = io(socketUrl || window.location.origin, {
+      const baseSocketUrl = API_BASE_URL.endsWith('/api') ? API_BASE_URL.slice(0, -4) : API_BASE_URL;
+      const socketUrl = import.meta.env.DEV ? 'http://localhost:5001' : (baseSocketUrl || window.location.origin);
+      
+      const newSocket = io(socketUrl, {
         withCredentials: true,
         transports: ['websocket', 'polling']
       });

@@ -158,6 +158,14 @@ export default function AdminDashboard() {
   };
 
   const handleJobModeration = async (id, status) => {
+    let reason = null;
+    if (status === 'rejected') {
+      const job = pendingJobs.find(j => j.id === id);
+      const defaultReason = job?.ai_suggestion || '';
+      reason = window.prompt('Nhập lý do từ chối (Nhà tuyển dụng sẽ nhận được thông báo này):', defaultReason);
+      if (reason === null) return; // Cancelled
+    }
+
     try {
       setJobActionLoading(id);
       const res = await fetch(`${API_BASE_URL}/api/admin/jobs/${id}/status`, {
@@ -166,7 +174,7 @@ export default function AdminDashboard() {
           Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ status }),
+        body: JSON.stringify({ status, reason }),
       });
 
       if (res.ok) {
@@ -795,9 +803,16 @@ export default function AdminDashboard() {
                                 <td className="py-4">
                                   <div>
                                     <p className="font-medium text-white">{job.job_title}</p>
-                                    {job.job_address ? (
-                                      <p className="mt-1 text-sm text-gray-500">{job.job_address}</p>
-                                    ) : null}
+                                    <div className="mt-1 flex flex-col gap-1">
+                                      {job.job_address && (
+                                        <p className="text-sm text-gray-500">{job.job_address}</p>
+                                      )}
+                                      {job.ai_suggestion && (
+                                        <p className="text-[11px] font-medium text-amber-400 bg-amber-400/5 px-2 py-0.5 rounded-md border border-amber-400/10 italic">
+                                          {job.ai_suggestion}
+                                        </p>
+                                      )}
+                                    </div>
                                   </div>
                                 </td>
                                 <td className="py-4 text-sm text-gray-400">{job.company_name || 'Chưa có công ty'}</td>

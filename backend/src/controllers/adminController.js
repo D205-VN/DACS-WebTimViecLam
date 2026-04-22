@@ -9,6 +9,7 @@ async function ensureAdminJobSchema() {
   await pool.query(`
     ALTER TABLE jobs
     ADD COLUMN IF NOT EXISTS status VARCHAR(20) DEFAULT 'approved',
+    ADD COLUMN IF NOT EXISTS rejection_reason TEXT,
     ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT NOW()
   `);
 
@@ -79,6 +80,28 @@ exports.getUsers = async (req, res) => {
   }
 };
 
+/**
+ * Helper: AI-like rule-based validation for job postings
+ */
+function checkJobForAiRejection(job) {
+  const reasons = [];
+  if (!job.job_title || job.job_title.trim().length < 5) reasons.push('Tiêu đề công việc quá ngắn hoặc trống.');
+  if (!job.job_description || job.job_description.trim().length < 50) reasons.push('Mô tả công việc quá sơ sài (cần ít nhất 50 ký tự).');
+  if (!job.job_address || job.job_address.trim().length < 5) reasons.push('Địa điểm làm việc không rõ ràng.');
+  if (!job.salary || job.salary === 'Thỏa thuận' && job.job_description.length < 100) {
+    // Basic check for low effort posts
+  }
+  
+  // Check for common spam/missing info
+  if (reasons.length > 0) {
+    return {
+      shouldReject: true,
+      reason: 'AI Đề xuất từ chối: ' + reasons.join(' ')
+    };
+  }
+  return { shouldReject: false, reason: null };
+}
+
 exports.getPendingJobs = async (req, res) => {
   try {
     await ensureAdminJobSchema();
@@ -90,7 +113,16 @@ exports.getPendingJobs = async (req, res) => {
        ORDER BY created_at DESC NULLS LAST, id DESC`
     );
 
-    res.json({ data: result.rows });
+    // AI Auto-check for suggestions
+    const jobsWithAiSuggestion = result.rows.map(job => {
+      const aiResult = checkJobForAiRejection(job);
+      return {
+        ...job,
+        ai_suggestion: aiResult.reason
+      };
+    });
+
+    res.json({ data: jobsWithAiSuggestion });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Lỗi khi lấy danh sách chờ duyệt' });
@@ -99,7 +131,7 @@ exports.getPendingJobs = async (req, res) => {
 
 exports.updateJobStatus = async (req, res) => {
   const { id } = req.params;
-  const { status } = req.body;
+  const { status, reason } = req.body;
 
   if (!['approved', 'rejected'].includes(status)) {
     return res.status(400).json({ error: 'Trạng thái không hợp lệ' });
@@ -109,8 +141,8 @@ exports.updateJobStatus = async (req, res) => {
     await ensureAdminJobSchema();
 
     const result = await pool.query(
-      'UPDATE jobs SET status = $1, updated_at = NOW() WHERE id = $2 RETURNING *',
-      [status, id]
+      'UPDATE jobs SET status = $1, rejection_reason = $2, updated_at = NOW() WHERE id = $3 RETURNING *',
+      [status, reason || null, id]
     );
 
     if (result.rows.length === 0) {
@@ -125,11 +157,11 @@ exports.updateJobStatus = async (req, res) => {
         title: status === 'approved' ? 'Tin tuyển dụng đã được duyệt' : 'Tin tuyển dụng bị từ chối',
         message:
           status === 'approved'
-            ? `Admin đã duyệt tin ${job.job_title || 'tuyển dụng'} của bạn.`
-            : `Admin đã từ chối tin ${job.job_title || 'tuyển dụng'} của bạn.`,
+            ? `Admin đã duyệt tin "${job.job_title}" của bạn.`
+            : `Admin đã từ chối tin "${job.job_title}" của bạn. Lý do: ${reason || 'Không có lý do cụ thể'}`,
         to: '/employer/dashboard',
         tab: 'jobs',
-        meta: { job_id: job.id },
+        meta: { job_id: job.id, reason },
       }).catch((notificationError) => {
         console.error('Create employer moderation notification error:', notificationError);
       });

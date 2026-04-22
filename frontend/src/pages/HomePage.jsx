@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import HeroSection from '../components/HeroSection';
+import AIJobRecommendations from '../components/AIJobRecommendations';
 import FilterSidebar from '../components/FilterSidebar';
 import JobList from '../components/JobList';
 import RightSidebar from '../components/RightSidebar';
@@ -67,6 +68,11 @@ export default function HomePage() {
     <>
       {/* Hero Section */}
       <HeroSection onSearch={handleSearch} />
+
+      {/* AI Job Recommendations — only visible to logged-in seekers */}
+      <div className="max-w-7xl mx-auto">
+        <AIJobRecommendations userCoordinates={searchParams.userCoordinates} />
+      </div>
 
       {/* Main Content: Filters + Job Feed + Sidebar */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">

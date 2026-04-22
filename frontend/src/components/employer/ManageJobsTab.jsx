@@ -41,8 +41,9 @@ function isRecruitmentClosed(job) {
   return Boolean(parsedDeadline && parsedDeadline < new Date());
 }
 
-function getModerationMeta(status) {
-  switch (normalizeModerationStatus(status)) {
+function getModerationMeta(job) {
+  const status = normalizeModerationStatus(job.status);
+  switch (status) {
     case 'pending':
       return {
         label: 'Chờ duyệt',
@@ -53,7 +54,7 @@ function getModerationMeta(status) {
       return {
         label: 'Từ chối',
         className: 'bg-red-100 text-red-700',
-        helper: 'Cần chỉnh sửa rồi gửi lại để admin xem xét.',
+        helper: job.rejection_reason || 'Cần chỉnh sửa rồi gửi lại để admin xem xét.',
       };
     default:
       return {
@@ -320,111 +321,132 @@ export default function ManageJobsTab() {
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse min-w-[980px]">
             <thead>
-              <tr className="bg-gray-50 border-b border-gray-100 text-xs uppercase text-gray-500 font-semibold tracking-wider">
-                <th className="p-4">Vị trí tuyển dụng</th>
+              <tr className="bg-slate-50 border-b border-slate-100 text-[11px] uppercase text-slate-500 font-bold tracking-widest">
+                <th className="p-4 rounded-tl-xl">Vị trí tuyển dụng</th>
                 <th className="p-4">Kiểm duyệt</th>
-                <th className="p-4">Hiển thị</th>
+                <th className="p-4">Trạng thái</th>
                 <th className="p-4 text-center">Ứng viên</th>
                 <th className="p-4">Hạn nộp</th>
-                <th className="p-4 text-right">Thao tác</th>
+                <th className="p-4 text-right rounded-tr-xl">Thao tác</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-100">
+            <tbody className="divide-y divide-slate-100">
               {jobs.length > 0 ? jobs.map((job) => {
-                const moderationMeta = getModerationMeta(job.status);
+                const moderationMeta = getModerationMeta(job);
                 const recruitmentMeta = getRecruitmentMeta(job);
                 const isApproved = normalizeModerationStatus(job.status) === 'approved';
+                const isActionLoading = actionLoading === job.id;
 
                 return (
-                  <tr key={job.id} className="hover:bg-gray-50/50 transition-colors">
+                  <tr 
+                    key={job.id} 
+                    className={`hover:bg-slate-50/80 transition-all duration-300 ${isActionLoading ? 'opacity-50 pointer-events-none' : ''}`}
+                  >
                     <td className="p-4">
                       <button
                         type="button"
                         onClick={() => setViewingJob(job)}
-                        className="font-semibold text-gray-800 text-left hover:text-navy-600 transition-colors"
+                        className="font-bold text-slate-800 text-left hover:text-navy-600 transition-colors line-clamp-1"
+                        title={job.title}
                       >
                         {job.title}
                       </button>
-                      <div className="text-xs text-gray-500 flex items-center gap-1 mt-1">
-                        <MapPin className="w-3 h-3" /> {job.location || 'Chưa cập nhật'}
+                      <div className="text-xs text-slate-500 flex items-center gap-1.5 mt-1.5 font-medium">
+                        <MapPin className="w-3.5 h-3.5 text-slate-400" /> {job.location || 'Chưa cập nhật'}
                       </div>
                     </td>
 
                     <td className="p-4">
-                      <div className="space-y-1.5">
-                        <span className={`inline-flex px-2.5 py-1 text-xs font-semibold rounded-full ${moderationMeta.className}`}>
+                      <div className="flex flex-col gap-1">
+                        <span className={`w-fit inline-flex px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider rounded-full ${moderationMeta.className}`}>
                           {moderationMeta.label}
                         </span>
-                        <p className="text-xs text-gray-500 max-w-[240px]">{moderationMeta.helper}</p>
+                        {normalizeModerationStatus(job.status) === 'rejected' && (
+                           <span className="text-[10px] text-red-500 font-medium truncate max-w-[150px]" title={job.rejection_reason}>
+                             {job.rejection_reason || 'Bị từ chối'}
+                           </span>
+                        )}
                       </div>
                     </td>
 
                     <td className="p-4">
                       {recruitmentMeta ? (
-                        <span className={`inline-flex px-2.5 py-1 text-xs font-semibold rounded-full ${recruitmentMeta.className}`}>
+                        <span className={`inline-flex px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider rounded-full ${recruitmentMeta.className} shadow-sm`}>
                           {recruitmentMeta.label}
                         </span>
                       ) : (
-                        <span className="text-xs text-gray-400">
+                        <span className="text-xs font-medium text-slate-400 italic">
                           {normalizeModerationStatus(job.status) === 'pending'
-                            ? 'Chưa hiển thị'
-                            : 'Đã ẩn khỏi trang công khai'}
+                            ? 'Đang chờ'
+                            : 'Đã ẩn'}
                         </span>
                       )}
                     </td>
 
-                    <td className="p-4 text-center font-medium text-navy-600">{job.applicant_count || 0}</td>
+                    <td className="p-4 text-center">
+                      <span className="inline-flex items-center justify-center min-w-[28px] h-7 px-2 bg-navy-50 text-navy-700 font-bold text-xs rounded-lg">
+                        {job.applicant_count || 0}
+                      </span>
+                    </td>
 
-                    <td className="p-4 text-sm text-gray-600">
+                    <td className="p-4 text-sm font-medium text-slate-600">
                       {parseJobDeadline(job.deadline)?.toLocaleDateString('vi-VN') || 'Không thời hạn'}
                     </td>
 
                     <td className="p-4">
-                      <div className="flex items-center justify-end gap-2">
-                        {actionLoading === job.id ? (
-                          <Loader2 className="w-4 h-4 text-navy-600 animate-spin" />
-                        ) : (
-                          <>
-                            <button
-                              onClick={() => setViewingJob(job)}
-                              className="p-1.5 text-gray-400 hover:text-blue-600 rounded transition-colors"
-                              title="Xem chi tiết"
-                            >
-                              <Eye className="w-4 h-4" />
-                            </button>
-                            <button
-                              onClick={() => openEditModal(job)}
-                              className="p-1.5 text-gray-400 hover:text-navy-600 rounded transition-colors"
-                              title="Chỉnh sửa"
-                            >
-                              <Edit className="w-4 h-4" />
-                            </button>
-                            {isApproved && (
-                              <button
-                                onClick={() => handleStatusChange(job)}
-                                className="p-1.5 text-gray-400 hover:text-amber-600 rounded transition-colors"
-                                title={recruitmentMeta?.label === 'Đang hiển thị' ? 'Ngừng tuyển' : 'Bật tuyển'}
-                              >
-                                <Power className="w-4 h-4" />
-                              </button>
-                            )}
-                            <button
-                              onClick={() => handleDelete(job.id)}
-                              className="p-1.5 text-gray-400 hover:text-red-600 rounded transition-colors"
-                              title="Xóa"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-                          </>
+                      <div className="flex items-center justify-end gap-1.5">
+                        <button
+                          onClick={() => setViewingJob(job)}
+                          disabled={isActionLoading}
+                          className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
+                          title="Xem chi tiết"
+                        >
+                          <Eye className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => openEditModal(job)}
+                          disabled={isActionLoading}
+                          className="p-2 text-slate-400 hover:text-navy-600 hover:bg-navy-50 rounded-lg transition-all"
+                          title="Chỉnh sửa"
+                        >
+                          <Edit className="w-4 h-4" />
+                        </button>
+                        {isApproved && (
+                          <button
+                            onClick={() => handleStatusChange(job)}
+                            disabled={isActionLoading}
+                            className={`p-2 rounded-lg transition-all ${
+                              recruitmentMeta?.label === 'Đang hiển thị' 
+                                ? 'text-slate-400 hover:text-amber-600 hover:bg-amber-50' 
+                                : 'text-slate-400 hover:text-emerald-600 hover:bg-emerald-50'
+                            }`}
+                            title={recruitmentMeta?.label === 'Đang hiển thị' ? 'Ngừng tuyển' : 'Bật tuyển'}
+                          >
+                            {isActionLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Power className="w-4 h-4" />}
+                          </button>
                         )}
+                        <button
+                          onClick={() => handleDelete(job.id)}
+                          disabled={isActionLoading}
+                          className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
+                          title="Xóa tin"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
                       </div>
                     </td>
                   </tr>
                 );
               }) : (
                 <tr>
-                  <td colSpan="6" className="p-20 text-center text-gray-500">
-                    Bạn chưa đăng tin tuyển dụng nào.
+                  <td colSpan="6" className="p-20 text-center text-slate-500">
+                    <div className="flex flex-col items-center justify-center">
+                      <Briefcase className="w-12 h-12 text-slate-300 mb-3" />
+                      <p className="font-medium">Bạn chưa đăng tin tuyển dụng nào.</p>
+                      <button onClick={() => navigate('/employer/post-job')} className="mt-4 text-sm font-semibold text-navy-600 hover:text-navy-700">
+                        + Tạo tin mới ngay
+                      </button>
+                    </div>
                   </td>
                 </tr>
               )}
@@ -471,10 +493,16 @@ export default function ManageJobsTab() {
                 <div className="bg-gray-50 p-4 rounded-xl space-y-3">
                   <div className="flex justify-between items-center gap-3 text-sm">
                     <span className="text-gray-500">Kiểm duyệt:</span>
-                    <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${getModerationMeta(viewingJob.status).className}`}>
-                      {getModerationMeta(viewingJob.status).label}
+                    <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${getModerationMeta(viewingJob).className}`}>
+                      {getModerationMeta(viewingJob).label}
                     </span>
                   </div>
+                  {normalizeModerationStatus(viewingJob.status) === 'rejected' && viewingJob.rejection_reason && (
+                    <div className="mt-2 p-3 bg-red-50 border border-red-100 rounded-lg text-xs text-red-600">
+                      <p className="font-bold mb-1 flex items-center gap-1"><AlertCircle className="w-3 h-3" /> Lý do từ chối:</p>
+                      {viewingJob.rejection_reason}
+                    </div>
+                  )}
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-500">Hiển thị:</span>
                     <span className="font-bold text-gray-800">{getRecruitmentMeta(viewingJob)?.label || 'Chưa hiển thị'}</span>
@@ -497,7 +525,7 @@ export default function ManageJobsTab() {
               </div>
 
               <div className="rounded-2xl border border-amber-100 bg-amber-50 px-4 py-3 text-sm text-amber-700">
-                {getModerationMeta(viewingJob.status).helper}
+                {getModerationMeta(viewingJob).helper}
               </div>
 
               <div className="space-y-6">
