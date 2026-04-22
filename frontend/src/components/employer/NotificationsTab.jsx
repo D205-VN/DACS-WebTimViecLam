@@ -1,38 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import { Bell, UserPlus, Clock, Info, CheckCircle2, Loader2, XCircle } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { useNotifications } from '../../context/NotificationContext';
 import API_BASE_URL from '../../config/api';
 import { useNavigate } from 'react-router-dom';
 
 export default function NotificationsTab() {
   const { token } = useAuth();
+  const { notifications, markAllAsRead } = useNotifications();
   const navigate = useNavigate();
-  const [notifications, setNotifications] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    const fetchNotifications = async () => {
-      try {
-        const res = await fetch(`${API_BASE_URL}/api/notifications?limit=50`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        const data = await res.json();
-        if (res.ok) {
-          setNotifications((data.data || []).map((item) => ({ ...item, read: true })));
-          await fetch(`${API_BASE_URL}/api/notifications/read-all`, {
-            method: 'POST',
-            headers: { Authorization: `Bearer ${token}` },
-          });
-          window.dispatchEvent(new Event('notifications-updated'));
-        }
-      } catch (err) {
-        console.error('Fetch notifications error:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    if (token) fetchNotifications();
+    // When visiting this tab, mark all as read
+    if (token) {
+      markAllAsRead();
+    }
   }, [token]);
 
   const getIcon = (type) => {

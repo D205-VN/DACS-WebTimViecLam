@@ -16,6 +16,7 @@ import {
   Users,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { useNotifications } from '../../context/NotificationContext';
 import API_BASE_URL from '../../config/api';
 
 const navItems = [
@@ -79,14 +80,13 @@ function formatDate(value) {
 
 export default function AdminDashboard() {
   const { user, logout, token } = useAuth();
+  const { notifications, unreadCount, markAllAsRead, fetchNotifications } = useNotifications();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('overview');
   const [searchTerm, setSearchTerm] = useState('');
   const [stats, setStats] = useState({ users: 0, jobs: 0, pendingJobs: 0, applied: 0 });
   const [users, setUsers] = useState([]);
   const [pendingJobs, setPendingJobs] = useState([]);
-  const [notifications, setNotifications] = useState([]);
-  const [unreadNotificationCount, setUnreadNotificationCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [jobActionLoading, setJobActionLoading] = useState(null);
 
@@ -127,74 +127,34 @@ export default function AdminDashboard() {
   }, [token]);
 
   useEffect(() => {
-    if (!token) return;
-
-    let cancelled = false;
-    const headers = { Authorization: `Bearer ${token}` };
-
-    const loadNotifications = async () => {
-      try {
-        const [notificationsRes, unreadRes] = await Promise.all([
-          fetch(`${API_BASE_URL}/api/notifications?limit=20`, { headers }),
-          fetch(`${API_BASE_URL}/api/notifications/unread-count`, { headers }),
-        ]);
-
-        const notificationsData = notificationsRes.ok ? await notificationsRes.json() : { data: [] };
-        const unreadData = unreadRes.ok ? await unreadRes.json() : { unread: 0 };
-
-        if (!cancelled) {
-          setNotifications(notificationsData.data || []);
-          setUnreadNotificationCount(unreadData.unread || 0);
-        }
-      } catch (err) {
-        console.error('Lỗi khi tải thông báo admin:', err);
-        if (!cancelled) {
-          setNotifications([]);
-          setUnreadNotificationCount(0);
-        }
-      }
-    };
-
-    const handleNotificationsUpdated = () => {
-      loadNotifications();
-    };
-
-    loadNotifications();
-    const intervalId = window.setInterval(loadNotifications, 30000);
-    window.addEventListener('notifications-updated', handleNotificationsUpdated);
-
-    return () => {
-      cancelled = true;
-      window.clearInterval(intervalId);
-      window.removeEventListener('notifications-updated', handleNotificationsUpdated);
-    };
-  }, [token]);
+    // If notifications change, maybe we want to refresh stats too?
+    // Especially if it's a new job pending notification
+    const lastNote = notifications[0];
+    if (lastNote && lastNote.type === 'admin_job_pending') {
+      // Re-fetch dashboard data to update stats and pending list
+      const headers = { Authorization: `Bearer ${token}` };
+      fetch(`${API_BASE_URL}/api/admin/stats`, { headers })
+        .then(res => res.json())
+        .then(data => { if (!data.error) setStats(data); });
+      
+      fetch(`${API_BASE_URL}/api/admin/jobs/pending`, { headers })
+        .then(res => res.json())
+        .then(data => { if (!data.error) setPendingJobs(data.data || []); });
+    }
+  }, [notifications, token]);
 
   const handleLogout = () => {
     logout();
     navigate('/login');
   };
 
-  const markNotificationsAsRead = async () => {
-    if (!token) return;
-
-    try {
-      await fetch(`${API_BASE_URL}/api/notifications/read-all`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      setNotifications((prev) => prev.map((item) => ({ ...item, read: true })));
-      setUnreadNotificationCount(0);
-      window.dispatchEvent(new Event('notifications-updated'));
-    } catch (err) {
-      console.error('Lỗi khi đánh dấu thông báo admin đã xem:', err);
-    }
+  const handleMarkNotificationsAsRead = async () => {
+    await markAllAsRead();
   };
 
   const handleOpenNotifications = async () => {
     setActiveTab('notifications');
-    await markNotificationsAsRead();
+    await handleMarkNotificationsAsRead();
   };
 
   const handleJobModeration = async (id, status) => {
@@ -352,9 +312,9 @@ export default function AdminDashboard() {
               title="Mở thông báo quản trị"
             >
               <Bell className="h-5 w-5" />
-              {unreadNotificationCount > 0 && (
+              {unreadCount > 0 && (
                 <span className="absolute right-1.5 top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-amber-500 px-1 text-[10px] font-bold text-white">
-                  {Math.min(unreadNotificationCount, 9)}
+                  {Math.min(unreadCount, 9)}
                 </span>
               )}
             </button>

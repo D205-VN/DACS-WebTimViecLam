@@ -21,6 +21,7 @@ import {
   X,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { useNotifications } from '../context/NotificationContext';
 import { getRouteByRole } from '../utils/roleRedirect';
 import API_BASE_URL from '../config/api';
 
@@ -329,16 +330,33 @@ export default function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [notificationOpen, setNotificationOpen] = useState(false);
-  const [notifications, setNotifications] = useState(null);
-  const [unreadCount, setUnreadCount] = useState(0);
   const { user, token, isAuthenticated, logout } = useAuth();
+  const { notifications, unreadCount, markAllAsRead } = useNotifications();
   const navigate = useNavigate();
   const location = useLocation();
   const dropdownRef = useRef(null);
   const notificationRef = useRef(null);
   const timeoutRef = useRef(null);
-  const notificationItems = notifications || [];
-  const notificationsLoading = Boolean(token) && notifications === null;
+
+  // Format notifications for the UI
+  const notificationItems = notifications.length > 0 
+    ? notifications.map(item => {
+        const typeMeta = getNotificationTypeMeta(item.type);
+        return {
+          id: item.id,
+          title: item.title,
+          description: item.message,
+          to: item.to || getDefaultNotificationDestination(user?.role_code),
+          state: item.tab ? { activeTab: item.tab } : undefined,
+          icon: typeMeta.icon,
+          iconClass: typeMeta.iconClass,
+          timestamp: item.created_at,
+          read: item.read,
+        };
+      }).slice(0, 10)
+    : [getEmptyNotification(user?.role_code)];
+
+  const notificationsLoading = false; // Handled by context
   const notificationPanelMeta = getNotificationPanelMeta(user?.role_code);
   const navLinks = getNavLinks(user?.role_code);
   const userMenuLinks = getUserMenuLinks(user?.role_code);
@@ -359,88 +377,8 @@ export default function Header() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  useEffect(() => {
-    if (!token || !user?.role_code) return undefined;
-
-    let cancelled = false;
-    const headers = { Authorization: `Bearer ${token}` };
-
-    const loadNotifications = async () => {
-      try {
-        const [notificationsRes, unreadRes] = await Promise.all([
-          fetch(`${API_BASE_URL}/api/notifications?limit=12`, { headers }),
-          fetch(`${API_BASE_URL}/api/notifications/unread-count`, { headers }),
-        ]);
-        const payload = notificationsRes.ok ? await notificationsRes.json() : { data: [] };
-        const unreadPayload = unreadRes.ok ? await unreadRes.json() : { unread: 0 };
-
-        let nextNotifications = sortNotificationsByTime(
-          (payload?.data || []).map((item) => {
-            const typeMeta = getNotificationTypeMeta(item.type);
-            return {
-              id: item.id,
-              title: item.title,
-              description: item.message,
-              to: item.to || getDefaultNotificationDestination(user.role_code),
-              state: item.tab ? { activeTab: item.tab } : undefined,
-              icon: typeMeta.icon,
-              iconClass: typeMeta.iconClass,
-              timestamp: item.created_at,
-              read: item.read,
-            };
-          })
-        ).slice(0, 6);
-
-        if (!nextNotifications.length) {
-          nextNotifications = [getEmptyNotification(user.role_code)];
-        }
-
-        if (!cancelled) {
-          setNotifications(nextNotifications);
-          setUnreadCount(unreadPayload?.unread || 0);
-        }
-      } catch {
-        if (!cancelled) {
-          setNotifications([getFallbackNotification(user.role_code)]);
-          setUnreadCount(0);
-        }
-      }
-    };
-
-    const handleNotificationsUpdated = () => {
-      loadNotifications();
-    };
-
-    loadNotifications();
-    const intervalId = window.setInterval(loadNotifications, 30000);
-    window.addEventListener('notifications-updated', handleNotificationsUpdated);
-
-    return () => {
-      cancelled = true;
-      window.clearInterval(intervalId);
-      window.removeEventListener('notifications-updated', handleNotificationsUpdated);
-    };
-  }, [token, user?.role_code]);
-
-  const markAllNotificationsAsRead = async () => {
-    if (!token) return;
-
-    try {
-      await fetch(`${API_BASE_URL}/api/notifications/read-all`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      setNotifications((prev) =>
-        (prev || []).map((item) =>
-          ['empty-state', 'fallback'].includes(item.id) ? item : { ...item, read: true }
-        )
-      );
-      setUnreadCount(0);
-      window.dispatchEvent(new Event('notifications-updated'));
-    } catch (err) {
-      console.error('Mark notifications as read error:', err);
-    }
+  const handleMarkAllRead = async () => {
+    await markAllAsRead();
   };
 
   const handleMouseEnter = () => {
@@ -498,7 +436,7 @@ export default function Header() {
                       setNotificationOpen(nextOpen);
                       setDropdownOpen(false);
                       if (nextOpen) {
-                        markAllNotificationsAsRead();
+                        handleMarkAllRead();
                       }
                     }}
                     className="relative rounded-lg p-2 text-gray-500 transition-colors hover:bg-navy-50 hover:text-navy-700"

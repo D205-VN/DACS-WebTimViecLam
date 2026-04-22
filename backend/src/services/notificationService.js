@@ -1,4 +1,5 @@
 const pool = require('../config/db');
+const { emitToUser } = require('../socket');
 
 let notificationsSchemaReady = false;
 
@@ -45,7 +46,18 @@ async function createNotification({ userId, type = 'info', title, message, to = 
     [userId, type, title, message, to, tab, meta]
   );
 
-  return result.rows[0] || null;
+  const notification = result.rows[0] || null;
+  
+  if (notification) {
+    // Real-time emit
+    emitToUser(userId, 'new_notification', {
+      ...notification,
+      to: notification.to_path || null,
+      read: false
+    });
+  }
+
+  return notification;
 }
 
 async function createNotificationsForUsers(userIds, payload) {

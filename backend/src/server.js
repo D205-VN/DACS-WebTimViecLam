@@ -1,8 +1,11 @@
 const express = require('express');
 const cors = require('cors');
 require('dotenv').config();
+const http = require('http');
+const socketManager = require('./socket');
 
 const app = express();
+const server = http.createServer(app);
 const PORT = process.env.PORT || 5001;
 
 const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
@@ -30,10 +33,13 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/employer', employerRoutes);
 app.use('/api/notifications', notificationRoutes);
 
+// Initialize Socket.io
+socketManager.init(server, frontendUrl);
+
 app.get('/api', (req, res) => {
     res.json({ message: 'Chào mừng đến với WebTimViec API' });
 });
 
-app.listen(PORT, () => {
+server.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
 });
