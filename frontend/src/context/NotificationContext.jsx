@@ -44,9 +44,12 @@ export const NotificationProvider = ({ children }) => {
         transports: ['websocket', 'polling']
       });
 
+      console.log('Attempting to connect to socket at:', socketUrl || window.location.origin);
+
       newSocket.on('connect', () => {
-        console.log('Connected to notification socket');
-        newSocket.emit('join', user.id);
+        console.log('Connected to notification socket. ID:', newSocket.id);
+        console.log('Joining room for user:', user.id);
+        newSocket.emit('join', String(user.id));
       });
 
       newSocket.on('new_notification', (notification) => {

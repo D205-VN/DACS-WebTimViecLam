@@ -2,14 +2,15 @@ import { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Briefcase, LayoutDashboard, FileText, Users, Building2, Plus, Bell, LogOut, ChevronDown, User, Shield, Menu, X } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { useNotifications } from '../../context/NotificationContext';
 import { getRouteByRole } from '../../utils/roleRedirect';
 import API_BASE_URL from '../../config/api';
 
 export default function EmployerHeader() {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [notificationCount, setNotificationCount] = useState(0);
   const { user, token, logout } = useAuth();
+  const { unreadCount } = useNotifications();
   const navigate = useNavigate();
   const location = useLocation();
   const dropdownRef = useRef(null);
@@ -31,41 +32,6 @@ export default function EmployerHeader() {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
-
-  useEffect(() => {
-    if (!token) return;
-
-    let cancelled = false;
-
-    const loadUnreadCount = () => {
-      fetch(`${API_BASE_URL}/api/notifications/unread-count`, {
-        headers: { Authorization: `Bearer ${token}` },
-      })
-        .then((res) => res.ok ? res.json() : { unread: 0 })
-        .then((data) => {
-          if (!cancelled) {
-            setNotificationCount(data.unread || 0);
-          }
-        })
-        .catch(() => {
-          if (!cancelled) setNotificationCount(0);
-        });
-    };
-
-    const handleNotificationsUpdated = () => {
-      loadUnreadCount();
-    };
-
-    loadUnreadCount();
-    const intervalId = window.setInterval(loadUnreadCount, 30000);
-    window.addEventListener('notifications-updated', handleNotificationsUpdated);
-
-    return () => {
-      cancelled = true;
-      window.clearInterval(intervalId);
-      window.removeEventListener('notifications-updated', handleNotificationsUpdated);
-    };
-  }, [token]);
 
   const handleMouseEnter = () => { clearTimeout(timeoutRef.current); setDropdownOpen(true); };
   const handleMouseLeave = () => { timeoutRef.current = setTimeout(() => setDropdownOpen(false), 200); };
@@ -136,9 +102,9 @@ export default function EmployerHeader() {
               title="Mở thông báo tuyển dụng"
             >
               <Bell className="w-5 h-5" />
-              {notificationCount > 0 && (
+              {unreadCount > 0 && (
                 <span className="absolute right-1 top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white">
-                  {Math.min(notificationCount, 9)}
+                  {Math.min(unreadCount, 9)}
                 </span>
               )}
             </button>
@@ -262,9 +228,9 @@ export default function EmployerHeader() {
               <Bell className="w-4 h-4" />
               Thông báo
             </span>
-            {notificationCount > 0 && (
+            {unreadCount > 0 && (
               <span className="rounded-full bg-red-500 px-2 py-0.5 text-[10px] font-bold text-white">
-                {Math.min(notificationCount, 9)}
+                {Math.min(unreadCount, 9)}
               </span>
             )}
           </button>

@@ -3,10 +3,10 @@ const { Server } = require('socket.io');
 let io;
 const userSockets = new Map(); // userId -> Set of socket IDs
 
-function init(httpServer, frontendUrl) {
+function init(httpServer, allowedOrigins) {
   io = new Server(httpServer, {
     cors: {
-      origin: frontendUrl,
+      origin: allowedOrigins,
       methods: ['GET', 'POST'],
       credentials: true
     }
@@ -17,13 +17,14 @@ function init(httpServer, frontendUrl) {
 
     socket.on('join', (userId) => {
       if (userId) {
-        console.log(`User ${userId} joined room`);
-        socket.join(`user_${userId}`);
+        const userIdStr = String(userId);
+        console.log(`User ${userIdStr} joined room`);
+        socket.join(`user_${userIdStr}`);
         
-        if (!userSockets.has(userId)) {
-          userSockets.set(userId, new Set());
+        if (!userSockets.has(userIdStr)) {
+          userSockets.set(userIdStr, new Set());
         }
-        userSockets.get(userId).add(socket.id);
+        userSockets.get(userIdStr).add(socket.id);
       }
     });
 
@@ -53,9 +54,10 @@ function getIO() {
 }
 
 function emitToUser(userId, event, data) {
-  if (io) {
-    console.log(`Emitting ${event} to user_${userId}`);
-    io.to(`user_${userId}`).emit(event, data);
+  if (io && userId) {
+    const userIdStr = String(userId);
+    console.log(`Emitting ${event} to user_${userIdStr}`);
+    io.to(`user_${userIdStr}`).emit(event, data);
   }
 }
 
