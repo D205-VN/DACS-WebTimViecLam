@@ -47,6 +47,16 @@ async function ensurePublicApplicationSchema() {
   `);
 
   await pool.query(`
+    CREATE TABLE IF NOT EXISTS job_alerts (
+      id SERIAL PRIMARY KEY,
+      user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+      job_id INTEGER REFERENCES jobs(id) ON DELETE CASCADE,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE(user_id, job_id)
+    )
+  `);
+
+  await pool.query(`
     CREATE TABLE IF NOT EXISTS user_cvs (
       id SERIAL PRIMARY KEY,
       user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
@@ -671,5 +681,42 @@ exports.updateInterviewPreference = async (req, res) => {
   } catch (err) {
     console.error('Update interview preference error:', err);
     res.status(500).json({ error: 'Lỗi khi lưu lựa chọn phỏng vấn' });
+  }
+};
+
+// GET /api/jobs/alert-ids — Lấy danh sách job_id đã đăng ký nhận thông báo tương tự (dùng cho UI)
+exports.getJobAlertIds = async (req, res) => {
+  try {
+    await ensurePublicApplicationSchema();
+    const result = await pool.query('SELECT job_id FROM job_alerts WHERE user_id = $1', [req.user.id]);
+    res.json({ ids: result.rows.map(r => r.job_id) });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Lỗi' });
+  }
+};
+
+// POST /api/jobs/:id/alert — Toggle đăng ký nhận thông báo việc tương tự (cần JWT)
+exports.toggleJobAlert = async (req, res) => {
+  try {
+    await ensurePublicApplicationSchema();
+    const jobId = req.params.id;
+    const userId = req.user.id;
+
+    const existing = await pool.query(
+      'SELECT id FROM job_alerts WHERE user_id = $1 AND job_id = $2',
+      [userId, jobId]
+    );
+
+    if (existing.rows.length > 0) {
+      await pool.query('DELETE FROM job_alerts WHERE user_id = $1 AND job_id = $2', [userId, jobId]);
+      res.json({ subscribed: false, message: 'Đã hủy nhận thông báo việc tương tự' });
+    } else {
+      await pool.query('INSERT INTO job_alerts (user_id, job_id) VALUES ($1, $2)', [userId, jobId]);
+      res.json({ subscribed: true, message: 'Đã đăng ký nhận thông báo việc tương tự' });
+    }
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Lỗi khi đăng ký nhận thông báo' });
   }
 };

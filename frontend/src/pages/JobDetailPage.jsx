@@ -41,13 +41,7 @@ export default function JobDetailPage() {
   const [activeTab, setActiveTab] = useState('description');
   const [similarJobs, setSimilarJobs] = useState([]);
   const [similarLoading, setSimilarLoading] = useState(false);
-  const [showAlertModal, setShowAlertModal] = useState(false);
-  const [alertCity, setAlertCity] = useState('');
-  const [alertIndustry, setAlertIndustry] = useState('');
-  const [alertLevel, setAlertLevel] = useState('');
-  const [alertSalary, setAlertSalary] = useState('');
-  const [alertFrequency, setAlertFrequency] = useState('daily');
-  const [sendNow, setSendNow] = useState(false);
+  const [alertSubscribed, setAlertSubscribed] = useState(false);
 
   const tabs = [
     { id: 'description', label: 'Mô tả' },
@@ -69,6 +63,8 @@ export default function JobDetailPage() {
         .then(r => r.json()).then(d => { if (d.ids?.includes(parseInt(id))) setSaved(true); });
       fetch(`${API}/applied`, { headers: { Authorization: `Bearer ${token}` } })
         .then(r => r.json()).then(d => { if (d.data?.some(j => j.id === parseInt(id))) setApplied(true); });
+      fetch(`${API}/alert-ids`, { headers: { Authorization: `Bearer ${token}` } })
+        .then(r => r.json()).then(d => { if (d.ids?.includes(parseInt(id))) setAlertSubscribed(true); });
     }
   }, [id, token]);
 
@@ -202,14 +198,17 @@ export default function JobDetailPage() {
     navigate(getCompanyFilterRoute(user?.role_code, companyName));
   };
 
-  const handleOpenAlertModal = () => {
-    setAlertCity(getRegionFromAddress(job.location, job.job_address, job.company_address));
-    setAlertIndustry(job.industry || '');
-    setAlertLevel('');
-    setAlertSalary('');
-    setAlertFrequency('daily');
-    setSendNow(false);
-    setShowAlertModal(true);
+  const handleSubscribeAlert = async () => {
+    if (!isAuthenticated) { navigate('/login'); return; }
+    setActionLoading('alert');
+    try {
+      const res = await fetch(`${API}/${id}/alert`, { method: 'POST', headers: { Authorization: `Bearer ${token}` } });
+      const data = await res.json();
+      setAlertSubscribed(data.subscribed);
+    } catch (err) {
+      console.error('Lỗi đăng ký nhận thông báo', err);
+    }
+    setActionLoading('');
   };
 
   return (
@@ -312,11 +311,16 @@ export default function JobDetailPage() {
               </button>
               <button
                 type="button"
-                onClick={handleOpenAlertModal}
-                className="inline-flex items-center justify-center gap-2 rounded-2xl border border-white/30 bg-white/10 px-4 py-3 text-sm font-semibold text-white transition hover:bg-white/20"
+                onClick={handleSubscribeAlert}
+                disabled={actionLoading === 'alert'}
+                className={`inline-flex items-center justify-center gap-2 rounded-2xl border px-4 py-3 text-sm font-semibold transition ${
+                  alertSubscribed
+                    ? 'border-cyan-200 bg-cyan-50 text-cyan-700'
+                    : 'border-white/30 bg-white/10 text-white hover:bg-white/20'
+                } disabled:cursor-not-allowed disabled:opacity-70`}
               >
-                <Bell className="w-4 h-4" />
-                Gửi cho tôi việc tương tự
+                {actionLoading === 'alert' ? <Loader2 className="w-4 h-4 animate-spin" /> : alertSubscribed ? <CheckCircle2 className="w-4 h-4" /> : <Bell className="w-4 h-4" />}
+                {alertSubscribed ? 'Đã gửi công việc tương tự' : 'Gửi cho tôi việc tương tự'}
               </button>
             </div>
             <div className="mt-3 rounded-3xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-slate-200">
@@ -352,140 +356,6 @@ export default function JobDetailPage() {
           </div>
         </div>
 
-        {showAlertModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 px-4 py-6">
-            <div className="w-full max-w-md overflow-hidden rounded-[2rem] bg-white shadow-2xl shadow-slate-900/30">
-              <div className="flex items-center justify-between border-b border-slate-200 px-6 py-5">
-                <div>
-                  <div className="text-xs uppercase tracking-[0.28em] text-slate-400">Thông báo việc làm</div>
-                  <h2 className="mt-2 text-lg font-semibold text-slate-900">Gửi cho tôi việc tương tự</h2>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setShowAlertModal(false)}
-                  className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-slate-100 text-slate-600 transition hover:bg-slate-200"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-
-              <div className="space-y-6 px-6 py-6">
-                <div className="space-y-3 rounded-[1.75rem] bg-slate-50 p-4">
-                  <div className="text-xs uppercase tracking-[0.24em] text-slate-500">Việc làm</div>
-                  <div className="flex items-center gap-2 rounded-full bg-white px-4 py-3 text-sm text-slate-700 shadow-sm">
-                    <Search className="w-4 h-4 text-slate-400" />
-                    <span className="truncate">{jobTitle || 'Việc làm tương tự'}</span>
-                  </div>
-                </div>
-
-                <div className="space-y-3 rounded-[1.75rem] border border-slate-200 bg-white p-4">
-                  <label className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Nhập tỉnh, thành phố</label>
-                  <div className="mt-2 flex items-center gap-2 rounded-3xl border border-slate-200 bg-slate-50 px-4 py-3">
-                    <MapPin className="w-4 h-4 text-slate-500" />
-                    <input
-                      value={alertCity}
-                      onChange={(e) => setAlertCity(e.target.value)}
-                      placeholder="Nhập tỉnh, thành phố"
-                      className="w-full bg-transparent text-sm text-slate-700 outline-none"
-                    />
-                  </div>
-                </div>
-
-                <div className="grid gap-3">
-                  <div className="rounded-[1.75rem] border border-slate-200 bg-slate-50 p-4">
-                    <label className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Ngành nghề</label>
-                    <select
-                      value={alertIndustry}
-                      onChange={(e) => setAlertIndustry(e.target.value)}
-                      className="mt-3 w-full rounded-3xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 outline-none"
-                    >
-                      <option value="">Chọn ngành nghề</option>
-                      <option value="Cơ khí">Cơ khí</option>
-                      <option value="CNTT">CNTT</option>
-                      <option value="Kinh doanh">Kinh doanh</option>
-                      <option value="Sản xuất">Sản xuất</option>
-                    </select>
-                  </div>
-                  <div className="rounded-[1.75rem] border border-slate-200 bg-slate-50 p-4">
-                    <label className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Cấp bậc</label>
-                    <select
-                      value={alertLevel}
-                      onChange={(e) => setAlertLevel(e.target.value)}
-                      className="mt-3 w-full rounded-3xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 outline-none"
-                    >
-                      <option value="">Chọn cấp bậc</option>
-                      <option value="Mới tốt nghiệp">Mới tốt nghiệp</option>
-                      <option value="Nhân viên">Nhân viên</option>
-                      <option value="Trưởng nhóm">Trưởng nhóm</option>
-                      <option value="Quản lý">Quản lý</option>
-                    </select>
-                  </div>
-                  <div className="rounded-[1.75rem] border border-slate-200 bg-slate-50 p-4">
-                    <label className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Mức lương</label>
-                    <select
-                      value={alertSalary}
-                      onChange={(e) => setAlertSalary(e.target.value)}
-                      className="mt-3 w-full rounded-3xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 outline-none"
-                    >
-                      <option value="">Chọn mức lương</option>
-                      <option value="< 10 triệu">Dưới 10 triệu</option>
-                      <option value="10 - 15 triệu">10 - 15 triệu</option>
-                      <option value="15 - 20 triệu">15 - 20 triệu</option>
-                      <option value="> 20 triệu">Trên 20 triệu</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div className="rounded-[1.75rem] border border-slate-200 bg-slate-50 p-4">
-                  <div className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Nhận thông báo</div>
-                  <div className="mt-3 grid gap-3">
-                    <label className="flex cursor-pointer items-center gap-3 rounded-3xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700">
-                      <input
-                        type="radio"
-                        checked={alertFrequency === 'daily'}
-                        onChange={() => setAlertFrequency('daily')}
-                        className="h-4 w-4 text-blue-600"
-                      />
-                      <span>Hàng ngày</span>
-                    </label>
-                    <label className="flex cursor-pointer items-center gap-3 rounded-3xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700">
-                      <input
-                        type="radio"
-                        checked={alertFrequency === 'weekly'}
-                        onChange={() => setAlertFrequency('weekly')}
-                        className="h-4 w-4 text-blue-600"
-                      />
-                      <span>Hàng tuần</span>
-                    </label>
-                  </div>
-                </div>
-
-                <label className="flex cursor-pointer items-center gap-3 rounded-3xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700">
-                  <input
-                    type="checkbox"
-                    checked={sendNow}
-                    onChange={(e) => setSendNow(e.target.checked)}
-                    className="h-4 w-4 text-blue-600"
-                  />
-                  <span>Gửi thông báo ngay bây giờ</span>
-                </label>
-              </div>
-
-              <div className="border-t border-slate-200 px-6 py-5">
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                  <button type="button" className="text-sm font-semibold text-blue-600">Xem việc phù hợp →</button>
-                  <button
-                    type="button"
-                    onClick={() => setShowAlertModal(false)}
-                    className="inline-flex items-center justify-center rounded-3xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-blue-700"
-                  >
-                    Tạo thông báo việc làm
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
 
         <div className="space-y-6">
           <section id="description" className="scroll-mt-28 bg-white rounded-[2rem] border border-slate-200 p-6 shadow-lg shadow-slate-200/40">
