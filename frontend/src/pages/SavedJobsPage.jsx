@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Bookmark, BookmarkX, MapPin, DollarSign, Clock, Briefcase, ArrowLeft, Loader2 } from 'lucide-react';
-import { useAuth } from '../context/AuthContext';
-import { getBackLabelByRole, getDefaultRouteByRole, getJobDetailRoute } from '../utils/roleRedirect';
-import API_BASE_URL from '../config/api';
+import { useAuth } from '@features/auth/AuthContext';
+import { getBackLabelByRole, getDefaultRouteByRole, getJobDetailRoute } from '@shared/utils/roleRedirect';
+import API_BASE_URL from '@shared/api/baseUrl';
 
 const API = `${API_BASE_URL}/api/jobs`;
 

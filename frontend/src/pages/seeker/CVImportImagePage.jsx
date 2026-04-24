@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowLeft, ImageUp, Loader2, Save, Download, CheckCircle } from 'lucide-react';
-import { useAuth } from '../../context/AuthContext';
-import SeekerToolsNav from '../../components/seeker/SeekerToolsNav';
-import API_BASE_URL from '../../config/api';
+import { useAuth } from '@features/auth/AuthContext';
+import SeekerToolsNav from '@features/seeker-tools/SeekerToolsNav';
+import API_BASE_URL from '@shared/api/baseUrl';
 
 const API = `${API_BASE_URL}/api/cv`;
 

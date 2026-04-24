@@ -1,8 +1,8 @@
 import { useDeferredValue, useEffect, useMemo, useState } from 'react';
 import { Briefcase, Building2, MapPin, Search, Users } from 'lucide-react';
 import { useSearchParams } from 'react-router-dom';
-import JobList from '../components/JobList';
-import API_BASE_URL from '../config/api';
+import JobList from '@widgets/home/JobList';
+import API_BASE_URL from '@shared/api/baseUrl';
 
 const API = `${API_BASE_URL}/api/jobs`;
 

@@ -15,9 +15,9 @@ import {
   UserCheck,
   Users,
 } from 'lucide-react';
-import { useAuth } from '../../context/AuthContext';
-import { useNotifications } from '../../context/NotificationContext';
-import API_BASE_URL from '../../config/api';
+import { useAuth } from '@features/auth/AuthContext';
+import { useNotifications } from '@features/notifications/NotificationContext';
+import API_BASE_URL from '@shared/api/baseUrl';
 
 const navItems = [
   { id: 'overview', label: 'Tổng quan', icon: LayoutDashboard },

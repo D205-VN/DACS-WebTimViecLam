@@ -1,9 +1,9 @@
 import { useDeferredValue, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight, BookOpen, Calendar, Clock3, Search, Sparkles } from 'lucide-react';
-import { useAuth } from '../context/AuthContext';
-import { blogCategories, blogPosts } from '../data/blogPosts';
-import { getBlogDetailRoute } from '../utils/roleRedirect';
+import { useAuth } from '@features/auth/AuthContext';
+import { blogCategories, blogPosts } from '@shared/content/blogPosts';
+import { getBlogDetailRoute } from '@shared/utils/roleRedirect';
 
 function formatDate(date) {
   return new Date(date).toLocaleDateString('vi-VN', {

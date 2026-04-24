@@ -1,10 +1,10 @@
 import { useMemo, useState, useEffect, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowLeft, FileText, Trash2, Download, Loader2, Sparkles, Calendar, Briefcase, ImageUp, Search, Eye, CheckCircle2, X } from 'lucide-react';
-import { useAuth } from '../../context/AuthContext';
-import SeekerToolsNav from '../../components/seeker/SeekerToolsNav';
-import { getBackLabelByRole, getDefaultRouteByRole } from '../../utils/roleRedirect';
-import API_BASE_URL from '../../config/api';
+import { useAuth } from '@features/auth/AuthContext';
+import SeekerToolsNav from '@features/seeker-tools/SeekerToolsNav';
+import { getBackLabelByRole, getDefaultRouteByRole } from '@shared/utils/roleRedirect';
+import API_BASE_URL from '@shared/api/baseUrl';
 
 const API = `${API_BASE_URL}/api/cv`;
 

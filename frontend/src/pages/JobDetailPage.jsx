@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { MapPin, DollarSign, Clock, Bookmark, BookmarkCheck, Briefcase, ArrowLeft, Send, CheckCircle2, Loader2, GraduationCap, Calendar, Bell, X, Search } from 'lucide-react';
-import { useAuth } from '../context/AuthContext';
-import { findProvinceByName, normalizeProvinceName, normalizeSearchText } from '../data/provinceCoordinates';
-import { getCompanyFilterRoute, getDefaultRouteByRole, getJobDetailRoute } from '../utils/roleRedirect';
-import API_BASE_URL from '../config/api';
+import { useAuth } from '@features/auth/AuthContext';
+import { findProvinceByName, normalizeProvinceName, normalizeSearchText } from '@shared/geo/provinceCoordinates';
+import { getCompanyFilterRoute, getDefaultRouteByRole, getJobDetailRoute } from '@shared/utils/roleRedirect';
+import API_BASE_URL from '@shared/api/baseUrl';
 
 const API = `${API_BASE_URL}/api/jobs`;
 

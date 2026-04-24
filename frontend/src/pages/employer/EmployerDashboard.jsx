@@ -1,15 +1,15 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { LayoutDashboard, FileText, Users, Building2, Plus } from 'lucide-react';
-import { useAuth } from '../../context/AuthContext';
-import API_BASE_URL from '../../config/api';
-import EmployerHeader from '../../components/employer/EmployerHeader';
-import ManageJobsTab from '../../components/employer/ManageJobsTab';
-import ManageCandidatesTab from '../../components/employer/ManageCandidatesTab';
-import CompanyProfileTab from '../../components/employer/CompanyProfileTab';
-import NotificationsTab from '../../components/employer/NotificationsTab';
-import AnalyticsTab from '../../components/employer/AnalyticsTab';
-import DashboardTab from '../../components/employer/DashboardTab';
+import { useAuth } from '@features/auth/AuthContext';
+import API_BASE_URL from '@shared/api/baseUrl';
+import EmployerHeader from '@widgets/employer/EmployerHeader';
+import ManageJobsTab from '@widgets/employer/ManageJobsTab';
+import ManageCandidatesTab from '@widgets/employer/ManageCandidatesTab';
+import CompanyProfileTab from '@widgets/employer/CompanyProfileTab';
+import NotificationsTab from '@widgets/employer/NotificationsTab';
+import AnalyticsTab from '@widgets/employer/AnalyticsTab';
+import DashboardTab from '@widgets/employer/DashboardTab';
 import { Bell, BarChart3 } from 'lucide-react';
 export default function EmployerDashboard() {
   const { user, token } = useAuth();

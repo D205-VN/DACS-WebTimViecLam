@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Briefcase, MapPin, DollarSign, Clock, FileText, Users, Tag, Calendar, Loader2, CheckCircle2, Building2 } from 'lucide-react';
-import { useAuth } from '../../context/AuthContext';
-import API_BASE_URL from '../../config/api';
-import EmployerHeader from '../../components/employer/EmployerHeader';
+import { useAuth } from '@features/auth/AuthContext';
+import API_BASE_URL from '@shared/api/baseUrl';
+import EmployerHeader from '@widgets/employer/EmployerHeader';
 
 const JOB_TYPES = ['Toàn thời gian', 'Bán thời gian', 'Thực tập', 'Freelance', 'Remote'];
 const EXPERIENCE_LEVELS = ['Không yêu cầu', 'Dưới 1 năm', '1-2 năm', '2-3 năm', '3-5 năm', 'Trên 5 năm'];

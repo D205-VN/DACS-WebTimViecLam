@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Mail, Lock, Eye, EyeOff, Briefcase, ArrowRight, Loader2 } from 'lucide-react';
-import { useAuth } from '../context/AuthContext';
-import { getDefaultRouteByRole } from '../utils/roleRedirect';
-import API_BASE_URL from '../config/api';
+import { useAuth } from '@features/auth/AuthContext';
+import { getDefaultRouteByRole } from '@shared/utils/roleRedirect';
+import API_BASE_URL from '@shared/api/baseUrl';
 
 const API_BASE = `${API_BASE_URL}/api/auth`;
 

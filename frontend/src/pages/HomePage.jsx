@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
-import HeroSection from '../components/HeroSection';
-import AIJobRecommendations from '../components/AIJobRecommendations';
-import FilterSidebar from '../components/FilterSidebar';
-import JobList from '../components/JobList';
-import RightSidebar from '../components/RightSidebar';
-import API_BASE_URL from '../config/api';
+import HeroSection from '@widgets/home/HeroSection';
+import AIJobRecommendations from '@widgets/home/AIJobRecommendations';
+import FilterSidebar from '@widgets/home/FilterSidebar';
+import JobList from '@widgets/home/JobList';
+import RightSidebar from '@widgets/home/RightSidebar';
+import API_BASE_URL from '@shared/api/baseUrl';
 
 const fallbackFilterOptions = {
   salaryRanges: [
