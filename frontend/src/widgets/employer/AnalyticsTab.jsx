@@ -129,23 +129,33 @@ export default function AnalyticsTab() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm h-80 flex flex-col">
           <h3 className="font-bold text-gray-800 mb-6">Ứng tuyển trong 7 ngày gần nhất</h3>
-          <div className="flex-1 border-b border-l border-gray-200 relative flex items-end justify-between px-2 pt-10 gap-3">
-            {weekly.map((item) => (
-              <div key={item.label} className="flex-1 flex flex-col items-center min-w-0">
-                <div
-                  className="w-full bg-navy-200 hover:bg-navy-400 transition-colors rounded-t-md relative group"
-                  style={{ height: `${Math.max((item.count / maxWeeklyCount) * 100, item.count > 0 ? 12 : 4)}%` }}
-                >
-                  <span className="absolute -top-8 left-1/2 -translate-x-1/2 bg-gray-800 text-white text-xs py-1 px-2 rounded opacity-0 group-hover:opacity-100 transition-opacity">
-                    {item.count}
-                  </span>
+          <div className="flex-1 flex flex-col min-h-0">
+            {/* Bar area */}
+            <div className="flex-1 border-l border-gray-200 relative flex items-end justify-between px-2 gap-3">
+              {weekly.map((item) => (
+                <div key={item.label} className="flex-1 flex justify-center min-w-0 h-full items-end">
+                  <div
+                    className="w-full bg-navy-200 hover:bg-navy-400 transition-colors rounded-t-md relative group cursor-pointer"
+                    style={{ height: `${Math.max((item.count / maxWeeklyCount) * 100, item.count > 0 ? 12 : 4)}%` }}
+                  >
+                    <span className="absolute -top-8 left-1/2 -translate-x-1/2 bg-gray-800 text-white text-xs py-1 px-2 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10">
+                      {item.count}
+                    </span>
+                  </div>
                 </div>
-                <span className="text-[10px] text-gray-400 mt-2">{item.label}</span>
-              </div>
-            ))}
-            {!weekly.length && (
-              <div className="absolute inset-0 flex items-center justify-center text-gray-400 text-sm">Chưa có dữ liệu 7 ngày gần nhất</div>
-            )}
+              ))}
+              {!weekly.length && (
+                <div className="absolute inset-0 flex items-center justify-center text-gray-400 text-sm">Chưa có dữ liệu 7 ngày gần nhất</div>
+              )}
+            </div>
+            {/* Labels */}
+            <div className="flex justify-between px-2 gap-3 border-t border-gray-200 pt-2 shrink-0">
+              {weekly.map((item) => (
+                <div key={item.label} className="flex-1 text-center">
+                  <span className="text-[10px] text-gray-400">{item.label}</span>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
 
