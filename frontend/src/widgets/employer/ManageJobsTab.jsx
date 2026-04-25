@@ -319,13 +319,14 @@ export default function ManageJobsTab() {
         {error && <div className="p-4 bg-red-50 text-red-600 text-sm border-b border-red-100">{error}</div>}
 
         <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse min-w-[980px]">
+          <table className="w-full text-left border-collapse min-w-[1080px]">
             <thead>
               <tr className="bg-slate-50 border-b border-slate-100 text-[11px] uppercase text-slate-500 font-bold tracking-widest">
                 <th className="p-4 rounded-tl-xl">Vị trí tuyển dụng</th>
                 <th className="p-4">Kiểm duyệt</th>
                 <th className="p-4">Trạng thái</th>
                 <th className="p-4 text-center">Ứng viên</th>
+                <th className="p-4 text-center">7 ngày gần nhất</th>
                 <th className="p-4">Hạn nộp</th>
                 <th className="p-4 text-right rounded-tr-xl">Thao tác</th>
               </tr>
@@ -389,6 +390,16 @@ export default function ManageJobsTab() {
                       </span>
                     </td>
 
+                    <td className="p-4 text-center">
+                      <span className={`inline-flex items-center justify-center min-w-[28px] h-7 px-2 font-bold text-xs rounded-lg ${
+                        parseInt(job.recent_applicant_count) > 0
+                          ? 'bg-emerald-50 text-emerald-700'
+                          : 'bg-gray-50 text-gray-400'
+                      }`}>
+                        {job.recent_applicant_count || 0}
+                      </span>
+                    </td>
+
                     <td className="p-4 text-sm font-medium text-slate-600">
                       {parseJobDeadline(job.deadline)?.toLocaleDateString('vi-VN') || 'Không thời hạn'}
                     </td>
@@ -439,7 +450,7 @@ export default function ManageJobsTab() {
                 );
               }) : (
                 <tr>
-                  <td colSpan="6" className="p-20 text-center text-slate-500">
+                  <td colSpan="7" className="p-20 text-center text-slate-500">
                     <div className="flex flex-col items-center justify-center">
                       <Briefcase className="w-12 h-12 text-slate-300 mb-3" />
                       <p className="font-medium">Bạn chưa đăng tin tuyển dụng nào.</p>

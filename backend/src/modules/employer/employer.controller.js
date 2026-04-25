@@ -271,7 +271,8 @@ async function getMyJobs(req, res) {
               j.salary, COALESCE(NULLIF(TRIM(j.status), ''), 'approved') as status,
               j.job_description as description, j.job_requirements as requirements,
               j.benefits, j.created_at, j.updated_at, j.number_candidate as positions, j.tags,
-              (SELECT COUNT(*) FROM applied_jobs WHERE job_id = j.id) as applicant_count
+              (SELECT COUNT(*) FROM applied_jobs WHERE job_id = j.id) as applicant_count,
+              (SELECT COUNT(*) FROM applied_jobs WHERE job_id = j.id AND created_at >= NOW() - INTERVAL '7 days') as recent_applicant_count
        FROM jobs j 
        WHERE j.employer_id = $1 
        ORDER BY j.created_at DESC`,
