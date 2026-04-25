@@ -105,7 +105,7 @@ export default function Footer() {
               </a>
               <div className="flex items-start gap-2 text-sm text-slate-300">
                 <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-emerald-400" />
-                <span>Tầng 12, Lagimark</span>
+                <span>Tầng 12, Lagimark, Bình Thạnh, Thành phố Hồ Chí Minh</span>
               </div>
             </div>
           </div>
