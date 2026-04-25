@@ -429,7 +429,7 @@ async function getProfile(req, res) {
   try {
     const userId = req.user.id;
     const result = await pool.query(
-      'SELECT id, email, full_name, company_name, company_description, company_city, company_website, company_size, phone, avatar_url FROM users WHERE id = $1',
+      'SELECT id, email, full_name, company_name, company_description, company_city, company_website, company_size, phone, avatar_url, company_cover_url FROM users WHERE id = $1',
       [userId]
     );
     res.json({ data: result.rows[0] });
@@ -446,14 +446,35 @@ async function getProfile(req, res) {
 async function updateProfile(req, res) {
   try {
     const userId = req.user.id;
-    const { company_name, company_description, company_city, company_website, company_size, phone } = req.body;
-    
+    const {
+      company_name,
+      company_description,
+      company_city,
+      company_website,
+      company_size,
+      phone,
+      avatar_url,
+      company_cover_url,
+    } = req.body;
+
+    const currentUserResult = await pool.query(
+      'SELECT avatar_url, company_cover_url FROM users WHERE id = $1',
+      [userId]
+    );
+    const currentUser = currentUserResult.rows[0] || {};
+    const resolveImageValue = (incomingValue, currentValue) => {
+      if (incomingValue === undefined) return currentValue || null;
+      const trimmed = String(incomingValue || '').trim();
+      return trimmed || null;
+    };
+
     const result = await pool.query(
       `UPDATE users 
        SET company_name = $1, company_description = $2, company_city = $3, 
-           company_website = $4, company_size = $5, phone = $6, updated_at = NOW()
-       WHERE id = $7
-       RETURNING id, company_name, company_description, company_city, company_website, company_size, phone`,
+           company_website = $4, company_size = $5, phone = $6,
+           avatar_url = $7, company_cover_url = $8, updated_at = NOW()
+       WHERE id = $9
+       RETURNING id, company_name, company_description, company_city, company_website, company_size, phone, avatar_url, company_cover_url`,
       [
         company_name?.trim() || null,
         company_description?.trim() || null,
@@ -461,6 +482,8 @@ async function updateProfile(req, res) {
         company_website?.trim() || null,
         company_size?.trim() || null,
         phone?.trim() || null,
+        resolveImageValue(avatar_url, currentUser.avatar_url),
+        resolveImageValue(company_cover_url, currentUser.company_cover_url),
         userId
       ]
     );

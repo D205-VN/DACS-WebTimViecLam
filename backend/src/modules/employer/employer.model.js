@@ -32,7 +32,15 @@ async function ensureEmployerProfileSchema() {
     ADD COLUMN IF NOT EXISTS company_description TEXT,
     ADD COLUMN IF NOT EXISTS company_website VARCHAR(255),
     ADD COLUMN IF NOT EXISTS company_size VARCHAR(255),
+    ADD COLUMN IF NOT EXISTS company_cover_url TEXT,
+    ADD COLUMN IF NOT EXISTS avatar_url TEXT,
     ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT NOW()
+  `);
+
+  await pool.query(`
+    ALTER TABLE users
+    ALTER COLUMN avatar_url TYPE TEXT,
+    ALTER COLUMN company_cover_url TYPE TEXT
   `);
 
   employerProfileSchemaReady = true;

@@ -1,16 +1,67 @@
-import React, { useState, useEffect } from 'react';
-import { Building2, Globe, MapPin, Mail, Phone, Users, Image as ImageIcon, Save, Loader2, Info, CheckCircle2 } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Globe, Image as ImageIcon, Save, Loader2, Info, CheckCircle2, Camera } from 'lucide-react';
 import { useAuth } from '@features/auth/AuthContext';
 import API_BASE_URL from '@shared/api/baseUrl';
 
+const MAX_IMAGE_SOURCE_SIZE = 8 * 1024 * 1024;
+const IMAGE_CONFIG = {
+  cover: { maxWidth: 1600, maxHeight: 520, quality: 0.84 },
+  avatar: { maxWidth: 640, maxHeight: 640, quality: 0.88 },
+};
+
+function readFileAsDataUrl(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = () => reject(new Error('Không đọc được ảnh. Vui lòng chọn ảnh khác.'));
+    reader.readAsDataURL(file);
+  });
+}
+
+async function buildProfileImageDataUrl(file, imageType) {
+  if (!file.type?.startsWith('image/')) {
+    throw new Error('Vui lòng chọn đúng định dạng ảnh.');
+  }
+
+  if (file.size > MAX_IMAGE_SOURCE_SIZE) {
+    throw new Error('Ảnh quá lớn. Vui lòng chọn ảnh dưới 8MB.');
+  }
+
+  const sourceDataUrl = await readFileAsDataUrl(file);
+  const config = IMAGE_CONFIG[imageType] || IMAGE_CONFIG.avatar;
+
+  return new Promise((resolve, reject) => {
+    const image = new window.Image();
+    image.onload = () => {
+      const scale = Math.min(1, config.maxWidth / image.width, config.maxHeight / image.height);
+      const width = Math.max(1, Math.round(image.width * scale));
+      const height = Math.max(1, Math.round(image.height * scale));
+      const canvas = document.createElement('canvas');
+      const context = canvas.getContext('2d');
+
+      canvas.width = width;
+      canvas.height = height;
+      context.fillStyle = '#ffffff';
+      context.fillRect(0, 0, width, height);
+      context.drawImage(image, 0, 0, width, height);
+      resolve(canvas.toDataURL('image/jpeg', config.quality));
+    };
+    image.onerror = () => reject(new Error('Ảnh không hợp lệ. Vui lòng chọn ảnh khác.'));
+    image.src = sourceDataUrl;
+  });
+}
+
 export default function CompanyProfileTab() {
-  const { token } = useAuth();
+  const { token, updateUser } = useAuth();
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [imageLoading, setImageLoading] = useState('');
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
   const [isEditing, setIsEditing] = useState(false);
+  const coverInputRef = useRef(null);
+  const avatarInputRef = useRef(null);
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -50,7 +101,25 @@ export default function CompanyProfileTab() {
       });
       const data = await res.json();
       if (res.ok) {
-        setProfile(prev => ({ ...prev, ...(data.data || {}) }));
+        const updatedProfile = data.data || {};
+        setProfile(prev => ({ ...prev, ...updatedProfile }));
+        updateUser(prev => {
+          if (!prev) return prev;
+
+          const pickUpdatedField = (field) => (
+            Object.prototype.hasOwnProperty.call(updatedProfile, field)
+              ? updatedProfile[field]
+              : prev[field]
+          );
+
+          return {
+            ...prev,
+            company_name: pickUpdatedField('company_name'),
+            company_city: pickUpdatedField('company_city'),
+            phone: pickUpdatedField('phone'),
+            avatar_url: pickUpdatedField('avatar_url'),
+          };
+        });
         setMessage('Cập nhật hồ sơ thành công!');
         setIsEditing(false);
       } else {
@@ -68,6 +137,27 @@ export default function CompanyProfileTab() {
     setProfile(prev => ({ ...prev, [name]: value }));
   };
 
+  const handleImageChange = async (event, fieldName, imageType) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+
+    if (!file) return;
+
+    setImageLoading(imageType);
+    setMessage('');
+    setError('');
+
+    try {
+      const imageDataUrl = await buildProfileImageDataUrl(file, imageType);
+      setProfile(prev => ({ ...prev, [fieldName]: imageDataUrl }));
+      setIsEditing(true);
+    } catch (err) {
+      setError(err.message || 'Không thể xử lý ảnh đã chọn');
+    } finally {
+      setImageLoading('');
+    }
+  };
+
   if (loading) return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-20 flex flex-col items-center justify-center">
       <Loader2 className="w-10 h-10 text-navy-700 animate-spin mb-4" />
@@ -77,16 +167,37 @@ export default function CompanyProfileTab() {
 
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-      <div className="h-48 bg-gradient-to-r from-navy-800 to-navy-600 relative">
-        <button className="absolute top-4 right-4 px-3 py-1.5 bg-white/20 hover:bg-white/30 text-white rounded-lg backdrop-blur-sm text-sm font-medium flex items-center gap-2 transition-colors">
-          <ImageIcon className="w-4 h-4" /> Thay đổi ảnh bìa
+      <div className="h-48 bg-gradient-to-r from-navy-800 to-navy-600 relative overflow-hidden">
+        {profile?.company_cover_url ? (
+          <img
+            src={profile.company_cover_url}
+            alt="Ảnh bìa công ty"
+            className="absolute inset-0 h-full w-full object-cover"
+          />
+        ) : null}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-black/5 to-black/10" />
+        <input
+          ref={coverInputRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={(event) => handleImageChange(event, 'company_cover_url', 'cover')}
+        />
+        <button
+          type="button"
+          onClick={() => coverInputRef.current?.click()}
+          disabled={imageLoading === 'cover'}
+          className="absolute top-4 right-4 z-10 px-3 py-1.5 bg-white/20 hover:bg-white/30 text-white rounded-lg backdrop-blur-sm text-sm font-medium flex items-center gap-2 transition-colors disabled:cursor-not-allowed disabled:opacity-70"
+        >
+          {imageLoading === 'cover' ? <Loader2 className="w-4 h-4 animate-spin" /> : <ImageIcon className="w-4 h-4" />}
+          {imageLoading === 'cover' ? 'Đang xử lý...' : 'Đổi ảnh bìa'}
         </button>
       </div>
       
       <div className="px-6 sm:px-10 pb-10 relative">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end -mt-16 mb-8 gap-4">
           <div className="flex items-end gap-5">
-            <div className="w-32 h-32 bg-white p-2 rounded-2xl shadow-lg border-2 border-white">
+            <div className="relative w-32 h-32 bg-white p-2 rounded-2xl shadow-lg border-2 border-white group">
               {profile?.avatar_url ? (
                 <img src={profile.avatar_url} alt="Logo" className="w-full h-full rounded-xl object-cover" />
               ) : (
@@ -94,8 +205,24 @@ export default function CompanyProfileTab() {
                   {profile?.company_name?.charAt(0) || profile?.full_name?.charAt(0)}
                 </div>
               )}
+              <input
+                ref={avatarInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(event) => handleImageChange(event, 'avatar_url', 'avatar')}
+              />
+              <button
+                type="button"
+                onClick={() => avatarInputRef.current?.click()}
+                disabled={imageLoading === 'avatar'}
+                className="absolute inset-x-3 bottom-3 flex items-center justify-center gap-1.5 rounded-lg bg-gray-900/75 px-2 py-1.5 text-[11px] font-semibold text-white opacity-100 backdrop-blur-sm transition-colors hover:bg-gray-900/85 disabled:cursor-not-allowed disabled:opacity-70 sm:opacity-0 sm:group-hover:opacity-100"
+              >
+                {imageLoading === 'avatar' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Camera className="w-3.5 h-3.5" />}
+                {imageLoading === 'avatar' ? 'Đang xử lý' : 'Đổi ảnh đại diện'}
+              </button>
             </div>
-            <div className="mb-2">
+            <div className="mb-0 sm:translate-y-2">
               <h1 className="text-2xl font-bold text-gray-800">{profile?.company_name || 'Tên công ty chưa cập nhật'}</h1>
               <p className="text-gray-500 flex items-center gap-1.5 mt-1">
                 <Globe className="w-4 h-4" /> {profile?.company_website || 'website.com'}
