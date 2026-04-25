@@ -100,13 +100,13 @@ export default function JobDetailPage() {
 
   useEffect(() => {
     if (job) {
-      document.title = `${job.title || job.job_title || 'Chi tiết việc làm'} | WebTimViec`;
+      document.title = `${job.title || job.job_title || 'Chi tiết việc làm'} | AptertekWork`;
     } else {
-      document.title = 'WebTimViec';
+      document.title = 'AptertekWork';
     }
 
     return () => {
-      document.title = 'WebTimViec';
+      document.title = 'AptertekWork';
     };
   }, [job]);
 

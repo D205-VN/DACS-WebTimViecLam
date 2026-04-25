@@ -1,7 +1,7 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const pool = require('../../infrastructure/database/postgres');
-const { sendOTPEmail } = require('./email.service');
+const { sendOTPEmail, sendPasswordResetOTPEmail } = require('./email.service');
 const { OAuth2Client } = require('google-auth-library');
 require('dotenv').config();
 
@@ -391,7 +391,133 @@ async function changePassword(req, res) {
   } catch (err) {
     console.error('Change password error:', err);
     res.status(500).json({ error: 'Đã xảy ra lỗi khi đổi mật khẩu' });
+   }
+}
+
+/**
+ * POST /api/auth/forgot-password
+ * Gửi mã OTP để đặt lại mật khẩu
+ */
+async function forgotPassword(req, res) {
+  const { email } = req.body;
+
+  if (!email?.trim()) {
+    return res.status(400).json({ error: 'Vui lòng nhập email' });
+  }
+
+  try {
+    const user = await pool.query('SELECT id, is_verified, password_hash FROM users WHERE email = $1', [email]);
+    if (user.rows.length === 0) {
+      return res.status(404).json({ error: 'Email không tồn tại trong hệ thống' });
+    }
+    if (!user.rows[0].is_verified) {
+      return res.status(400).json({ error: 'Tài khoản chưa được xác thực email. Vui lòng đăng ký lại.' });
+    }
+    if (!user.rows[0].password_hash) {
+      return res.status(400).json({ error: 'Tài khoản này được đăng ký qua Google. Vui lòng đăng nhập bằng Google.' });
+    }
+
+    const otp = generateOTP();
+    const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
+
+    // Use prefix 'reset:' to distinguish from registration OTPs
+    const resetEmail = `reset:${email}`;
+    await pool.query('DELETE FROM email_otps WHERE email = $1', [resetEmail]);
+    await pool.query(
+      'INSERT INTO email_otps (email, otp, expires_at) VALUES ($1, $2, $3)',
+      [resetEmail, otp, expiresAt]
+    );
+
+    await sendPasswordResetOTPEmail(email, otp);
+
+    res.json({ message: 'Mã xác thực đã được gửi đến email của bạn.', email });
+  } catch (err) {
+    console.error('Forgot password error:', err);
+    res.status(500).json({ error: 'Đã xảy ra lỗi khi gửi mã xác thực' });
   }
 }
 
-module.exports = { register, verifyOTP, resendOTP, login, googleAuth, getMe, updateProfile, changePassword };
+/**
+ * POST /api/auth/verify-reset-otp
+ * Xác thực mã OTP cho đặt lại mật khẩu
+ */
+async function verifyResetOTP(req, res) {
+  const { email, otp } = req.body;
+
+  if (!email || !otp) {
+    return res.status(400).json({ error: 'Vui lòng nhập đầy đủ email và mã OTP' });
+  }
+
+  try {
+    const resetEmail = `reset:${email}`;
+    const result = await pool.query(
+      'SELECT * FROM email_otps WHERE email = $1 AND otp = $2 AND expires_at > NOW() ORDER BY created_at DESC LIMIT 1',
+      [resetEmail, otp]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(400).json({ error: 'Mã OTP không hợp lệ hoặc đã hết hạn' });
+    }
+
+    // Generate a temporary reset token (valid 10 min)
+    const resetToken = jwt.sign(
+      { email, purpose: 'password_reset' },
+      process.env.JWT_SECRET,
+      { expiresIn: '10m' }
+    );
+
+    // Clean up OTP
+    await pool.query('DELETE FROM email_otps WHERE email = $1', [resetEmail]);
+
+    res.json({ message: 'Xác thực thành công! Bạn có thể đặt lại mật khẩu.', resetToken });
+  } catch (err) {
+    console.error('Verify reset OTP error:', err);
+    res.status(500).json({ error: 'Đã xảy ra lỗi khi xác thực mã OTP' });
+  }
+}
+
+/**
+ * POST /api/auth/reset-password
+ * Đặt lại mật khẩu mới (cần resetToken)
+ */
+async function resetPassword(req, res) {
+  const { resetToken, newPassword } = req.body;
+
+  if (!resetToken || !newPassword) {
+    return res.status(400).json({ error: 'Thiếu thông tin cần thiết' });
+  }
+
+  if (newPassword.length < 8) {
+    return res.status(400).json({ error: 'Mật khẩu mới phải có ít nhất 8 ký tự' });
+  }
+
+  try {
+    const decoded = jwt.verify(resetToken, process.env.JWT_SECRET);
+    if (decoded.purpose !== 'password_reset') {
+      return res.status(400).json({ error: 'Token không hợp lệ' });
+    }
+
+    const { email } = decoded;
+    const user = await pool.query('SELECT id FROM users WHERE email = $1', [email]);
+    if (user.rows.length === 0) {
+      return res.status(404).json({ error: 'Không tìm thấy tài khoản' });
+    }
+
+    const salt = await bcrypt.genSalt(10);
+    const newHash = await bcrypt.hash(newPassword, salt);
+    await pool.query('UPDATE users SET password_hash = $1 WHERE email = $2', [newHash, email]);
+
+    res.json({ message: 'Đặt lại mật khẩu thành công! Bạn có thể đăng nhập với mật khẩu mới.' });
+  } catch (err) {
+    if (err.name === 'TokenExpiredError') {
+      return res.status(400).json({ error: 'Phiên đặt lại mật khẩu đã hết hạn. Vui lòng thử lại.' });
+    }
+    if (err.name === 'JsonWebTokenError') {
+      return res.status(400).json({ error: 'Token không hợp lệ' });
+    }
+    console.error('Reset password error:', err);
+    res.status(500).json({ error: 'Đã xảy ra lỗi khi đặt lại mật khẩu' });
+  }
+}
+
+module.exports = { register, verifyOTP, resendOTP, login, googleAuth, getMe, updateProfile, changePassword, forgotPassword, verifyResetOTP, resetPassword };

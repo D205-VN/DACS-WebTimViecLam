@@ -84,7 +84,7 @@ export default function LoginPage() {
               <Briefcase className="w-6 h-6 text-white" />
             </div>
             <span className="text-2xl font-extrabold">
-              <span className="text-white">Viec</span><span className="text-emerald-400">Lam</span><span className="text-navy-300">.vn</span>
+              <span className="text-white">Aptertek</span><span className="text-emerald-400">Work</span><span className="text-navy-300">.vn</span>
             </span>
           </div>
           <h2 className="text-4xl xl:text-5xl font-extrabold text-white leading-tight mb-6">
@@ -106,7 +106,7 @@ export default function LoginPage() {
             <div className="w-9 h-9 bg-gradient-to-br from-navy-600 to-navy-800 rounded-xl flex items-center justify-center shadow-lg shadow-navy-700/20">
               <Briefcase className="w-5 h-5 text-white" />
             </div>
-            <span className="text-xl font-extrabold"><span className="text-navy-700">Viec</span><span className="text-emerald-500">Lam</span><span className="text-navy-400">.vn</span></span>
+            <span className="text-xl font-extrabold"><span className="text-navy-700">Aptertek</span><span className="text-emerald-500">Work</span><span className="text-navy-400">.vn</span></span>
           </div>
 
           {error && <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-600">{error}</div>}
@@ -128,7 +128,7 @@ export default function LoginPage() {
             <div>
               <div className="flex items-center justify-between mb-1.5">
                 <label className="block text-sm font-semibold text-gray-700">Mật khẩu</label>
-                <a href="#" className="text-xs text-navy-600 hover:text-navy-800 font-medium">Quên mật khẩu?</a>
+                <Link to="/forgot-password" className="text-xs text-navy-600 hover:text-navy-800 font-medium">Quên mật khẩu?</Link>
               </div>
               <div className="relative">
                 <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />

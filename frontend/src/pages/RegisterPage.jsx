@@ -182,7 +182,7 @@ export default function RegisterPage() {
               <Briefcase className="w-6 h-6 text-white" />
             </div>
             <span className="text-2xl font-extrabold">
-              <span className="text-white">Viec</span><span className="text-emerald-400">Lam</span><span className="text-navy-300">.vn</span>
+              <span className="text-white">Aptertek</span><span className="text-emerald-400">Work</span><span className="text-navy-300">.vn</span>
             </span>
           </div>
           <h2 className="text-4xl xl:text-5xl font-extrabold text-white leading-tight mb-6">
@@ -203,7 +203,7 @@ export default function RegisterPage() {
             <div className="w-9 h-9 bg-gradient-to-br from-navy-600 to-navy-800 rounded-xl flex items-center justify-center shadow-lg shadow-navy-700/20">
               <Briefcase className="w-5 h-5 text-white" />
             </div>
-            <span className="text-xl font-extrabold"><span className="text-navy-700">Viec</span><span className="text-emerald-500">Lam</span><span className="text-navy-400">.vn</span></span>
+            <span className="text-xl font-extrabold"><span className="text-navy-700">Aptertek</span><span className="text-emerald-500">Work</span><span className="text-navy-400">.vn</span></span>
           </div>
 
           {/* Error display */}

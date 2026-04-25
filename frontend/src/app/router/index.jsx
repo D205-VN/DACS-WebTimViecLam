@@ -9,6 +9,7 @@ import BlogDetailPage from '@pages/BlogDetailPage';
 import LoginPage from '@pages/LoginPage';
 import RegisterPage from '@pages/RegisterPage';
 import ChangePasswordPage from '@pages/ChangePasswordPage';
+import ForgotPasswordPage from '@pages/ForgotPasswordPage';
 import ProfilePage from '@pages/ProfilePage';
 import JobDetailPage from '@pages/JobDetailPage';
 import SavedJobsPage from '@pages/SavedJobsPage';
@@ -51,6 +52,7 @@ const router = createBrowserRouter([
   { path: '/blog/:slug', element: <MainLayout><BlogDetailPage /></MainLayout> },
   { path: '/login', element: <LoginPage /> },
   { path: '/register', element: <RegisterPage /> },
+  { path: '/forgot-password', element: <ForgotPasswordPage /> },
   { path: '/jobs/:id', element: <MainLayout><JobDetailPage /></MainLayout> },
   { path: '/profile', element: <MainLayout><ProtectedRoute><ProfilePage /></ProtectedRoute></MainLayout> },
   { path: '/change-password', element: <MainLayout><ProtectedRoute><ChangePasswordPage /></ProtectedRoute></MainLayout> },
