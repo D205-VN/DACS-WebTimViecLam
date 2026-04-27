@@ -18,8 +18,10 @@ import AdminDashboard from '@pages/admin/AdminDashboard';
 import CVBuilderPage from '@pages/seeker/CVBuilderPage';
 import ManageCVsPage from '@pages/seeker/ManageCVsPage';
 import CVImportImagePage from '@pages/seeker/CVImportImagePage';
+import BlockchainVerificationPage from '@pages/seeker/BlockchainVerificationPage';
 import EmployerDashboard from '@pages/employer/EmployerDashboard';
 import PostJob from '@pages/employer/PostJob';
+import VerificationPublicPage from '@pages/VerificationPublicPage';
 
 function RoleBasedHome() {
   const { user, isAuthenticated, loading } = useAuth();
@@ -54,6 +56,7 @@ const router = createBrowserRouter([
   { path: '/register', element: <RegisterPage /> },
   { path: '/forgot-password', element: <ForgotPasswordPage /> },
   { path: '/jobs/:id', element: <MainLayout><JobDetailPage /></MainLayout> },
+  { path: '/verify/:code', element: <MainLayout><VerificationPublicPage /></MainLayout> },
   { path: '/profile', element: <MainLayout><ProtectedRoute><ProfilePage /></ProtectedRoute></MainLayout> },
   { path: '/change-password', element: <MainLayout><ProtectedRoute><ChangePasswordPage /></ProtectedRoute></MainLayout> },
   { path: '/employer/change-password', element: <MainLayout><EmployerRoute><ChangePasswordPage /></EmployerRoute></MainLayout> },
@@ -73,9 +76,11 @@ const router = createBrowserRouter([
   { path: '/seeker/cv-builder', element: <MainLayout><SeekerRoute><CVBuilderPage /></SeekerRoute></MainLayout> },
   { path: '/seeker/my-cvs', element: <MainLayout><SeekerRoute><ManageCVsPage /></SeekerRoute></MainLayout> },
   { path: '/seeker/cv-import', element: <MainLayout><SeekerRoute><CVImportImagePage /></SeekerRoute></MainLayout> },
+  { path: '/seeker/blockchain-verification', element: <MainLayout><SeekerRoute><BlockchainVerificationPage /></SeekerRoute></MainLayout> },
   { path: '/cv-builder', element: <Navigate to="/seeker/cv-builder" replace /> },
   { path: '/my-cvs', element: <Navigate to="/seeker/my-cvs" replace /> },
   { path: '/cv-import', element: <Navigate to="/seeker/cv-import" replace /> },
+  { path: '/blockchain-verification', element: <Navigate to="/seeker/blockchain-verification" replace /> },
   { path: '/employer/dashboard', element: <EmployerRoute><EmployerDashboard /></EmployerRoute> },
   { path: '/employer/post-job', element: <EmployerRoute><PostJob /></EmployerRoute> },
   { path: '/admin', element: <Navigate to="/admin/dashboard" replace /> },

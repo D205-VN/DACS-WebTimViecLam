@@ -10,6 +10,7 @@ const ROUTE_BY_ROLE = {
     cvBuilder: '/seeker/cv-builder',
     myCvs: '/seeker/my-cvs',
     cvImport: '/seeker/cv-import',
+    blockchainVerification: '/seeker/blockchain-verification',
   },
   seeker: {
     home: '/seeker/home',
@@ -22,6 +23,7 @@ const ROUTE_BY_ROLE = {
     cvBuilder: '/seeker/cv-builder',
     myCvs: '/seeker/my-cvs',
     cvImport: '/seeker/cv-import',
+    blockchainVerification: '/seeker/blockchain-verification',
   },
   employer: {
     home: '/employer/dashboard',

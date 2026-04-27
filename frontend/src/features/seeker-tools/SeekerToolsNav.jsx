@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom';
-import { FileText, Sparkles } from 'lucide-react';
+import { FileText, ShieldCheck, Sparkles } from 'lucide-react';
 
 const seekerTools = [
   {
@@ -16,12 +16,19 @@ const seekerTools = [
     icon: FileText,
     gradient: 'from-navy-600 to-cyan-600',
   },
+  {
+    to: '/seeker/blockchain-verification',
+    label: 'Blockchain',
+    description: 'Xác thực CV và hồ sơ',
+    icon: ShieldCheck,
+    gradient: 'from-emerald-500 to-cyan-600',
+  },
 ];
 
 export default function SeekerToolsNav() {
   return (
     <div className="mb-8 rounded-2xl border border-gray-100 bg-white p-2 shadow-sm">
-      <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
+      <div className="grid grid-cols-1 gap-2 md:grid-cols-3">
         {seekerTools.map((tool) => (
           <NavLink
             key={tool.to}

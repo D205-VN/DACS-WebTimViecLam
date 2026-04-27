@@ -1,6 +1,7 @@
 const pool = require('../../infrastructure/database/postgres');
 const { createNotification, createNotificationsForUsers } = require('../notifications/notification.service');
 const { resolveCurrentLocationPayload } = require('../../core/utils/currentLocation');
+const { ensureVerificationSchema } = require('../verification/verification.model');
 const {
   ensureEmployerJobSchema,
   ensureEmployerProfileSchema,
@@ -60,6 +61,10 @@ function stripHtml(value = '') {
     .replace(/&amp;/gi, '&')
     .replace(/\s+/g, ' ')
     .trim();
+}
+
+function buildVerificationPublicUrl(verificationCode) {
+  return verificationCode ? `/verify/${verificationCode}` : null;
 }
 
 async function getCandidateOwnership(applicationId, employerId) {
@@ -374,6 +379,8 @@ async function getCandidateStats(req, res) {
 
 async function getCandidateById(req, res) {
   try {
+    await ensureVerificationSchema();
+
     const userId = req.user.id;
     const applicationId = req.params.id;
     const result = await pool.query(
@@ -389,7 +396,9 @@ async function getCandidateById(req, res) {
               cv.title as cv_title,
               cv.target_role as cv_target_role,
               cv.html_content as cv_html_content,
-              cv.created_at as cv_created_at
+              cv.created_at as cv_created_at,
+              cv_chain.verification_code as cv_verification_code,
+              cv_chain.created_at as cv_notarized_at
        FROM applied_jobs aj
        JOIN users u ON aj.user_id = u.id
        JOIN jobs j ON aj.job_id = j.id
@@ -400,6 +409,13 @@ async function getCandidateById(req, res) {
          ORDER BY CASE WHEN id = aj.cv_id THEN 0 ELSE 1 END, created_at DESC, id DESC
          LIMIT 1
        ) cv ON TRUE
+       LEFT JOIN LATERAL (
+         SELECT verification_code, created_at
+         FROM blockchain_blocks
+         WHERE asset_type = 'cv' AND asset_id = cv.id
+         ORDER BY block_index DESC
+         LIMIT 1
+       ) cv_chain ON TRUE
        WHERE aj.id = $1 AND j.employer_id = $2`,
       [applicationId, userId]
     );
@@ -413,6 +429,14 @@ async function getCandidateById(req, res) {
     const skills = cvPlainText
       ? cvPlainText.split(/[\n,|]/).map((item) => item.trim()).filter(Boolean).slice(0, 10)
       : [];
+    const workHistoriesResult = await pool.query(
+      `SELECT id, company_name, job_title, employment_type, start_date, end_date,
+              currently_working, summary, status, verification_code, created_at, updated_at
+       FROM user_work_histories
+       WHERE user_id = $1
+       ORDER BY currently_working DESC, start_date DESC NULLS LAST, created_at DESC, id DESC`,
+      [candidate.user_id]
+    );
 
     res.json({
       data: {
@@ -421,6 +445,10 @@ async function getCandidateById(req, res) {
         experience_summary: cvPlainText || '',
         cv_file_url: null,
         cv_html_content: candidate.cv_html_content || null,
+        work_histories: workHistoriesResult.rows.map((row) => ({
+          ...row,
+          public_url: buildVerificationPublicUrl(row.verification_code),
+        })),
       }
     });
   } catch (err) {

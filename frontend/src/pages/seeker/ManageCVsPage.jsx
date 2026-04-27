@@ -1,6 +1,6 @@
 import { useMemo, useState, useEffect, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, FileText, Trash2, Download, Loader2, Sparkles, Calendar, Briefcase, ImageUp, Search, Eye, CheckCircle2, X, ClipboardCheck } from 'lucide-react';
+import { ArrowLeft, FileText, Trash2, Download, Loader2, Sparkles, Calendar, Briefcase, ImageUp, Search, Eye, CheckCircle2, X, ClipboardCheck, ShieldCheck } from 'lucide-react';
 import { useAuth } from '@features/auth/AuthContext';
 import SeekerToolsNav from '@features/seeker-tools/SeekerToolsNav';
 import CVReviewModal from '@features/seeker-tools/CVReviewModal';
@@ -191,6 +191,9 @@ export default function ManageCVsPage() {
           </div>
         </div>
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+          <Link to="/seeker/blockchain-verification" className="flex items-center gap-2 px-5 py-2.5 bg-emerald-50 border border-emerald-100 text-emerald-700 font-semibold rounded-xl hover:bg-emerald-100 transition-all">
+            <ShieldCheck className="w-4 h-4" /> Blockchain
+          </Link>
           <Link to="/seeker/cv-import" className="flex items-center gap-2 px-5 py-2.5 bg-white border border-gray-200 text-gray-700 font-semibold rounded-xl hover:shadow-sm hover:bg-gray-50 transition-all">
             <ImageUp className="w-4 h-4" /> Import ảnh từ máy
           </Link>

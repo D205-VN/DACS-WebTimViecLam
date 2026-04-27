@@ -157,6 +157,14 @@ function getUserMenuLinks(roleCode) {
       iconClass: 'bg-indigo-50 text-indigo-500',
       match: (pathname) => pathname.startsWith('/seeker/my-cvs') || pathname.startsWith('/seeker/cv-import'),
     },
+    {
+      to: getRouteByRole(roleCode, 'blockchainVerification'),
+      label: 'Blockchain',
+      description: 'Xác thực CV và hồ sơ',
+      icon: Shield,
+      iconClass: 'bg-emerald-50 text-emerald-500',
+      match: (pathname) => pathname.startsWith('/seeker/blockchain-verification'),
+    },
   ];
 }
 
