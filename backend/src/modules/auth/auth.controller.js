@@ -294,6 +294,7 @@ async function updateProfile(req, res) {
     fullName,
     phone,
     avatarUrl,
+    avatar_url,
     companyName,
     companyEmail,
     companyCity,
@@ -332,7 +333,7 @@ async function updateProfile(req, res) {
       [
         nextFullName,
         resolveNextValue(phone, currentUser.phone),
-        resolveNextValue(avatarUrl, currentUser.avatar_url),
+        resolveNextValue(avatarUrl ?? avatar_url, currentUser.avatar_url),
         resolveNextValue(companyName, currentUser.company_name),
         resolveNextValue(companyEmail, currentUser.company_email),
         resolveNextValue(companyCity, currentUser.company_city),

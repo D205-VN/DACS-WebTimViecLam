@@ -3,6 +3,7 @@ const path = require('path');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 const pool = require('../../infrastructure/database/postgres');
 const { ensureCvSchema, ensurePrimaryCvForUser } = require('./cv.model');
+const { resolveCurrentLocationPayload } = require('../../core/utils/currentLocation');
 require('dotenv').config();
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
@@ -35,6 +36,17 @@ function formatHtmlText(value) {
   return String(value || '').trim().replace(/\n/g, '<br/>');
 }
 
+function formatSafeHtmlText(value) {
+  return String(value || '')
+    .trim()
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+    .replace(/\n/g, '<br/>');
+}
+
 function buildLocalCvHtml({
   fullName = '',
   email = '',
@@ -47,6 +59,7 @@ function buildLocalCvHtml({
   certifications = '',
   hobbies = '',
   portraitDataUrl = '',
+  currentLocation = '',
 } = {}) {
   const resolvedObjective =
     objective?.trim() ||
@@ -58,7 +71,12 @@ function buildLocalCvHtml({
   const resolvedSkills = skills?.trim() || 'Bổ sung các kỹ năng chuyên môn, công cụ và năng lực mềm liên quan tới vị trí ứng tuyển.';
   const resolvedCertifications = certifications?.trim() || 'Chưa cập nhật';
   const resolvedHobbies = hobbies?.trim() || 'Chưa cập nhật';
-  const headerMeta = [role?.trim(), email ? `Email: ${email}` : '', phone ? `SĐT: ${phone}` : '']
+  const headerMeta = [
+    role?.trim(),
+    currentLocation ? `Khu vực: ${currentLocation}` : '',
+    email ? `Email: ${email}` : '',
+    phone ? `SĐT: ${phone}` : '',
+  ]
     .filter(Boolean)
     .join(' | ');
 
@@ -112,6 +130,7 @@ function buildGeneratePrompt({
   certifications = '',
   hobbies = '',
   portraitDataUrl = '',
+  currentLocation = '',
 } = {}) {
   return `Bạn là chuyên gia viết CV chuyên nghiệp tại Việt Nam. Hãy tạo một CV hoàn chỉnh bằng tiếng Việt dưới dạng HTML đẹp mắt với inline CSS (không dùng class, không dùng external CSS).
 
@@ -120,6 +139,7 @@ Thông tin ứng viên:
 - Email: ${email || 'Chưa cung cấp'}
 - Điện thoại: ${phone || 'Chưa cung cấp'}
 - Vị trí ứng tuyển: ${role || 'Chưa cung cấp'}
+- Vị trí hiện tại: ${currentLocation || 'Chưa cung cấp'}
 - Ảnh chân dung: ${portraitDataUrl ? 'Đã cung cấp. Trong HTML hãy hiển thị ảnh ở phần đầu CV bằng thẻ img với src="__PORTRAIT__".' : 'Chưa cung cấp'}
 - Mục tiêu nghề nghiệp: ${objective || 'Chưa cung cấp'}
 - Học vấn: ${education || 'Chưa cung cấp'}
@@ -188,6 +208,340 @@ Yêu cầu dựng HTML:
 7. Chỉ trả về HTML hoàn chỉnh, không markdown, không giải thích.`;
 }
 
+function stripHtmlContent(value = '') {
+  return String(value || '')
+    .replace(/<style[\s\S]*?<\/style>/gi, ' ')
+    .replace(/<script[\s\S]*?<\/script>/gi, ' ')
+    .replace(/<br\s*\/?>/gi, '\n')
+    .replace(/<\/(p|div|li|h[1-6]|section|article|tr)>/gi, '\n')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/&amp;/gi, '&')
+    .replace(/&lt;/gi, '<')
+    .replace(/&gt;/gi, '>')
+    .replace(/&quot;/gi, '"')
+    .replace(/&#39;/gi, "'")
+    .replace(/[ \t]+/g, ' ')
+    .replace(/\n\s+/g, '\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
+function extractJsonObject(text = '') {
+  const cleaned = cleanModelHtml(text);
+  const match = cleaned.match(/\{[\s\S]*\}/);
+  return JSON.parse(match ? match[0] : cleaned);
+}
+
+function normalizePriority(priority) {
+  const normalized = String(priority || '').toLowerCase();
+  return ['high', 'medium', 'low'].includes(normalized) ? normalized : 'medium';
+}
+
+function buildCvReviewPrompt({ plainText = '', targetRole = '' } = {}) {
+  return `Bạn là chuyên gia tuyển dụng và chỉnh sửa CV tại Việt Nam. Hãy phân tích CV bên dưới và chỉ ra các chỗ cần sửa.
+
+Vị trí mục tiêu: ${targetRole || 'Chưa cung cấp'}
+
+Nội dung CV:
+${plainText || '(trống)'}
+
+Yêu cầu:
+1. Trả về CHỈ một JSON hợp lệ, không markdown, không giải thích ngoài JSON.
+2. Tập trung vào chỗ cần sửa thật cụ thể: thiếu thông tin, câu chữ chung chung, thiếu số liệu, thiếu kỹ năng liên quan, bố cục/độ dài.
+3. Không bịa kinh nghiệm mới cho ứng viên. Nếu cần ví dụ, viết ví dụ dạng khung để ứng viên tự điền số liệu thật.
+4. Schema JSON:
+{
+  "score": number,
+  "summary": string,
+  "strengths": string[],
+  "suggestions": [
+    {
+      "section": string,
+      "priority": "high" | "medium" | "low",
+      "issue": string,
+      "suggestion": string,
+      "example": string
+    }
+  ]
+}`;
+}
+
+function buildCvRevisionPrompt({ htmlContent = '', targetRole = '', suggestions = [] } = {}) {
+  const suggestionText = suggestions
+    .map((item, index) => {
+      const section = item?.section ? `Phần: ${item.section}` : 'Phần: CV';
+      const issue = item?.issue ? `Vấn đề: ${item.issue}` : '';
+      const suggestion = item?.suggestion ? `Cách sửa: ${item.suggestion}` : '';
+      const example = item?.example ? `Ví dụ tham khảo: ${item.example}` : '';
+      return `${index + 1}. ${[section, issue, suggestion, example].filter(Boolean).join(' | ')}`;
+    })
+    .join('\n');
+
+  return `Bạn là chuyên gia chỉnh sửa CV HTML tiếng Việt. Hãy cập nhật CV HTML bên dưới theo đúng các gợi ý được chọn.
+
+Vị trí mục tiêu: ${targetRole || 'Chưa cung cấp'}
+
+Gợi ý cần áp dụng:
+${suggestionText || 'Tối ưu câu chữ và bổ sung điểm còn thiếu nếu phù hợp.'}
+
+CV HTML hiện tại:
+${htmlContent || '(trống)'}
+
+Yêu cầu:
+1. Trả về CHỈ HTML hoàn chỉnh, không markdown, không giải thích.
+2. Giữ lại thông tin thật đã có, không bịa tên công ty, trường học, số liệu hoặc chứng chỉ.
+3. Nếu cần số liệu thật mà CV chưa có, dùng khung [điền số liệu thật] để ứng viên tự cập nhật.
+4. Giữ thiết kế inline CSS hiện có càng nhiều càng tốt, chỉ chỉnh nội dung/bố cục cần thiết.
+5. Không chèn script, iframe, external CSS hoặc ảnh placeholder từ bên ngoài.`;
+}
+
+function buildLocalCvReview({ plainText = '', targetRole = '' } = {}) {
+  const text = String(plainText || '').trim();
+  const lower = text.toLowerCase();
+  const words = text.match(/[a-zA-ZÀ-ỹ0-9]+/g) || [];
+  const suggestions = [];
+  const strengths = [];
+
+  const addSuggestion = (section, priority, issue, suggestion, example = '') => {
+    suggestions.push({ section, priority, issue, suggestion, example });
+  };
+
+  if (/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i.test(text)) {
+    strengths.push('Thông tin email đã xuất hiện trong CV.');
+  } else {
+    addSuggestion(
+      'Thông tin liên hệ',
+      'high',
+      'CV chưa có email hoặc email không rõ ràng.',
+      'Bổ sung email chuyên nghiệp ở phần đầu CV để nhà tuyển dụng liên hệ nhanh.',
+      'email.tenban@example.com'
+    );
+  }
+
+  if (/(?:\+?84|0)(?:\d[\s.-]?){8,10}\d/.test(text)) {
+    strengths.push('CV đã có số điện thoại liên hệ.');
+  } else {
+    addSuggestion(
+      'Thông tin liên hệ',
+      'high',
+      'CV chưa có số điện thoại dễ nhận diện.',
+      'Thêm số điện thoại ở header, cùng dòng với email hoặc địa chỉ.',
+      '09xx xxx xxx'
+    );
+  }
+
+  if (targetRole && lower.includes(targetRole.toLowerCase())) {
+    strengths.push('CV đã bám theo vị trí ứng tuyển mục tiêu.');
+  } else if (targetRole) {
+    addSuggestion(
+      'Định hướng ứng tuyển',
+      'medium',
+      'CV chưa nêu rõ vị trí mục tiêu.',
+      'Đưa vị trí ứng tuyển vào header hoặc phần tóm tắt để CV khớp hơn với tin tuyển dụng.',
+      `Ứng tuyển vị trí ${targetRole}`
+    );
+  }
+
+  if (!/mục tiêu|objective|summary|tóm tắt|giới thiệu/.test(lower)) {
+    addSuggestion(
+      'Mục tiêu nghề nghiệp',
+      'medium',
+      'Thiếu phần tóm tắt hoặc mục tiêu nghề nghiệp.',
+      'Thêm 2-3 câu tóm tắt năng lực chính, định hướng và giá trị có thể đóng góp.',
+      'Có kinh nghiệm về [kỹ năng], mong muốn đóng góp vào [mục tiêu công việc] tại [loại doanh nghiệp].'
+    );
+  }
+
+  if (/kinh nghiệm|experience|dự án|project/.test(lower)) {
+    strengths.push('CV đã có phần kinh nghiệm hoặc dự án.');
+  } else {
+    addSuggestion(
+      'Kinh nghiệm/Dự án',
+      'high',
+      'CV chưa có phần kinh nghiệm làm việc hoặc dự án nổi bật.',
+      'Bổ sung kinh nghiệm theo cấu trúc vai trò, nhiệm vụ, công nghệ/công cụ và kết quả đạt được.',
+      '- [Vai trò] tại [Công ty/Dự án]: thực hiện [nhiệm vụ], đạt [kết quả đo được].'
+    );
+  }
+
+  if (!/\d+/.test(text)) {
+    addSuggestion(
+      'Kết quả công việc',
+      'medium',
+      'CV thiếu số liệu chứng minh kết quả.',
+      'Thêm số liệu thật về quy mô, thời gian, hiệu suất, số người dùng, doanh thu hoặc mức cải thiện.',
+      'Tối ưu quy trình xử lý hồ sơ, giảm thời gian nhập liệu từ [x] phút xuống [y] phút.'
+    );
+  }
+
+  if (/kỹ năng|skills|công cụ|tools|technology|technologies/.test(lower)) {
+    strengths.push('CV đã có nhóm kỹ năng/công cụ.');
+  } else {
+    addSuggestion(
+      'Kỹ năng',
+      'high',
+      'Thiếu nhóm kỹ năng liên quan đến vị trí ứng tuyển.',
+      'Liệt kê kỹ năng chuyên môn, công cụ và kỹ năng mềm sát với mô tả công việc.',
+      'Kỹ năng: [công cụ 1], [công cụ 2], [kỹ năng chuyên môn], giao tiếp, làm việc nhóm.'
+    );
+  }
+
+  if (!/học vấn|education|đại học|cao đẳng|trường/.test(lower)) {
+    addSuggestion(
+      'Học vấn',
+      'low',
+      'Phần học vấn chưa rõ hoặc chưa có.',
+      'Bổ sung trường, chuyên ngành, thời gian học và thành tích liên quan nếu có.',
+      '[Tên trường] - [Chuyên ngành], [năm bắt đầu] - [năm kết thúc]'
+    );
+  }
+
+  if (words.length < 120) {
+    addSuggestion(
+      'Độ đầy đủ',
+      'high',
+      'CV đang khá ngắn, khó thể hiện năng lực.',
+      'Mở rộng phần kinh nghiệm, dự án, kỹ năng và thành tích để nhà tuyển dụng có đủ dữ liệu đánh giá.',
+      'Mỗi kinh nghiệm nên có 2-4 gạch đầu dòng mô tả việc đã làm và kết quả.'
+    );
+  } else if (words.length > 900) {
+    addSuggestion(
+      'Độ dài',
+      'medium',
+      'CV có thể đang quá dài.',
+      'Rút gọn nội dung ít liên quan, ưu tiên 1-2 trang với thông tin sát vị trí ứng tuyển.',
+      'Giữ các kinh nghiệm gần nhất và có tác động rõ nhất.'
+    );
+  } else {
+    strengths.push('Độ dài CV đang ở mức có thể đọc nhanh.');
+  }
+
+  if (!suggestions.length) {
+    addSuggestion(
+      'Tối ưu cuối',
+      'low',
+      'CV đã có cấu trúc cơ bản tốt nhưng vẫn có thể cá nhân hóa thêm.',
+      'So khớp từng kỹ năng và thành tích với mô tả công việc trước khi nộp.',
+      'Điều chỉnh phần tóm tắt để nhắc đúng tên vị trí và 2-3 yêu cầu chính của tin tuyển dụng.'
+    );
+  }
+
+  const penalty = suggestions.reduce((total, item) => {
+    if (item.priority === 'high') return total + 15;
+    if (item.priority === 'medium') return total + 9;
+    return total + 5;
+  }, 0);
+
+  return {
+    score: Math.max(45, Math.min(95, 100 - penalty)),
+    summary: suggestions.some((item) => item.priority === 'high')
+      ? 'CV cần bổ sung một số thông tin quan trọng trước khi dùng để ứng tuyển.'
+      : 'CV đã có nền tảng ổn, nên tinh chỉnh thêm để tăng mức độ phù hợp với vị trí.',
+    strengths: [...new Set(strengths)].slice(0, 5),
+    suggestions: suggestions.slice(0, 8),
+  };
+}
+
+function sanitizeCvReview(rawReview, fallbackReview) {
+  const suggestions = Array.isArray(rawReview?.suggestions)
+    ? rawReview.suggestions
+        .map((item) => ({
+          section: String(item?.section || 'CV').trim(),
+          priority: normalizePriority(item?.priority),
+          issue: String(item?.issue || '').trim(),
+          suggestion: String(item?.suggestion || '').trim(),
+          example: String(item?.example || '').trim(),
+        }))
+        .filter((item) => item.issue && item.suggestion)
+        .slice(0, 10)
+    : [];
+
+  const strengths = Array.isArray(rawReview?.strengths)
+    ? rawReview.strengths.map((item) => String(item || '').trim()).filter(Boolean).slice(0, 5)
+    : fallbackReview.strengths;
+
+  const score = Number(rawReview?.score);
+
+  return {
+    score: Number.isFinite(score) ? Math.max(0, Math.min(100, Math.round(score))) : fallbackReview.score,
+    summary: String(rawReview?.summary || fallbackReview.summary || '').trim(),
+    strengths,
+    suggestions: suggestions.length ? suggestions : fallbackReview.suggestions,
+  };
+}
+
+async function generateCvReview({ htmlContent = '', plainText = '', targetRole = '' } = {}) {
+  const text = (plainText || stripHtmlContent(htmlContent)).slice(0, 12000);
+  const fallbackReview = buildLocalCvReview({ plainText: text, targetRole });
+
+  if (!process.env.GEMINI_API_KEY) {
+    return fallbackReview;
+  }
+
+  try {
+    const model = genAI.getGenerativeModel({ model: 'gemini-flash-latest' });
+    const result = await model.generateContent(buildCvReviewPrompt({ plainText: text, targetRole }));
+    const parsed = extractJsonObject(result.response.text());
+    return sanitizeCvReview(parsed, fallbackReview);
+  } catch (err) {
+    console.error('CV review AI error, using local fallback:', err.message);
+    return fallbackReview;
+  }
+}
+
+function buildLocalRevisedCvHtml({ htmlContent = '', suggestions = [] } = {}) {
+  const normalizedSuggestions = suggestions
+    .map((item) => ({
+      section: String(item?.section || 'CV').trim(),
+      suggestion: String(item?.suggestion || '').trim(),
+      example: String(item?.example || '').trim(),
+    }))
+    .filter((item) => item.suggestion);
+
+  if (!normalizedSuggestions.length) return htmlContent;
+
+  const suggestionItems = normalizedSuggestions
+    .map((item) => `
+      <li style="margin-bottom: 10px;">
+        <strong>${formatSafeHtmlText(item.section)}:</strong> ${formatSafeHtmlText(item.suggestion)}
+        ${item.example ? `<br/><span style="color: #64748b;">Ví dụ: ${formatSafeHtmlText(item.example)}</span>` : ''}
+      </li>
+    `)
+    .join('');
+
+  const patchBlock = `
+    <div style="margin: 22px 0; border: 1px solid #fbbf24; border-radius: 18px; padding: 18px 20px; background: #fffbeb; color: #374151;">
+      <h2 style="margin: 0 0 12px 0; color: #92400e; font-size: 16px; text-transform: uppercase; letter-spacing: 0.04em;">Thông tin cần cập nhật</h2>
+      <ul style="margin: 0; padding-left: 20px;">${suggestionItems}</ul>
+    </div>
+  `;
+
+  if (String(htmlContent || '').includes('</div>')) {
+    return String(htmlContent).replace(/<\/div>\s*$/i, `${patchBlock}</div>`);
+  }
+
+  return `${htmlContent}${patchBlock}`;
+}
+
+async function generateRevisedCv({ htmlContent = '', targetRole = '', suggestions = [] } = {}) {
+  const fallbackHtml = buildLocalRevisedCvHtml({ htmlContent, suggestions });
+
+  if (!process.env.GEMINI_API_KEY) {
+    return fallbackHtml;
+  }
+
+  try {
+    const model = genAI.getGenerativeModel({ model: 'gemini-flash-latest' });
+    const result = await model.generateContent(buildCvRevisionPrompt({ htmlContent, targetRole, suggestions }));
+    const html = cleanModelHtml(result.response.text());
+    return html || fallbackHtml;
+  } catch (err) {
+    console.error('CV revise AI error, using local fallback:', err.message);
+    return fallbackHtml;
+  }
+}
+
 /**
  * GET /api/cv/suggestions
  * Lấy dữ liệu gợi ý từ Resume Knowledge Base
@@ -212,7 +566,26 @@ exports.getSuggestions = (req, res) => {
  */
 exports.generateCV = async (req, res) => {
   const { fullName, email, phone, role, objective, education, experience, skills, certifications, hobbies, portraitDataUrl } = req.body;
-  const payload = { fullName, email, phone, role, objective, education, experience, skills, certifications, hobbies, portraitDataUrl };
+  const resolvedLocation = resolveCurrentLocationPayload(req.body);
+
+  if (resolvedLocation.error) {
+    return res.status(400).json({ error: resolvedLocation.error });
+  }
+
+  const payload = {
+    fullName,
+    email,
+    phone,
+    role,
+    objective,
+    education,
+    experience,
+    skills,
+    certifications,
+    hobbies,
+    portraitDataUrl,
+    currentLocation: resolvedLocation.location,
+  };
   const prompt = buildGeneratePrompt(payload);
 
   try {
@@ -267,6 +640,11 @@ exports.saveCV = async (req, res) => {
     return res.status(400).json({ error: 'Nội dung CV không được trống' });
   }
 
+  const resolvedLocation = resolveCurrentLocationPayload(req.body);
+  if (resolvedLocation.error) {
+    return res.status(400).json({ error: resolvedLocation.error });
+  }
+
   try {
     await ensureCvSchema();
 
@@ -281,10 +659,19 @@ exports.saveCV = async (req, res) => {
     const isPrimary = primaryResult.rows.length === 0;
 
     const result = await pool.query(
-      `INSERT INTO user_cvs (user_id, title, target_role, html_content, is_primary) 
-       VALUES ($1, $2, $3, $4, $5)
+      `INSERT INTO user_cvs (user_id, title, target_role, html_content, is_primary, current_location, current_lat, current_lng) 
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
        RETURNING id, is_primary`,
-      [req.user.id, title || 'CV chưa đặt tên', target_role || 'Chưa rõ', html_content, isPrimary]
+      [
+        req.user.id,
+        title || 'CV chưa đặt tên',
+        target_role || 'Chưa rõ',
+        html_content,
+        isPrimary,
+        resolvedLocation.location,
+        resolvedLocation.lat,
+        resolvedLocation.lng,
+      ]
     );
     res.status(201).json({ message: 'Lưu CV thành công!', id: result.rows[0].id, is_primary: result.rows[0].is_primary });
   } catch (err) {
@@ -303,7 +690,7 @@ exports.getMyCVs = async (req, res) => {
     await ensurePrimaryCvForUser(req.user.id);
 
     const result = await pool.query(
-      `SELECT id, title, target_role, html_content, created_at, is_primary
+      `SELECT id, title, target_role, html_content, created_at, is_primary, current_location
        FROM user_cvs
        WHERE user_id = $1
        ORDER BY is_primary DESC, created_at DESC, id DESC`,
@@ -491,6 +878,119 @@ Nếu không chắc trường nào, để chuỗi rỗng.
     }
 
     return res.status(500).json({ error: 'Không thể import CV từ ảnh' });
+  }
+};
+
+exports.reviewCVContent = async (req, res) => {
+  const htmlContent = req.body?.html_content || req.body?.cv || '';
+  const plainText = req.body?.text || '';
+  const targetRole = req.body?.target_role || req.body?.role || '';
+
+  if (!htmlContent && !plainText) {
+    return res.status(400).json({ error: 'Nội dung CV không được trống' });
+  }
+
+  try {
+    const review = await generateCvReview({ htmlContent, plainText, targetRole });
+    res.json({ data: review });
+  } catch (err) {
+    console.error('Review CV content error:', err);
+    res.status(500).json({ error: 'Không thể phân tích CV' });
+  }
+};
+
+exports.reviewSavedCV = async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    await ensureCvSchema();
+
+    const result = await pool.query(
+      `SELECT id, title, target_role, html_content
+       FROM user_cvs
+       WHERE id = $1 AND user_id = $2`,
+      [id, req.user.id]
+    );
+
+    if (!result.rows.length) {
+      return res.status(404).json({ error: 'Không tìm thấy CV hoặc không có quyền xem' });
+    }
+
+    const cv = result.rows[0];
+    const review = await generateCvReview({
+      htmlContent: cv.html_content,
+      targetRole: cv.target_role || '',
+    });
+
+    res.json({
+      data: review,
+      cv: {
+        id: cv.id,
+        title: cv.title,
+        target_role: cv.target_role,
+      },
+    });
+  } catch (err) {
+    console.error('Review saved CV error:', err);
+    res.status(500).json({ error: 'Không thể phân tích CV' });
+  }
+};
+
+exports.reviseCVContent = async (req, res) => {
+  const htmlContent = req.body?.html_content || req.body?.cv || '';
+  const targetRole = req.body?.target_role || req.body?.role || '';
+  const suggestions = Array.isArray(req.body?.suggestions) ? req.body.suggestions : [];
+
+  if (!htmlContent) {
+    return res.status(400).json({ error: 'Nội dung CV không được trống' });
+  }
+
+  try {
+    const cv = await generateRevisedCv({ htmlContent, targetRole, suggestions });
+    res.json({ cv });
+  } catch (err) {
+    console.error('Revise CV content error:', err);
+    res.status(500).json({ error: 'Không thể sửa CV theo gợi ý' });
+  }
+};
+
+exports.reviseSavedCV = async (req, res) => {
+  const { id } = req.params;
+  const suggestions = Array.isArray(req.body?.suggestions) ? req.body.suggestions : [];
+
+  try {
+    await ensureCvSchema();
+
+    const existingResult = await pool.query(
+      `SELECT id, title, target_role, html_content
+       FROM user_cvs
+       WHERE id = $1 AND user_id = $2`,
+      [id, req.user.id]
+    );
+
+    if (!existingResult.rows.length) {
+      return res.status(404).json({ error: 'Không tìm thấy CV hoặc không có quyền sửa' });
+    }
+
+    const currentCv = existingResult.rows[0];
+    const revisedHtml = await generateRevisedCv({
+      htmlContent: currentCv.html_content,
+      targetRole: currentCv.target_role || '',
+      suggestions,
+    });
+
+    const updateResult = await pool.query(
+      `UPDATE user_cvs
+       SET html_content = $1
+       WHERE id = $2 AND user_id = $3
+       RETURNING id, title, target_role, html_content, created_at, is_primary`,
+      [revisedHtml, id, req.user.id]
+    );
+
+    res.json({ message: 'Đã sửa CV theo gợi ý', data: updateResult.rows[0] });
+  } catch (err) {
+    console.error('Revise saved CV error:', err);
+    res.status(500).json({ error: 'Không thể sửa CV theo gợi ý' });
   }
 };
 

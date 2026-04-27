@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, ImageUp, Loader2, Save, Download, CheckCircle } from 'lucide-react';
+import { ArrowLeft, ImageUp, Loader2, Save, Download, CheckCircle, LocateFixed, MapPin } from 'lucide-react';
 import { useAuth } from '@features/auth/AuthContext';
 import SeekerToolsNav from '@features/seeker-tools/SeekerToolsNav';
 import API_BASE_URL from '@shared/api/baseUrl';
+import { requestCurrentLocation } from '@shared/geo/currentLocation';
 
 const API = `${API_BASE_URL}/api/cv`;
 
@@ -18,6 +19,10 @@ export default function CVImportImagePage() {
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [saveMessage, setSaveMessage] = useState('');
   const [error, setError] = useState('');
+  const [currentLocation, setCurrentLocation] = useState('');
+  const [currentCoordinates, setCurrentCoordinates] = useState(null);
+  const [locationNotice, setLocationNotice] = useState(null);
+  const [detectingLocation, setDetectingLocation] = useState(false);
 
   const [extracted, setExtracted] = useState(null);
   const [cvHtml, setCvHtml] = useState('');
@@ -31,6 +36,36 @@ export default function CVImportImagePage() {
   }, [previewUrl]);
 
   const pickFile = () => fileInputRef.current?.click();
+
+  const hasCurrentLocation =
+    Boolean(currentLocation) &&
+    Number.isFinite(currentCoordinates?.lat) &&
+    Number.isFinite(currentCoordinates?.lng);
+
+  const handleDetectCurrentLocation = async () => {
+    setDetectingLocation(true);
+    setError('');
+    setLocationNotice(null);
+
+    try {
+      const result = await requestCurrentLocation();
+      setCurrentLocation(result.location);
+      setCurrentCoordinates(result.coords);
+      setLocationNotice({
+        type: 'success',
+        message: `Đã lấy vị trí hiện tại tại ${result.location}${result.accuracy ? ` (sai số khoảng ${result.accuracy}m)` : ''}.`,
+      });
+    } catch (err) {
+      setCurrentLocation('');
+      setCurrentCoordinates(null);
+      setLocationNotice({
+        type: 'error',
+        message: err.message || 'Không thể lấy vị trí hiện tại.',
+      });
+    } finally {
+      setDetectingLocation(false);
+    }
+  };
 
   const onFileChange = (e) => {
     const f = e.target.files?.[0];
@@ -80,6 +115,11 @@ export default function CVImportImagePage() {
 
   const handleSave = async () => {
     if (!cvHtml) return;
+    if (!hasCurrentLocation) {
+      setError('Vui lòng lấy vị trí hiện tại trước khi lưu CV.');
+      return;
+    }
+
     setSaving(true);
     try {
       const title = extracted?.role ? `CV - ${extracted.role}` : 'CV - Import ảnh';
@@ -90,6 +130,9 @@ export default function CVImportImagePage() {
           title,
           target_role: extracted?.role || '',
           html_content: cvHtml,
+          currentLocation,
+          currentLat: currentCoordinates.lat,
+          currentLng: currentCoordinates.lng,
         }),
       });
       const data = await res.json().catch(() => ({}));
@@ -143,6 +186,37 @@ export default function CVImportImagePage() {
 
       {error && <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-600">{error}</div>}
       {saveMessage && <div className="mb-4 p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-sm text-emerald-700">{saveMessage}</div>}
+
+      <div className="mb-6 rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
+          <div className="flex-1">
+            <label className="mb-1.5 flex items-center gap-1.5 text-sm font-semibold text-gray-700">
+              <MapPin className="w-4 h-4 text-gray-400" /> Vị trí hiện tại
+            </label>
+            <input
+              type="text"
+              value={currentLocation}
+              readOnly
+              placeholder="Bắt buộc lấy vị trí hiện tại trước khi lưu CV"
+              className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-700 placeholder:text-gray-400 transition-all focus:border-navy-400 focus:outline-none focus:ring-2 focus:ring-navy-200"
+            />
+            {locationNotice ? (
+              <p className={`mt-2 text-xs ${locationNotice.type === 'error' ? 'text-red-600' : 'text-emerald-700'}`}>
+                {locationNotice.message}
+              </p>
+            ) : null}
+          </div>
+          <button
+            type="button"
+            onClick={handleDetectCurrentLocation}
+            disabled={detectingLocation}
+            className="inline-flex items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm font-semibold text-navy-700 transition-colors hover:bg-navy-50 disabled:opacity-70"
+          >
+            {detectingLocation ? <Loader2 className="w-4 h-4 animate-spin" /> : <LocateFixed className="w-4 h-4" />}
+            {detectingLocation ? 'Đang lấy vị trí...' : currentLocation ? 'Lấy lại vị trí' : 'Lấy vị trí hiện tại'}
+          </button>
+        </div>
+      </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm">
@@ -201,7 +275,7 @@ export default function CVImportImagePage() {
                 <div className="flex gap-2">
                   <button
                     onClick={handleSave}
-                    disabled={saving || saveSuccess}
+                    disabled={saving || saveSuccess || !hasCurrentLocation}
                     className="flex items-center gap-1.5 px-4 py-2 text-sm font-semibold text-white bg-navy-600 rounded-lg hover:bg-navy-700 transition-colors disabled:opacity-70"
                   >
                     {saveSuccess ? <><CheckCircle className="w-4 h-4" /> Đã lưu</> : saving ? <><Loader2 className="w-4 h-4 animate-spin" /> Đang lưu...</> : <><Save className="w-4 h-4" /> Lưu</>}

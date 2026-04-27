@@ -1,15 +1,16 @@
 import { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { Briefcase, LayoutDashboard, FileText, Users, Building2, Plus, Bell, LogOut, ChevronDown, User, Shield, Menu, X } from 'lucide-react';
+import { Briefcase, LayoutDashboard, FileText, Users, Building2, Plus, Bell, LogOut, ChevronDown, Shield, Menu, X } from 'lucide-react';
 import { useAuth } from '@features/auth/AuthContext';
 import { useNotifications } from '@features/notifications/NotificationContext';
 import { getRouteByRole } from '@shared/utils/roleRedirect';
 import API_BASE_URL from '@shared/api/baseUrl';
+import UserAvatar from '@shared/ui/UserAvatar';
 
 export default function EmployerHeader() {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const { user, token, logout } = useAuth();
+  const { user, logout } = useAuth();
   const { unreadCount } = useNotifications();
   const navigate = useNavigate();
   const location = useLocation();
@@ -39,13 +40,7 @@ export default function EmployerHeader() {
   const handleLogout = () => {
     logout();
     setDropdownOpen(false);
-    setNotificationCount(0);
     navigate('/');
-  };
-
-  const getInitials = (name) => {
-    if (!name) return '?';
-    return name.split(' ').map(w => w[0]).slice(-2).join('').toUpperCase();
   };
 
   const isActive = (path) => location.pathname === path;
@@ -120,13 +115,13 @@ export default function EmployerHeader() {
                 onClick={() => setDropdownOpen(!dropdownOpen)}
                 className="flex items-center gap-2.5 px-2 py-1.5 rounded-xl hover:bg-gray-50 transition-all duration-200 cursor-pointer"
               >
-                {user?.avatar_url ? (
-                  <img src={user.avatar_url} alt={user.full_name} className="w-9 h-9 rounded-full object-cover ring-2 ring-navy-100" />
-                ) : (
-                  <div className="w-9 h-9 bg-gradient-to-br from-navy-500 to-navy-700 rounded-full flex items-center justify-center ring-2 ring-navy-100">
-                    <span className="text-white text-xs font-bold">{getInitials(user?.full_name)}</span>
-                  </div>
-                )}
+                <UserAvatar
+                  src={user?.avatar_url}
+                  alt={user?.full_name}
+                  className="w-9 h-9 rounded-full object-cover ring-2 ring-navy-100"
+                  fallbackClassName="flex w-9 h-9 items-center justify-center rounded-full bg-gradient-to-br from-navy-500 to-navy-700 ring-2 ring-navy-100"
+                  iconClassName="h-4 w-4 text-white"
+                />
                 <div className="text-left hidden lg:block">
                   <p className="text-sm font-semibold text-gray-800 leading-tight max-w-[120px] truncate">{user?.full_name || 'Employer'}</p>
                   <p className="text-[11px] text-gray-400 leading-tight">{user?.company_name || 'Nhà tuyển dụng'}</p>
@@ -138,13 +133,13 @@ export default function EmployerHeader() {
               <div className={`absolute right-0 top-full mt-2 w-64 bg-white border border-gray-100 rounded-2xl shadow-xl shadow-gray-200/50 overflow-hidden transition-all duration-200 origin-top-right ${dropdownOpen ? 'opacity-100 scale-100 translate-y-0' : 'opacity-0 scale-95 -translate-y-2 pointer-events-none'}`}>
                 <div className="px-4 py-4 bg-gradient-to-r from-navy-50 to-gray-50 border-b border-gray-100">
                   <div className="flex items-center gap-3">
-                    {user?.avatar_url ? (
-                      <img src={user.avatar_url} alt={user.full_name} className="w-11 h-11 rounded-full object-cover ring-2 ring-white shadow-sm" />
-                    ) : (
-                      <div className="w-11 h-11 bg-gradient-to-br from-navy-500 to-navy-700 rounded-full flex items-center justify-center ring-2 ring-white shadow-sm">
-                        <span className="text-white text-sm font-bold">{getInitials(user?.full_name)}</span>
-                      </div>
-                    )}
+                    <UserAvatar
+                      src={user?.avatar_url}
+                      alt={user?.full_name}
+                      className="w-11 h-11 rounded-full object-cover ring-2 ring-white shadow-sm"
+                      fallbackClassName="flex w-11 h-11 items-center justify-center rounded-full bg-gradient-to-br from-navy-500 to-navy-700 ring-2 ring-white shadow-sm"
+                      iconClassName="h-5 w-5 text-white"
+                    />
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-bold text-gray-800 truncate">{user?.full_name}</p>
                       <p className="text-xs text-gray-500 truncate">{user?.email}</p>

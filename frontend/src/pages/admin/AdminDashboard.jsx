@@ -18,6 +18,7 @@ import {
 import { useAuth } from '@features/auth/AuthContext';
 import { useNotifications } from '@features/notifications/NotificationContext';
 import API_BASE_URL from '@shared/api/baseUrl';
+import UserAvatar from '@shared/ui/UserAvatar';
 
 const navItems = [
   { id: 'overview', label: 'Tổng quan', icon: LayoutDashboard },
@@ -80,7 +81,7 @@ function formatDate(value) {
 
 export default function AdminDashboard() {
   const { user, logout, token } = useAuth();
-  const { notifications, unreadCount, markAllAsRead, fetchNotifications } = useNotifications();
+  const { notifications, unreadCount, markAllAsRead } = useNotifications();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('overview');
   const [searchTerm, setSearchTerm] = useState('');
@@ -328,17 +329,13 @@ export default function AdminDashboard() {
             </button>
 
             <div className="hidden items-center gap-3 rounded-2xl border border-white/10 bg-white/5 px-3 py-2 sm:flex">
-              {user?.avatar_url ? (
-                <img
-                  src={user.avatar_url}
-                  alt={user.full_name}
-                  className="h-10 w-10 rounded-full object-cover ring-2 ring-white/10"
-                />
-              ) : (
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-gray-700 to-gray-600 ring-2 ring-white/10">
-                  <span className="text-xs font-bold text-white">{getInitials(user?.full_name)}</span>
-                </div>
-              )}
+              <UserAvatar
+                src={user?.avatar_url}
+                alt={user?.full_name}
+                className="h-10 w-10 rounded-full object-cover ring-2 ring-white/10"
+                fallbackClassName="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-gray-700 to-gray-600 ring-2 ring-white/10"
+                iconClassName="h-4 w-4 text-white"
+              />
               <div className="text-left">
                 <p className="max-w-[160px] truncate text-sm font-semibold text-gray-100">
                   {user?.full_name || 'System Admin'}
@@ -906,17 +903,13 @@ export default function AdminDashboard() {
                       </p>
 
                       <div className="mt-6 flex items-center gap-4 rounded-2xl border border-white/10 bg-white/[0.03] p-5">
-                        {user?.avatar_url ? (
-                          <img
-                            src={user.avatar_url}
-                            alt={user.full_name}
-                            className="h-16 w-16 rounded-full object-cover ring-2 ring-white/10"
-                          />
-                        ) : (
-                          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-gray-700 to-gray-600 ring-2 ring-white/10">
-                            <span className="text-lg font-bold text-white">{getInitials(user?.full_name)}</span>
-                          </div>
-                        )}
+                        <UserAvatar
+                          src={user?.avatar_url}
+                          alt={user?.full_name}
+                          className="h-16 w-16 rounded-full object-cover ring-2 ring-white/10"
+                          fallbackClassName="flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-gray-700 to-gray-600 ring-2 ring-white/10"
+                          iconClassName="h-6 w-6 text-white"
+                        />
 
                         <div className="min-w-0">
                           <p className="truncate text-lg font-semibold text-white">{user?.full_name || 'System Admin'}</p>

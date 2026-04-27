@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Briefcase, MapPin, DollarSign, Clock, FileText, Users, Tag, Calendar, Loader2, CheckCircle2, Building2 } from 'lucide-react';
+import { ArrowLeft, Briefcase, MapPin, DollarSign, Clock, FileText, Users, Tag, Calendar, Loader2, CheckCircle2, Building2, LocateFixed } from 'lucide-react';
 import { useAuth } from '@features/auth/AuthContext';
 import API_BASE_URL from '@shared/api/baseUrl';
 import EmployerHeader from '@widgets/employer/EmployerHeader';
+import { requestCurrentLocation } from '@shared/geo/currentLocation';
 
 const JOB_TYPES = ['Toàn thời gian', 'Bán thời gian', 'Thực tập', 'Freelance', 'Remote'];
 const EXPERIENCE_LEVELS = ['Không yêu cầu', 'Dưới 1 năm', '1-2 năm', '2-3 năm', '3-5 năm', 'Trên 5 năm'];
@@ -14,13 +15,16 @@ export default function PostJob() {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState('');
+  const [currentLocation, setCurrentLocation] = useState('');
+  const [currentCoordinates, setCurrentCoordinates] = useState(null);
+  const [locationNotice, setLocationNotice] = useState(null);
+  const [detectingLocation, setDetectingLocation] = useState(false);
 
   const [formData, setFormData] = useState({
     title: '',
     description: '',
     requirements: '',
     benefits: '',
-    location: '',
     salary_min: '',
     salary_max: '',
     job_type: 'Toàn thời gian',
@@ -32,8 +36,43 @@ export default function PostJob() {
 
   const handleChange = (field, value) => setFormData(prev => ({ ...prev, [field]: value }));
 
+  const hasCurrentLocation =
+    Boolean(currentLocation) &&
+    Number.isFinite(currentCoordinates?.lat) &&
+    Number.isFinite(currentCoordinates?.lng);
+
+  const handleDetectCurrentLocation = async () => {
+    setDetectingLocation(true);
+    setError('');
+    setLocationNotice(null);
+
+    try {
+      const result = await requestCurrentLocation();
+      setCurrentLocation(result.location);
+      setCurrentCoordinates(result.coords);
+      setLocationNotice({
+        type: 'success',
+        message: `Đã lấy vị trí hiện tại tại ${result.location}${result.accuracy ? ` (sai số khoảng ${result.accuracy}m)` : ''}.`,
+      });
+    } catch (err) {
+      setCurrentLocation('');
+      setCurrentCoordinates(null);
+      setLocationNotice({
+        type: 'error',
+        message: err.message || 'Không thể lấy vị trí hiện tại.',
+      });
+    } finally {
+      setDetectingLocation(false);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!hasCurrentLocation) {
+      setError('Vui lòng lấy vị trí hiện tại trước khi đăng tin.');
+      return;
+    }
+
     setError('');
     setLoading(true);
 
@@ -50,6 +89,9 @@ export default function PostJob() {
           salary_max: formData.salary_max ? parseInt(formData.salary_max) : null,
           positions: parseInt(formData.positions) || 1,
           tags: formData.tags ? formData.tags.split(',').map(t => t.trim()) : [],
+          currentLocation,
+          currentLat: currentCoordinates.lat,
+          currentLng: currentCoordinates.lng,
         }),
       });
 
@@ -192,13 +234,31 @@ export default function PostJob() {
                 <label className={labelClass}>
                   <span className="flex items-center gap-1.5"><MapPin className="w-3.5 h-3.5" /> Địa điểm làm việc</span>
                 </label>
-                <input
-                  type="text"
-                  value={formData.location}
-                  onChange={(e) => handleChange('location', e.target.value)}
-                  placeholder="VD: TP. Hồ Chí Minh"
-                  className={inputClass}
-                />
+                <div className="space-y-2">
+                  <div className="flex flex-col gap-3 sm:flex-row">
+                    <input
+                      type="text"
+                      value={currentLocation}
+                      readOnly
+                      placeholder="Bắt buộc lấy vị trí hiện tại"
+                      className={inputClass}
+                    />
+                    <button
+                      type="button"
+                      onClick={handleDetectCurrentLocation}
+                      disabled={detectingLocation}
+                      className="inline-flex min-w-[210px] items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm font-semibold text-navy-700 transition-colors hover:bg-navy-50 disabled:opacity-70"
+                    >
+                      {detectingLocation ? <Loader2 className="w-4 h-4 animate-spin" /> : <LocateFixed className="w-4 h-4" />}
+                      {detectingLocation ? 'Đang lấy vị trí...' : currentLocation ? 'Lấy lại vị trí' : 'Lấy vị trí hiện tại'}
+                    </button>
+                  </div>
+                  {locationNotice ? (
+                    <p className={`text-xs ${locationNotice.type === 'error' ? 'text-red-600' : 'text-emerald-700'}`}>
+                      {locationNotice.message}
+                    </p>
+                  ) : null}
+                </div>
               </div>
 
               <div>
@@ -304,7 +364,7 @@ export default function PostJob() {
             </button>
             <button
               type="submit"
-              disabled={loading}
+              disabled={loading || detectingLocation || !hasCurrentLocation}
               className="flex items-center justify-center gap-2 px-8 py-3 bg-gradient-to-r from-navy-600 to-navy-800 text-white font-semibold text-sm rounded-xl hover:shadow-lg hover:shadow-navy-700/25 hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200 disabled:opacity-60"
             >
               {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <><Briefcase className="w-4 h-4" /><span>Gửi tin chờ duyệt</span></>}

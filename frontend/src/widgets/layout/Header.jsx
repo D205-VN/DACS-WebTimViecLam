@@ -23,7 +23,7 @@ import {
 import { useAuth } from '@features/auth/AuthContext';
 import { useNotifications } from '@features/notifications/NotificationContext';
 import { getRouteByRole } from '@shared/utils/roleRedirect';
-import API_BASE_URL from '@shared/api/baseUrl';
+import UserAvatar from '@shared/ui/UserAvatar';
 
 function getNavLinks(roleCode) {
   return [
@@ -160,16 +160,6 @@ function getUserMenuLinks(roleCode) {
   ];
 }
 
-function getInitials(name) {
-  if (!name) return '?';
-  return name
-    .split(' ')
-    .map((word) => word[0])
-    .slice(-2)
-    .join('')
-    .toUpperCase();
-}
-
 function formatNotificationTime(value) {
   if (!value) return '';
 
@@ -183,10 +173,6 @@ function formatNotificationTime(value) {
     month: '2-digit',
     year: 'numeric',
   });
-}
-
-function sortNotificationsByTime(items) {
-  return [...items].sort((left, right) => new Date(right.timestamp || 0) - new Date(left.timestamp || 0));
 }
 
 function getNotificationPanelMeta(roleCode) {
@@ -246,43 +232,6 @@ function getEmptyNotification(roleCode) {
   }
 }
 
-function getFallbackNotification(roleCode) {
-  switch (roleCode) {
-    case 'admin':
-      return {
-        id: 'fallback',
-        title: 'Không tải được thông báo quản trị',
-        description: 'Bạn vẫn có thể mở dashboard để xem tin chờ duyệt và người dùng mới.',
-        to: '/admin/dashboard',
-        state: { activeTab: 'overview' },
-        icon: Bell,
-        iconClass: 'bg-amber-50 text-amber-500',
-        timestamp: null,
-      };
-    case 'employer':
-      return {
-        id: 'fallback',
-        title: 'Không tải được thông báo tuyển dụng',
-        description: 'Bạn vẫn có thể mở bảng điều khiển để xem tin đăng và ứng viên.',
-        to: '/employer/dashboard',
-        state: { activeTab: 'notifications' },
-        icon: Bell,
-        iconClass: 'bg-amber-50 text-amber-500',
-        timestamp: null,
-      };
-    default:
-      return {
-        id: 'fallback',
-        title: 'Không tải được thông báo',
-        description: 'Bạn vẫn có thể xem Việc đã lưu, Đã ứng tuyển và hồ sơ CV trong menu.',
-        to: getRouteByRole(roleCode, 'savedJobs'),
-        icon: Bell,
-        iconClass: 'bg-amber-50 text-amber-500',
-        timestamp: null,
-      };
-  }
-}
-
 function getNotificationTypeMeta(type) {
   switch (type) {
     case 'admin_job_pending':
@@ -330,7 +279,7 @@ export default function Header() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [notificationOpen, setNotificationOpen] = useState(false);
-  const { user, token, isAuthenticated, logout } = useAuth();
+  const { user, isAuthenticated, logout } = useAuth();
   const { notifications, unreadCount, markAllAsRead } = useNotifications();
   const navigate = useNavigate();
   const location = useLocation();
@@ -394,8 +343,6 @@ export default function Header() {
     logout();
     setDropdownOpen(false);
     setNotificationOpen(false);
-    setNotifications([]);
-    setUnreadCount(0);
     navigate('/');
   };
 
@@ -506,17 +453,13 @@ export default function Header() {
                     }}
                     className="flex cursor-pointer items-center gap-2.5 rounded-xl px-2 py-1.5 transition-all duration-200 hover:bg-gray-50"
                   >
-                    {user?.avatar_url ? (
-                      <img
-                        src={user.avatar_url}
-                        alt={user.full_name}
-                        className="h-9 w-9 rounded-full object-cover ring-2 ring-navy-100"
-                      />
-                    ) : (
-                      <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-navy-500 to-navy-700 ring-2 ring-navy-100">
-                        <span className="text-xs font-bold text-white">{getInitials(user?.full_name)}</span>
-                      </div>
-                    )}
+                    <UserAvatar
+                      src={user?.avatar_url}
+                      alt={user?.full_name}
+                      className="h-9 w-9 rounded-full object-cover ring-2 ring-navy-100"
+                      fallbackClassName="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-navy-500 to-navy-700 ring-2 ring-navy-100"
+                      iconClassName="h-4 w-4 text-white"
+                    />
                     <div className="hidden text-left lg:block">
                       <p className="max-w-[120px] truncate text-sm font-semibold leading-tight text-gray-800">
                         {user?.full_name}
@@ -533,17 +476,13 @@ export default function Header() {
                   >
                     <div className="border-b border-gray-100 bg-gradient-to-r from-navy-50 to-gray-50 px-4 py-4">
                       <div className="flex items-center gap-3">
-                        {user?.avatar_url ? (
-                          <img
-                            src={user.avatar_url}
-                            alt={user.full_name}
-                            className="h-11 w-11 rounded-full object-cover ring-2 ring-white shadow-sm"
-                          />
-                        ) : (
-                          <div className="flex h-11 w-11 items-center justify-center rounded-full bg-gradient-to-br from-navy-500 to-navy-700 ring-2 ring-white shadow-sm">
-                            <span className="text-sm font-bold text-white">{getInitials(user?.full_name)}</span>
-                          </div>
-                        )}
+                        <UserAvatar
+                          src={user?.avatar_url}
+                          alt={user?.full_name}
+                          className="h-11 w-11 rounded-full object-cover ring-2 ring-white shadow-sm"
+                          fallbackClassName="flex h-11 w-11 items-center justify-center rounded-full bg-gradient-to-br from-navy-500 to-navy-700 ring-2 ring-white shadow-sm"
+                          iconClassName="h-5 w-5 text-white"
+                        />
                         <div className="min-w-0 flex-1">
                           <p className="truncate text-sm font-bold text-gray-800">{user?.full_name}</p>
                           <p className="truncate text-xs text-gray-500">{user?.email}</p>
@@ -641,13 +580,13 @@ export default function Header() {
           {isAuthenticated ? (
             <div className="space-y-1 border-t border-gray-100 pt-3">
               <div className="flex items-center gap-3 px-4 py-3">
-                {user?.avatar_url ? (
-                  <img src={user.avatar_url} alt="" className="h-10 w-10 rounded-full object-cover ring-2 ring-navy-100" />
-                ) : (
-                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-navy-500 to-navy-700 ring-2 ring-navy-100">
-                    <span className="text-xs font-bold text-white">{getInitials(user?.full_name)}</span>
-                  </div>
-                )}
+                <UserAvatar
+                  src={user?.avatar_url}
+                  alt={user?.full_name}
+                  className="h-10 w-10 rounded-full object-cover ring-2 ring-navy-100"
+                  fallbackClassName="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-navy-500 to-navy-700 ring-2 ring-navy-100"
+                  iconClassName="h-4 w-4 text-white"
+                />
                 <div>
                   <p className="text-sm font-bold text-gray-800">{user?.full_name}</p>
                   <p className="text-xs text-gray-400">{user?.email}</p>

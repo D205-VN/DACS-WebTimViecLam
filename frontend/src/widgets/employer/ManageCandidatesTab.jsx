@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@features/auth/AuthContext';
 import API_BASE_URL from '@shared/api/baseUrl';
+import UserAvatar from '@shared/ui/UserAvatar';
 
 function getStatusMeta(status) {
   switch (status) {
@@ -299,17 +300,13 @@ export default function ManageCandidatesTab() {
                   className="p-6 flex flex-col lg:flex-row gap-6 items-start lg:items-center justify-between hover:bg-gray-50/50 transition-colors"
                 >
                   <div className="flex gap-4 items-center">
-                    {candidate.avatar_url ? (
-                      <img
-                        src={candidate.avatar_url}
-                        alt={candidate.candidate_name}
-                        className="w-14 h-14 rounded-full object-cover ring-2 ring-gray-100"
-                      />
-                    ) : (
-                      <div className="w-14 h-14 rounded-full bg-gradient-to-br from-navy-500 to-navy-700 flex items-center justify-center text-white font-bold text-xl ring-2 ring-gray-100">
-                        {candidate.candidate_name?.charAt(0)}
-                      </div>
-                    )}
+                    <UserAvatar
+                      src={candidate.avatar_url}
+                      alt={candidate.candidate_name}
+                      className="w-14 h-14 rounded-full object-cover ring-2 ring-gray-100"
+                      fallbackClassName="flex w-14 h-14 items-center justify-center rounded-full bg-gradient-to-br from-navy-500 to-navy-700 ring-2 ring-gray-100"
+                      iconClassName="h-6 w-6 text-white"
+                    />
                     <div>
                       <div className="flex items-center gap-2 mb-1 flex-wrap">
                         <h4 className="font-bold text-gray-800 text-lg">{candidate.candidate_name}</h4>
@@ -517,17 +514,13 @@ export default function ManageCandidatesTab() {
                       <div className="space-y-6">
                     <div className="rounded-[1.75rem] border border-slate-200 bg-slate-50 p-5">
                       <div className="flex items-center gap-3">
-                        {candidateDetail.avatar_url ? (
-                          <img
-                            src={candidateDetail.avatar_url}
-                            alt={candidateDetail.candidate_name}
-                            className="h-16 w-16 rounded-full object-cover ring-2 ring-white shadow-sm"
-                          />
-                        ) : (
-                          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-navy-500 to-navy-700 text-xl font-bold text-white">
-                            {candidateDetail.candidate_name?.charAt(0)}
-                          </div>
-                        )}
+                        <UserAvatar
+                          src={candidateDetail.avatar_url}
+                          alt={candidateDetail.candidate_name}
+                          className="h-16 w-16 rounded-full object-cover ring-2 ring-white shadow-sm"
+                          fallbackClassName="flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-navy-500 to-navy-700"
+                          iconClassName="h-6 w-6 text-white"
+                        />
                         <div>
                           <p className="text-lg font-bold text-slate-900">{candidateDetail.candidate_name}</p>
                           <p className="text-sm text-slate-500">{candidateDetail.candidate_email}</p>

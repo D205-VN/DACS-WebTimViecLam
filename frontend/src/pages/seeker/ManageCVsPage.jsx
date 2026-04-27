@@ -1,8 +1,9 @@
 import { useMemo, useState, useEffect, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, FileText, Trash2, Download, Loader2, Sparkles, Calendar, Briefcase, ImageUp, Search, Eye, CheckCircle2, X } from 'lucide-react';
+import { ArrowLeft, FileText, Trash2, Download, Loader2, Sparkles, Calendar, Briefcase, ImageUp, Search, Eye, CheckCircle2, X, ClipboardCheck } from 'lucide-react';
 import { useAuth } from '@features/auth/AuthContext';
 import SeekerToolsNav from '@features/seeker-tools/SeekerToolsNav';
+import CVReviewModal from '@features/seeker-tools/CVReviewModal';
 import { getBackLabelByRole, getDefaultRouteByRole } from '@shared/utils/roleRedirect';
 import API_BASE_URL from '@shared/api/baseUrl';
 
@@ -21,6 +22,14 @@ export default function ManageCVsPage() {
   const [viewHtml, setViewHtml] = useState(null);
   const [previewCv, setPreviewCv] = useState(null);
   const [primaryLoadingId, setPrimaryLoadingId] = useState(null);
+  const [reviewCv, setReviewCv] = useState(null);
+  const [reviewResult, setReviewResult] = useState(null);
+  const [reviewError, setReviewError] = useState('');
+  const [reviewLoadingId, setReviewLoadingId] = useState(null);
+  const [reviewApplyingIndex, setReviewApplyingIndex] = useState(null);
+  const [reviewApplyMessage, setReviewApplyMessage] = useState('');
+  const [reviewApplyStates, setReviewApplyStates] = useState({});
+  const [reviewApplyErrors, setReviewApplyErrors] = useState({});
   const cvRef = useRef(null);
 
   const fetchCVs = useCallback(async () => {
@@ -94,6 +103,63 @@ export default function ManageCVsPage() {
         setViewHtml(null); // Clear sau khi down
       });
     }, 100);
+  };
+
+  const handleReview = async (cv) => {
+    setReviewCv(cv);
+    setReviewResult(null);
+    setReviewError('');
+    setReviewApplyMessage('');
+    setReviewApplyStates({});
+    setReviewApplyErrors({});
+    setReviewLoadingId(cv.id);
+
+    try {
+      const res = await fetch(`${API}/${cv.id}/review`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'Không thể phân tích CV');
+      setReviewResult(data.data || null);
+    } catch (err) {
+      setReviewError(err.message);
+    } finally {
+      setReviewLoadingId(null);
+    }
+  };
+
+  const handleApplyReviewSuggestion = async (suggestion, index) => {
+    if (!reviewCv) return;
+    setReviewApplyingIndex(index);
+    setReviewError('');
+    setReviewApplyMessage('');
+    setReviewApplyStates((prev) => ({ ...prev, [index]: 'idle' }));
+    setReviewApplyErrors((prev) => ({ ...prev, [index]: '' }));
+
+    try {
+      const res = await fetch(`${API}/${reviewCv.id}/revise`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ suggestions: [suggestion] }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'Không thể sửa CV theo gợi ý');
+
+      const updatedCv = data.data;
+      if (updatedCv) {
+        setCvs((prev) => prev.map((cv) => (cv.id === updatedCv.id ? { ...cv, ...updatedCv } : cv)));
+        setReviewCv((prev) => (prev ? { ...prev, ...updatedCv } : prev));
+        setPreviewCv((prev) => (prev?.id === updatedCv.id ? { ...prev, ...updatedCv } : prev));
+      }
+      setReviewApplyStates((prev) => ({ ...prev, [index]: 'done' }));
+      setReviewApplyMessage('Đã sửa CV đã lưu. Bạn có thể bấm xem hồ sơ để kiểm tra lại bản mới.');
+    } catch (err) {
+      setReviewApplyStates((prev) => ({ ...prev, [index]: 'error' }));
+      setReviewApplyErrors((prev) => ({ ...prev, [index]: err.message || 'Không thể sửa CV theo gợi ý này' }));
+    } finally {
+      setReviewApplyingIndex(null);
+    }
   };
 
   const filteredCVs = useMemo(() => {
@@ -220,6 +286,14 @@ export default function ManageCVsPage() {
                 >
                   <Eye className="w-4 h-4" /> Xem hồ sơ
                 </button>
+                <button
+                  onClick={() => handleReview(cv)}
+                  disabled={Boolean(reviewLoadingId)}
+                  className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-amber-50 text-amber-700 font-semibold rounded-xl hover:bg-amber-100 transition-colors disabled:opacity-70"
+                >
+                  {reviewLoadingId === cv.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <ClipboardCheck className="w-4 h-4" />}
+                  {reviewLoadingId === cv.id ? 'Đang phân tích...' : 'Gợi ý sửa CV'}
+                </button>
                 <button onClick={() => handleDownload(cv.html_content, cv.title)} className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-navy-50 text-navy-700 font-semibold rounded-xl hover:bg-navy-100 transition-colors">
                   <Download className="w-4 h-4" /> Tải PDF
                 </button>
@@ -268,6 +342,20 @@ export default function ManageCVsPage() {
           </div>
         </div>
       ) : null}
+
+      <CVReviewModal
+        open={Boolean(reviewCv)}
+        title={reviewCv ? `Gợi ý sửa ${reviewCv.title}` : 'Gợi ý sửa CV'}
+        loading={Boolean(reviewCv && reviewLoadingId === reviewCv.id)}
+        applyingIndex={reviewApplyingIndex}
+        applyStates={reviewApplyStates}
+        applyErrors={reviewApplyErrors}
+        error={reviewError}
+        applyMessage={reviewApplyMessage}
+        review={reviewResult}
+        onClose={() => setReviewCv(null)}
+        onApplySuggestion={handleApplyReviewSuggestion}
+      />
 
       {/* Ẩn CV HTML để export PDF */}
       <div style={{ display: 'none' }}>

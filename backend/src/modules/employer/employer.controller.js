@@ -1,5 +1,6 @@
 const pool = require('../../infrastructure/database/postgres');
 const { createNotification, createNotificationsForUsers } = require('../notifications/notification.service');
+const { resolveCurrentLocationPayload } = require('../../core/utils/currentLocation');
 const {
   ensureEmployerJobSchema,
   ensureEmployerProfileSchema,
@@ -198,12 +199,17 @@ async function createJob(req, res) {
     const userId = req.user.id;
     const {
       title, description, requirements, benefits,
-      location, salary_min, salary_max, job_type,
+      salary_min, salary_max, job_type,
       experience, deadline, tags, positions
     } = req.body;
 
     if (!title || !description) {
       return res.status(400).json({ error: 'Tiêu đề và mô tả là bắt buộc' });
+    }
+
+    const resolvedLocation = resolveCurrentLocationPayload(req.body);
+    if (resolvedLocation.error) {
+      return res.status(400).json({ error: resolvedLocation.error });
     }
 
     // Lấy thông tin công ty từ user
@@ -219,12 +225,12 @@ async function createJob(req, res) {
 
     const result = await pool.query(
       `INSERT INTO jobs (job_title, job_description, job_requirements, benefits, job_address, salary, 
-                         job_type, years_of_experience, submission_deadline, number_candidate, employer_id, company_name, tags, status, created_at, updated_at)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, 'pending', NOW(), NOW())
+                         job_type, years_of_experience, submission_deadline, number_candidate, employer_id, company_name, tags, status, created_at, updated_at, location_lat, location_lng)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, 'pending', NOW(), NOW(), $14, $15)
        RETURNING *`,
       [
         title, description, requirements || null, benefits || null,
-        location || company?.company_city || null,
+        resolvedLocation.location,
         normalizedSalary,
         job_type || 'Toàn thời gian',
         experience || 'Không yêu cầu',
@@ -233,6 +239,8 @@ async function createJob(req, res) {
         userId,
         company?.company_name || null,
         normalizedTags,
+        resolvedLocation.lat,
+        resolvedLocation.lng,
       ]
     );
 
@@ -999,6 +1007,7 @@ async function scheduleInterview(req, res) {
            interview_at = $2,
            interview_mode = $3,
            interview_link = $4,
+           interview_reminder_sent_at = NULL,
            updated_at = NOW()
        WHERE id = $5
        RETURNING id, COALESCE(NULLIF(TRIM(status), ''), 'pending') as status,

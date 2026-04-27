@@ -12,7 +12,9 @@ async function ensureEmployerJobSchema() {
     ADD COLUMN IF NOT EXISTS employer_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
     ADD COLUMN IF NOT EXISTS status VARCHAR(20) DEFAULT 'approved',
     ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT NOW(),
-    ADD COLUMN IF NOT EXISTS tags TEXT
+    ADD COLUMN IF NOT EXISTS tags TEXT,
+    ADD COLUMN IF NOT EXISTS location_lat DOUBLE PRECISION,
+    ADD COLUMN IF NOT EXISTS location_lng DOUBLE PRECISION
   `);
 
   await pool.query(`
@@ -80,13 +82,17 @@ async function ensureEmployerApplicationSchema() {
     ADD COLUMN IF NOT EXISTS interview_mode VARCHAR(50),
     ADD COLUMN IF NOT EXISTS interview_link TEXT,
     ADD COLUMN IF NOT EXISTS candidate_interview_mode VARCHAR(20),
+    ADD COLUMN IF NOT EXISTS interview_reminder_sent_at TIMESTAMP,
     ADD COLUMN IF NOT EXISTS cv_id INTEGER REFERENCES user_cvs(id) ON DELETE SET NULL,
     ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT NOW()
   `);
 
   await pool.query(`
     ALTER TABLE user_cvs
-    ADD COLUMN IF NOT EXISTS is_primary BOOLEAN DEFAULT FALSE
+    ADD COLUMN IF NOT EXISTS is_primary BOOLEAN DEFAULT FALSE,
+    ADD COLUMN IF NOT EXISTS current_location VARCHAR(255),
+    ADD COLUMN IF NOT EXISTS current_lat DOUBLE PRECISION,
+    ADD COLUMN IF NOT EXISTS current_lng DOUBLE PRECISION
   `);
 
   employerApplicationSchemaReady = true;

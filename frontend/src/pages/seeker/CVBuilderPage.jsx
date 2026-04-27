@@ -1,10 +1,12 @@
 import { useState, useRef, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, Sparkles, Download, Loader2, User, Mail, Phone, Target, GraduationCap, Briefcase, Wrench, Award, Heart, Plus, Save, CheckCircle, ImageUp, Trash2 } from 'lucide-react';
+import { ArrowLeft, Sparkles, Download, Loader2, User, Mail, Phone, Target, GraduationCap, Briefcase, Wrench, Award, Heart, Plus, Save, CheckCircle, ImageUp, Trash2, ClipboardCheck, MapPin, LocateFixed } from 'lucide-react';
 import { useAuth } from '@features/auth/AuthContext';
 import SeekerToolsNav from '@features/seeker-tools/SeekerToolsNav';
+import CVReviewModal from '@features/seeker-tools/CVReviewModal';
 import { getBackLabelByRole, getDefaultRouteByRole } from '@shared/utils/roleRedirect';
 import API_BASE_URL from '@shared/api/baseUrl';
+import { requestCurrentLocation } from '@shared/geo/currentLocation';
 
 const API = `${API_BASE_URL}/api/cv`;
 
@@ -21,6 +23,18 @@ export default function CVBuilderPage() {
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [saveMessage, setSaveMessage] = useState('');
   const [error, setError] = useState('');
+  const [reviewOpen, setReviewOpen] = useState(false);
+  const [reviewLoading, setReviewLoading] = useState(false);
+  const [reviewError, setReviewError] = useState('');
+  const [reviewResult, setReviewResult] = useState(null);
+  const [reviewApplyingIndex, setReviewApplyingIndex] = useState(null);
+  const [reviewApplyMessage, setReviewApplyMessage] = useState('');
+  const [reviewApplyStates, setReviewApplyStates] = useState({});
+  const [reviewApplyErrors, setReviewApplyErrors] = useState({});
+  const [currentLocation, setCurrentLocation] = useState('');
+  const [currentCoordinates, setCurrentCoordinates] = useState(null);
+  const [locationNotice, setLocationNotice] = useState(null);
+  const [detectingLocation, setDetectingLocation] = useState(false);
   const cvRef = useRef(null);
   const portraitInputRef = useRef(null);
 
@@ -102,7 +116,42 @@ export default function CVBuilderPage() {
     }
   };
 
+  const hasCurrentLocation =
+    Boolean(currentLocation) &&
+    Number.isFinite(currentCoordinates?.lat) &&
+    Number.isFinite(currentCoordinates?.lng);
+
+  const handleDetectCurrentLocation = async () => {
+    setDetectingLocation(true);
+    setError('');
+    setLocationNotice(null);
+
+    try {
+      const result = await requestCurrentLocation();
+      setCurrentLocation(result.location);
+      setCurrentCoordinates(result.coords);
+      setLocationNotice({
+        type: 'success',
+        message: `Đã lấy vị trí hiện tại tại ${result.location}${result.accuracy ? ` (sai số khoảng ${result.accuracy}m)` : ''}.`,
+      });
+    } catch (err) {
+      setCurrentLocation('');
+      setCurrentCoordinates(null);
+      setLocationNotice({
+        type: 'error',
+        message: err.message || 'Không thể lấy vị trí hiện tại.',
+      });
+    } finally {
+      setDetectingLocation(false);
+    }
+  };
+
   const handleGenerate = async () => {
+    if (!hasCurrentLocation) {
+      setError('Vui lòng lấy vị trí hiện tại trước khi tạo CV.');
+      return;
+    }
+
     setError('');
     setSaveMessage('');
     setLoading(true);
@@ -110,7 +159,12 @@ export default function CVBuilderPage() {
     try {
       const res = await fetch(`${API}/generate`, {
         method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify(form),
+        body: JSON.stringify({
+          ...form,
+          currentLocation,
+          currentLat: currentCoordinates.lat,
+          currentLng: currentCoordinates.lng,
+        }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
@@ -130,6 +184,11 @@ export default function CVBuilderPage() {
 
   const handleSave = async () => {
     if (!cvHtml) return;
+    if (!hasCurrentLocation) {
+      setError('Vui lòng lấy vị trí hiện tại trước khi lưu CV.');
+      return;
+    }
+
     setSaving(true);
     try {
       const res = await fetch(`${API}/save`, {
@@ -138,7 +197,10 @@ export default function CVBuilderPage() {
         body: JSON.stringify({
           title: `CV - ${form.role || 'Cơ bản'}`,
           target_role: form.role,
-          html_content: cvHtml
+          html_content: cvHtml,
+          currentLocation,
+          currentLat: currentCoordinates.lat,
+          currentLng: currentCoordinates.lng,
         }),
       });
       const data = await res.json().catch(() => ({}));
@@ -154,6 +216,66 @@ export default function CVBuilderPage() {
       alert(err.message);
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleReviewCurrentCv = async () => {
+    if (!cvHtml) return;
+    setReviewOpen(true);
+    setReviewLoading(true);
+    setReviewError('');
+    setReviewApplyMessage('');
+    setReviewApplyStates({});
+    setReviewApplyErrors({});
+    setReviewResult(null);
+
+    try {
+      const res = await fetch(`${API}/review`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          html_content: cvHtml,
+          target_role: form.role,
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'Không thể phân tích CV');
+      setReviewResult(data.data || null);
+    } catch (err) {
+      setReviewError(err.message);
+    } finally {
+      setReviewLoading(false);
+    }
+  };
+
+  const handleApplyReviewSuggestion = async (suggestion, index) => {
+    if (!cvHtml) return;
+    setReviewApplyingIndex(index);
+    setReviewError('');
+    setReviewApplyMessage('');
+    setReviewApplyStates((prev) => ({ ...prev, [index]: 'idle' }));
+    setReviewApplyErrors((prev) => ({ ...prev, [index]: '' }));
+
+    try {
+      const res = await fetch(`${API}/revise`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          html_content: cvHtml,
+          target_role: form.role,
+          suggestions: [suggestion],
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'Không thể sửa CV theo gợi ý');
+      setCvHtml(data.cv || cvHtml);
+      setReviewApplyStates((prev) => ({ ...prev, [index]: 'done' }));
+      setReviewApplyMessage('Đã sửa bản xem trước CV. Bạn có thể xem lại bên ngoài modal hoặc bấm Gợi ý sửa để kiểm tra tiếp.');
+    } catch (err) {
+      setReviewApplyStates((prev) => ({ ...prev, [index]: 'error' }));
+      setReviewApplyErrors((prev) => ({ ...prev, [index]: err.message || 'Không thể sửa CV theo gợi ý này' }));
+    } finally {
+      setReviewApplyingIndex(null);
     }
   };
 
@@ -231,6 +353,35 @@ export default function CVBuilderPage() {
                   <label className="flex items-center gap-1.5 text-sm font-semibold text-gray-700 mb-1.5"><Phone className="w-4 h-4 text-gray-400" /> Số điện thoại</label>
                   <input type="tel" value={form.phone} onChange={e => handleChange('phone', e.target.value)} placeholder="0912 345 678" className={inputClass} />
                 </div>
+              </div>
+
+              <div>
+                <label className="flex items-center gap-1.5 text-sm font-semibold text-gray-700 mb-1.5">
+                  <MapPin className="w-4 h-4 text-gray-400" /> Vị trí hiện tại
+                </label>
+                <div className="flex flex-col gap-3 sm:flex-row">
+                  <input
+                    type="text"
+                    value={currentLocation}
+                    readOnly
+                    placeholder="Bắt buộc lấy vị trí hiện tại"
+                    className={inputClass}
+                  />
+                  <button
+                    type="button"
+                    onClick={handleDetectCurrentLocation}
+                    disabled={detectingLocation}
+                    className="inline-flex min-w-[210px] items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm font-semibold text-navy-700 transition-colors hover:bg-navy-50 disabled:opacity-70"
+                  >
+                    {detectingLocation ? <Loader2 className="w-4 h-4 animate-spin" /> : <LocateFixed className="w-4 h-4" />}
+                    {detectingLocation ? 'Đang lấy vị trí...' : currentLocation ? 'Lấy lại vị trí' : 'Lấy vị trí hiện tại'}
+                  </button>
+                </div>
+                {locationNotice ? (
+                  <p className={`mt-2 text-xs ${locationNotice.type === 'error' ? 'text-red-600' : 'text-emerald-700'}`}>
+                    {locationNotice.message}
+                  </p>
+                ) : null}
               </div>
 
               <div>
@@ -322,7 +473,7 @@ export default function CVBuilderPage() {
               </div>
             </div>
 
-            <button onClick={handleGenerate} disabled={loading} className="w-full mt-6 flex items-center justify-center gap-2 py-3.5 bg-gradient-to-r from-purple-600 to-indigo-700 text-white font-semibold rounded-xl hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0 transition-all disabled:opacity-60">
+            <button onClick={handleGenerate} disabled={loading || detectingLocation || !hasCurrentLocation} className="w-full mt-6 flex items-center justify-center gap-2 py-3.5 bg-gradient-to-r from-purple-600 to-indigo-700 text-white font-semibold rounded-xl hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0 transition-all disabled:opacity-60">
               {loading ? <><Loader2 className="w-5 h-5 animate-spin" /> Đang tạo CV...</> : <><Sparkles className="w-5 h-5" /> Tạo CV bằng AI</>}
             </button>
           </div>
@@ -334,8 +485,11 @@ export default function CVBuilderPage() {
             <div className="flex items-center justify-between mb-3">
               <h2 className="text-base font-bold text-gray-800">Xem trước CV</h2>
               {cvHtml && (
-                <div className="flex gap-2">
-                  <button onClick={handleSave} disabled={saving || saveSuccess} className="flex items-center gap-1.5 px-4 py-2 text-sm font-semibold text-white bg-navy-600 rounded-lg hover:bg-navy-700 transition-colors disabled:opacity-70">
+                <div className="flex flex-wrap justify-end gap-2">
+                  <button onClick={handleReviewCurrentCv} disabled={reviewLoading} className="flex items-center gap-1.5 px-4 py-2 text-sm font-semibold text-amber-700 bg-amber-50 rounded-lg hover:bg-amber-100 transition-colors disabled:opacity-70">
+                    {reviewLoading ? <><Loader2 className="w-4 h-4 animate-spin" /> Đang phân tích...</> : <><ClipboardCheck className="w-4 h-4" /> Gợi ý sửa</>}
+                  </button>
+                  <button onClick={handleSave} disabled={saving || saveSuccess || !hasCurrentLocation} className="flex items-center gap-1.5 px-4 py-2 text-sm font-semibold text-white bg-navy-600 rounded-lg hover:bg-navy-700 transition-colors disabled:opacity-70">
                     {saveSuccess ? <><CheckCircle className="w-4 h-4" /> Đã lưu</> : saving ? <><Loader2 className="w-4 h-4 animate-spin" /> Đang lưu...</> : <><Save className="w-4 h-4" /> Lưu hồ sơ</>}
                   </button>
                   <button onClick={handleDownload} className="flex items-center gap-1.5 px-4 py-2 text-sm font-semibold text-navy-700 bg-navy-50 rounded-lg hover:bg-navy-100 transition-colors">
@@ -364,6 +518,20 @@ export default function CVBuilderPage() {
           </div>
         </div>
       </div>
+
+      <CVReviewModal
+        open={reviewOpen}
+        title={form.role ? `Gợi ý sửa CV ${form.role}` : 'Gợi ý sửa CV'}
+        loading={reviewLoading}
+        applyingIndex={reviewApplyingIndex}
+        applyStates={reviewApplyStates}
+        applyErrors={reviewApplyErrors}
+        error={reviewError}
+        applyMessage={reviewApplyMessage}
+        review={reviewResult}
+        onClose={() => setReviewOpen(false)}
+        onApplySuggestion={handleApplyReviewSuggestion}
+      />
     </div>
   );
 }

@@ -19,7 +19,10 @@ async function ensureCvSchema() {
 
   await pool.query(`
     ALTER TABLE user_cvs
-    ADD COLUMN IF NOT EXISTS is_primary BOOLEAN DEFAULT FALSE
+    ADD COLUMN IF NOT EXISTS is_primary BOOLEAN DEFAULT FALSE,
+    ADD COLUMN IF NOT EXISTS current_location VARCHAR(255),
+    ADD COLUMN IF NOT EXISTS current_lat DOUBLE PRECISION,
+    ADD COLUMN IF NOT EXISTS current_lng DOUBLE PRECISION
   `);
 
   cvSchemaReady = true;
