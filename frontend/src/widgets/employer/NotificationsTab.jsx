@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { Bell, UserPlus, Clock, Info, CheckCircle2, Loader2, XCircle } from 'lucide-react';
 import { useAuth } from '@features/auth/AuthContext';
 import { useNotifications } from '@features/notifications/NotificationContext';
@@ -9,18 +9,19 @@ export default function NotificationsTab() {
   const { token } = useAuth();
   const { notifications, markAllAsRead } = useNotifications();
   const navigate = useNavigate();
-  const [loading, setLoading] = useState(false);
+  const loading = false;
 
   useEffect(() => {
     // When visiting this tab, mark all as read
     if (token) {
       markAllAsRead();
     }
-  }, [token]);
+  }, [token, markAllAsRead]);
 
   const getIcon = (type) => {
     switch (type) {
       case 'employer_new_candidate': return UserPlus;
+      case 'message_new': return Bell;
       case 'admin_job_pending': return Clock;
       case 'employer_job_rejected':
       case 'seeker_application_rejected':
@@ -35,6 +36,7 @@ export default function NotificationsTab() {
   const getColor = (type) => {
     switch (type) {
       case 'employer_new_candidate': return 'text-emerald-500 bg-emerald-50';
+      case 'message_new': return 'text-cyan-500 bg-cyan-50';
       case 'admin_job_pending': return 'text-amber-500 bg-amber-50';
       case 'employer_job_rejected':
       case 'seeker_application_rejected':

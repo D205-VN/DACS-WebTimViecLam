@@ -1,7 +1,8 @@
 const pool = require('../../infrastructure/database/postgres');
+const crypto = require('crypto');
 const { getNearestDistanceForAddress } = require('../../core/utils/locationCoordinates');
 const { createNotification } = require('../notifications/notification.service');
-const { ensureJobStatusSchema, ensurePublicApplicationSchema } = require('./job.model');
+const { ensureJobStatusSchema, ensurePublicApplicationSchema, ensureJobAnalyticsSchema } = require('./job.model');
 
 const SALARY_RANGE_OPTIONS = [
   { value: '', label: 'Tất cả' },
@@ -139,6 +140,45 @@ function toFiniteNumber(value) {
 function normalizeInterviewMode(value) {
   const normalized = String(value || '').trim().toLowerCase();
   return ['online', 'offline'].includes(normalized) ? normalized : null;
+}
+
+function normalizeTrafficSource(value) {
+  const normalized = String(value || '').trim().toLowerCase();
+  return ['organic', 'referral', 'social', 'email', 'job_alert', 'direct'].includes(normalized)
+    ? normalized
+    : 'organic';
+}
+
+function resolveTrafficSource(req) {
+  const explicitSource = String(req.query.source || req.body?.source || '').trim();
+  if (explicitSource) return normalizeTrafficSource(explicitSource);
+
+  if (req.query.ref || req.query.utm_source) {
+    return 'referral';
+  }
+
+  const referer = String(req.get?.('referer') || '').toLowerCase();
+  const host = String(req.get?.('host') || '').toLowerCase();
+  if (!referer) return 'organic';
+
+  if (/facebook|linkedin|twitter|x\.com|zalo|tiktok/.test(referer)) return 'social';
+  if (host && !referer.includes(host)) return 'referral';
+
+  return 'organic';
+}
+
+async function recordJobView(req, jobId) {
+  const source = resolveTrafficSource(req);
+  const rawViewerKey = [req.ip, req.get?.('user-agent')].filter(Boolean).join('|');
+  const viewerKey = rawViewerKey
+    ? crypto.createHash('sha256').update(rawViewerKey).digest('hex')
+    : null;
+
+  await pool.query(
+    `INSERT INTO job_views (job_id, viewer_key, source)
+     VALUES ($1, $2, $3)`,
+    [jobId, viewerKey, source]
+  );
 }
 
 function buildDeadlineSqlExpression(columnName) {
@@ -430,6 +470,7 @@ exports.getSavedJobIds = async (req, res) => {
 exports.getJobById = async (req, res) => {
   try {
     await ensureJobStatusSchema();
+    await ensureJobAnalyticsSchema();
 
     const result = await pool.query(
       `SELECT id, url_job, job_title as title, job_description as description, job_requirements as requirements,
@@ -444,6 +485,11 @@ exports.getJobById = async (req, res) => {
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Không tìm thấy việc làm' });
     }
+
+    await recordJobView(req, result.rows[0].id).catch((viewError) => {
+      console.error('Record job view error:', viewError);
+    });
+
     res.json({ data: result.rows[0] });
   } catch (err) {
     console.error(err);
@@ -479,10 +525,11 @@ exports.toggleSaveJob = async (req, res) => {
 exports.applyJob = async (req, res) => {
   try {
     await ensureJobStatusSchema();
-    await ensurePublicApplicationSchema();
+    await ensureJobAnalyticsSchema();
 
     const jobId = req.params.id;
     const userId = req.user.id;
+    const applicationSource = resolveTrafficSource(req);
 
     const jobResult = await pool.query(
       `SELECT id, employer_id, job_title, company_name
@@ -544,8 +591,8 @@ exports.applyJob = async (req, res) => {
     }
 
     const applicationResult = await pool.query(
-      'INSERT INTO applied_jobs (user_id, job_id, cv_id) VALUES ($1, $2, $3) RETURNING id',
-      [userId, jobId, selectedCvId]
+      'INSERT INTO applied_jobs (user_id, job_id, cv_id, application_source) VALUES ($1, $2, $3, $4) RETURNING id',
+      [userId, jobId, selectedCvId, applicationSource]
     );
 
     const job = jobResult.rows[0];
@@ -629,7 +676,10 @@ exports.updateInterviewPreference = async (req, res) => {
 exports.getJobAlertIds = async (req, res) => {
   try {
     await ensurePublicApplicationSchema();
-    const result = await pool.query('SELECT job_id FROM job_alerts WHERE user_id = $1', [req.user.id]);
+    const result = await pool.query(
+      'SELECT job_id FROM job_alerts WHERE user_id = $1 AND job_id IS NOT NULL',
+      [req.user.id]
+    );
     res.json({ ids: result.rows.map(r => r.job_id) });
   } catch (err) {
     console.error(err);
@@ -653,7 +703,11 @@ exports.toggleJobAlert = async (req, res) => {
       await pool.query('DELETE FROM job_alerts WHERE user_id = $1 AND job_id = $2', [userId, jobId]);
       res.json({ subscribed: false, message: 'Đã hủy nhận thông báo việc tương tự' });
     } else {
-      await pool.query('INSERT INTO job_alerts (user_id, job_id) VALUES ($1, $2)', [userId, jobId]);
+      await pool.query(
+        `INSERT INTO job_alerts (user_id, job_id, frequency, is_active, updated_at)
+         VALUES ($1, $2, 'weekly', TRUE, NOW())`,
+        [userId, jobId]
+      );
       res.json({ subscribed: true, message: 'Đã đăng ký nhận thông báo việc tương tự' });
     }
   } catch (err) {

@@ -3,6 +3,7 @@ const http = require('http');
 const { createApp } = require('./app');
 const socketManager = require('./core/realtime/socket');
 const { startInterviewReminderScheduler } = require('./modules/notifications/interviewReminder.scheduler');
+const { startJobAlertDigestScheduler } = require('./modules/notifications/jobAlertDigest.scheduler');
 
 const { app, allowedOrigins } = createApp();
 const server = http.createServer(app);
@@ -14,4 +15,5 @@ socketManager.init(server, allowedOrigins);
 server.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
   startInterviewReminderScheduler();
+  startJobAlertDigestScheduler();
 });

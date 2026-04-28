@@ -9,7 +9,6 @@ export const NotificationProvider = ({ children }) => {
   const { user, token } = useAuth();
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
-  const [socket, setSocket] = useState(null);
 
   const fetchNotifications = useCallback(async () => {
     if (!token) return;
@@ -66,20 +65,26 @@ export const NotificationProvider = ({ children }) => {
         }
       });
 
-      setSocket(newSocket);
-      fetchNotifications();
+      newSocket.on('new_message', (payload) => {
+        window.dispatchEvent(new CustomEvent('aptertek:new-message', { detail: payload }));
+      });
+
+      queueMicrotask(() => {
+        fetchNotifications();
+      });
 
       return () => {
         newSocket.disconnect();
       };
     } else {
-      setSocket(null);
-      setNotifications([]);
-      setUnreadCount(0);
+      queueMicrotask(() => {
+        setNotifications([]);
+        setUnreadCount(0);
+      });
     }
   }, [user, token, fetchNotifications]);
 
-  const markAllAsRead = async () => {
+  const markAllAsRead = useCallback(async () => {
     if (!token) return;
     try {
       await fetch(`${API_BASE_URL}/api/notifications/read-all`, {
@@ -91,7 +96,7 @@ export const NotificationProvider = ({ children }) => {
     } catch (err) {
       console.error('Mark all as read error:', err);
     }
-  };
+  }, [token]);
 
   return (
     <NotificationContext.Provider value={{ notifications, unreadCount, markAllAsRead, fetchNotifications }}>
@@ -100,4 +105,5 @@ export const NotificationProvider = ({ children }) => {
   );
 };
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const useNotifications = () => useContext(NotificationContext);

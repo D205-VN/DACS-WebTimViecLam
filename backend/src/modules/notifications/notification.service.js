@@ -1,5 +1,6 @@
 const { emitToUser } = require('../../core/realtime/socket');
 const notificationModel = require('./notification.model');
+const jobAlertModel = require('./jobAlert.model');
 
 async function createNotification({ userId, type = 'info', title, message, to = null, tab = null, meta = null }) {
   if (!userId || !title || !message) return null;
@@ -50,9 +51,15 @@ async function markAllNotificationsAsRead(userId) {
 
 module.exports = {
   ensureNotificationsSchema: notificationModel.ensureNotificationsSchema,
+  ensureJobAlertSchema: jobAlertModel.ensureJobAlertSchema,
   createNotification,
   createNotificationsForUsers,
   getNotificationsByUser,
   getUnreadNotificationCount,
   markAllNotificationsAsRead,
+  getUserJobAlertRules: jobAlertModel.getUserJobAlertRules,
+  createJobAlertRule: jobAlertModel.createJobAlertRule,
+  updateJobAlertRule: jobAlertModel.updateJobAlertRule,
+  deleteJobAlertRule: jobAlertModel.deleteJobAlertRule,
+  findJobsForAlert: jobAlertModel.findJobsForAlert,
 };

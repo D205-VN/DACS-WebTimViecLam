@@ -15,8 +15,10 @@ import {
   X,
   ExternalLink,
   FileText,
+  MessageCircle,
 } from 'lucide-react';
 import { useAuth } from '@features/auth/AuthContext';
+import ConversationModal from '@features/messages/ConversationModal';
 import API_BASE_URL from '@shared/api/baseUrl';
 import UserAvatar from '@shared/ui/UserAvatar';
 
@@ -101,6 +103,7 @@ export default function ManageCandidatesTab() {
   const [detailError, setDetailError] = useState('');
   const [scheduleLoading, setScheduleLoading] = useState(false);
   const [modalSection, setModalSection] = useState('profile');
+  const [chatCandidate, setChatCandidate] = useState(null);
   const [interviewForm, setInterviewForm] = useState({
     interview_at: '',
     interview_mode: 'online',
@@ -386,6 +389,13 @@ export default function ManageCandidatesTab() {
                             className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-4 py-2 bg-white border border-gray-200 text-gray-700 rounded-lg text-sm font-semibold hover:bg-gray-50 transition-colors"
                           >
                             <Eye className="w-4 h-4" /> Xem hồ sơ
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setChatCandidate(candidate)}
+                            className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-4 py-2 bg-cyan-50 text-cyan-700 rounded-lg text-sm font-semibold hover:bg-cyan-100 transition-colors"
+                          >
+                            <MessageCircle className="w-4 h-4" /> Nhắn tin
                           </button>
 
                           {candidate.status === 'pending' || !candidate.status ? (
@@ -906,6 +916,13 @@ export default function ManageCandidatesTab() {
           </div>
         </div>
       ) : null}
+
+      <ConversationModal
+        open={Boolean(chatCandidate)}
+        applicationId={chatCandidate?.id}
+        initialTitle={chatCandidate?.candidate_name}
+        onClose={() => setChatCandidate(null)}
+      />
     </>
   );
 }

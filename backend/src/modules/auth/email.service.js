@@ -224,9 +224,102 @@ async function sendInterviewReminderEmail(to, {
   await transporter.sendMail(mailOptions);
 }
 
+function formatJobAlertCriteria(alert = {}) {
+  const parts = [];
+  if (alert.keyword) parts.push(`Từ khóa: ${alert.keyword}`);
+  if (alert.location) parts.push(`Vị trí: ${alert.location}`);
+  if (alert.salary_range) parts.push(`Lương: ${alert.salary_range}`);
+  if (alert.source_job_title) parts.push(`Tương tự: ${alert.source_job_title}`);
+  return parts.join(' • ') || 'Việc làm phù hợp với hồ sơ của bạn';
+}
+
+function buildFrontendJobUrl(jobId) {
+  const baseUrl = (process.env.FRONTEND_URL || 'http://localhost:5173').replace(/\/+$/, '');
+  return `${baseUrl}/seeker/jobs/${jobId}?source=job_alert`;
+}
+
+async function sendJobAlertDigestEmail(to, {
+  candidateName = '',
+  alert = {},
+  jobs = [],
+} = {}) {
+  if (!isEmailConfigured()) {
+    throw new Error('SMTP_EMAIL hoặc SMTP_PASSWORD chưa được cấu hình');
+  }
+
+  const safeCandidateName = escapeHtml(candidateName || 'bạn');
+  const safeCriteria = escapeHtml(formatJobAlertCriteria(alert));
+  const safeJobRows = jobs.slice(0, 8).map((job) => {
+    const jobUrl = buildFrontendJobUrl(job.id);
+    const reasons = Array.isArray(job.match_reasons) ? job.match_reasons.slice(0, 2).join(', ') : '';
+
+    return `
+      <tr>
+        <td style="padding: 14px 0; border-bottom: 1px solid #e5e7eb;">
+          <a href="${escapeHtml(jobUrl)}" style="font-size: 15px; font-weight: 700; color: #1d4ed8; text-decoration: none;">
+            ${escapeHtml(job.title || 'Tin tuyển dụng')}
+          </a>
+          <p style="margin: 5px 0 0; color: #374151; font-size: 13px;">
+            ${escapeHtml(job.company_name || 'Đang cập nhật')} • ${escapeHtml(job.location || 'Chưa rõ địa điểm')}
+          </p>
+          <p style="margin: 5px 0 0; color: #059669; font-size: 13px; font-weight: 700;">
+            ${escapeHtml(job.salary || 'Thỏa thuận')}
+          </p>
+          ${reasons ? `<p style="margin: 5px 0 0; color: #6b7280; font-size: 12px;">${escapeHtml(reasons)}</p>` : ''}
+        </td>
+        <td style="padding: 14px 0; border-bottom: 1px solid #e5e7eb; text-align: right; vertical-align: top;">
+          <span style="display: inline-block; background: #ecfdf5; color: #047857; border-radius: 999px; padding: 5px 9px; font-size: 12px; font-weight: 700;">
+            ${Number(job.match_score || 0)}%
+          </span>
+        </td>
+      </tr>
+    `;
+  }).join('');
+
+  const mailOptions = {
+    from: `"AptertekWork.vn" <${process.env.SMTP_EMAIL}>`,
+    to,
+    subject: `[AptertekWork.vn] Job alert tuần này: ${jobs.length} việc phù hợp`,
+    html: `
+      <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 620px; margin: 0 auto; background: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 24px rgba(0,0,0,0.08);">
+        <div style="background: linear-gradient(135deg, #1e3a5f, #0f2744); padding: 28px 24px; text-align: center;">
+          <h1 style="margin: 0; font-size: 24px; font-weight: 800;">
+            <span style="color: #ffffff;">Aptertek</span><span style="color: #34d399;">Work</span><span style="color: #93c5fd;">.vn</span>
+          </h1>
+          <p style="margin: 8px 0 0; color: #bfdbfe; font-size: 14px;">Job alerts cá nhân hóa</p>
+        </div>
+
+        <div style="padding: 28px 24px;">
+          <h2 style="margin: 0 0 10px; font-size: 20px; color: #1f2937;">Việc phù hợp mới cho ${safeCandidateName}</h2>
+          <p style="margin: 0 0 18px; color: #4b5563; font-size: 14px; line-height: 1.7;">
+            Chúng tôi tìm thấy các tin phù hợp với alert của bạn: <strong>${safeCriteria}</strong>.
+          </p>
+
+          <table style="width: 100%; border-collapse: collapse;">
+            <tbody>${safeJobRows}</tbody>
+          </table>
+
+          <p style="margin: 20px 0 0; color: #6b7280; font-size: 13px; line-height: 1.6;">
+            Điểm phù hợp được tính từ tiêu chí alert, CV chính và lịch sử ứng tuyển của bạn.
+          </p>
+        </div>
+
+        <div style="background: #f9fafb; padding: 16px 24px; text-align: center; border-top: 1px solid #e5e7eb;">
+          <p style="margin: 0; color: #9ca3af; font-size: 11px;">
+            © 2026 AptertekWork.vn — Email được gửi tự động, vui lòng không trả lời.
+          </p>
+        </div>
+      </div>
+    `,
+  };
+
+  await transporter.sendMail(mailOptions);
+}
+
 module.exports = {
   isEmailConfigured,
   sendOTPEmail,
   sendPasswordResetOTPEmail,
   sendInterviewReminderEmail,
+  sendJobAlertDigestEmail,
 };

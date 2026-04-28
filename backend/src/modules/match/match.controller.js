@@ -1,11 +1,13 @@
 const pool = require('../../infrastructure/database/postgres');
 const { getNearestDistanceForAddress } = require('../../core/utils/locationCoordinates');
+const { ensureJobStatusSchema, ensurePublicApplicationSchema } = require('../jobs/job.model');
 
 // ─── Weights ────────────────────────────────────────────────────────────────────
-const WEIGHT_SKILL     = 0.40;
-const WEIGHT_TITLE     = 0.25;
+const WEIGHT_SKILL     = 0.35;
+const WEIGHT_TITLE     = 0.20;
 const WEIGHT_INDUSTRY  = 0.15;
-const WEIGHT_LOCATION  = 0.20;
+const WEIGHT_LOCATION  = 0.15;
+const WEIGHT_HISTORY   = 0.15;
 
 // ─── Helpers ────────────────────────────────────────────────────────────────────
 
@@ -177,6 +179,19 @@ function scoreIndustry(cvText, jobIndustry) {
   return Math.min(100, Math.round((matchCount / industryTokens.length) * 100));
 }
 
+function scoreApplicationHistory(historyText, jobText) {
+  if (!historyText || !jobText) return 0;
+
+  const historyTokens = new Set(tokenize(historyText));
+  const jobTokens = [...new Set(tokenize(jobText))].slice(0, 30);
+  if (!historyTokens.size || !jobTokens.length) return 0;
+
+  const matchCount = jobTokens.reduce((count, token) => count + (historyTokens.has(token) ? 1 : 0), 0);
+  const denominator = Math.min(jobTokens.length, 12);
+
+  return Math.min(100, Math.round((matchCount / Math.max(denominator, 1)) * 100));
+}
+
 /**
  * Location matching score (0-100).
  * Uses Haversine distance. Closer = higher score.
@@ -202,7 +217,7 @@ function scoreLocation(distanceKm) {
 /**
  * Build human-readable match reasons (Vietnamese).
  */
-function buildMatchReasons(skillResult, titleScore, industryScore, locationScore, distanceKm, jobTitle) {
+function buildMatchReasons(skillResult, titleScore, industryScore, locationScore, historyScore, distanceKm, jobTitle) {
   const reasons = [];
 
   if (skillResult.score >= 50 && skillResult.matchedSkills.length > 0) {
@@ -218,6 +233,10 @@ function buildMatchReasons(skillResult, titleScore, industryScore, locationScore
 
   if (industryScore >= 40) {
     reasons.push({ type: 'industry', icon: '📋', text: `Ngành nghề phù hợp` });
+  }
+
+  if (historyScore >= 35) {
+    reasons.push({ type: 'history', icon: '📌', text: `Liên quan đến lịch sử ứng tuyển của bạn` });
   }
 
   if (locationScore >= 80 && Number.isFinite(distanceKm)) {
@@ -245,6 +264,9 @@ function buildMatchReasons(skillResult, titleScore, industryScore, locationScore
  */
 exports.getRecommendations = async (req, res) => {
   try {
+    await ensureJobStatusSchema();
+    await ensurePublicApplicationSchema();
+
     const userId = req.user.id;
     const limit = Math.min(parseInt(req.query.limit) || 10, 20);
     const lat = Number(req.query.lat);
@@ -302,12 +324,27 @@ exports.getRecommendations = async (req, res) => {
       });
     }
 
-    // 3. Fetch user's already-applied job IDs to exclude them
+    // 3. Fetch user's already-applied jobs. IDs are excluded, text is used as behavioral signal.
     const appliedResult = await pool.query(
       `SELECT job_id FROM applied_jobs WHERE user_id = $1`,
       [userId]
     );
     const appliedJobIds = new Set(appliedResult.rows.map((r) => r.job_id));
+
+    const applicationHistoryResult = await pool.query(
+      `SELECT j.job_title, j.industry, j.job_description, j.job_requirements
+       FROM applied_jobs aj
+       JOIN jobs j ON j.id = aj.job_id
+       WHERE aj.user_id = $1
+       ORDER BY aj.created_at DESC
+       LIMIT 10`,
+      [userId]
+    );
+    const applicationHistoryText = normalizeVN(
+      applicationHistoryResult.rows
+        .map((row) => [row.job_title, row.industry, row.job_description, row.job_requirements].filter(Boolean).join(' '))
+        .join(' ')
+    );
 
     // 4. Score each job
     const scored = [];
@@ -326,6 +363,9 @@ exports.getRecommendations = async (req, res) => {
       // Industry score
       const industryScore = scoreIndustry(cvInfo.rawText, job.industry);
 
+      // Application history score
+      const historyScore = scoreApplicationHistory(applicationHistoryText, jobFullText);
+
       // Location score
       let distanceKm = null;
       let locationScore = 0;
@@ -340,12 +380,13 @@ exports.getRecommendations = async (req, res) => {
         WEIGHT_SKILL * skillResult.score +
         WEIGHT_TITLE * titleScore +
         WEIGHT_INDUSTRY * industryScore +
-        WEIGHT_LOCATION * locationScore
+        WEIGHT_LOCATION * locationScore +
+        WEIGHT_HISTORY * historyScore
       );
 
       // Only include if score is meaningful (> 10)
       if (totalScore > 10) {
-        const reasons = buildMatchReasons(skillResult, titleScore, industryScore, locationScore, distanceKm, job.title);
+        const reasons = buildMatchReasons(skillResult, titleScore, industryScore, locationScore, historyScore, distanceKm, job.title);
 
         scored.push({
           ...job,
@@ -354,6 +395,7 @@ exports.getRecommendations = async (req, res) => {
             skill_score: skillResult.score,
             title_score: titleScore,
             industry_score: industryScore,
+            history_score: historyScore,
             location_score: locationScore,
             distance_km: distanceKm !== null ? Number(distanceKm.toFixed(1)) : null,
           },

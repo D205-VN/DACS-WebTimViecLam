@@ -2,6 +2,7 @@ const pool = require('../../infrastructure/database/postgres');
 const { createNotification, createNotificationsForUsers } = require('../notifications/notification.service');
 const { resolveCurrentLocationPayload } = require('../../core/utils/currentLocation');
 const { ensureVerificationSchema } = require('../verification/verification.model');
+const { ensureJobAnalyticsSchema } = require('../jobs/job.model');
 const {
   ensureEmployerJobSchema,
   ensureEmployerProfileSchema,
@@ -35,6 +36,7 @@ async function ensureEmployerJobSchemaForRequest(req, res, next) {
     await ensureEmployerJobSchema();
     await ensureEmployerProfileSchema();
     await ensureEmployerApplicationSchema();
+    await ensureJobAnalyticsSchema();
     return next();
   } catch (err) {
     console.error('Ensure employer job schema error:', err);
@@ -99,6 +101,122 @@ function buildDeadlineSqlExpression(columnName) {
       ELSE NULL
     END
   `;
+}
+
+function buildSalaryExpressions(columnName) {
+  const normalizedSalaryExpr = `regexp_replace(lower(COALESCE(${columnName}, '')), '\\s+', '', 'g')`;
+  const salaryLowerTokenExpr = `split_part(${normalizedSalaryExpr}, '-', 1)`;
+  const salaryUpperTokenExpr = `CASE
+    WHEN POSITION('-' IN ${normalizedSalaryExpr}) > 0
+      THEN split_part(${normalizedSalaryExpr}, '-', 2)
+    ELSE split_part(${normalizedSalaryExpr}, '-', 1)
+  END`;
+
+  const buildSalaryValueExpression = (tokenExpr) => `CASE
+    WHEN COALESCE(TRIM(${columnName}), '') = '' THEN NULL
+    WHEN lower(${columnName}) ~ 'th[oỏ]a\\s*thu[aậ]n|thuong\\s*luong|c[aạ]nh\\s*tranh' THEN NULL
+    WHEN NULLIF(regexp_replace(${tokenExpr}, '[^0-9]', '', 'g'), '') IS NULL THEN NULL
+    WHEN lower(${columnName}) ~ '(usd|\\$)' THEN regexp_replace(${tokenExpr}, '[^0-9]', '', 'g')::numeric * 25000
+    WHEN regexp_replace(${tokenExpr}, '[^0-9]', '', 'g')::numeric < 1000 THEN regexp_replace(${tokenExpr}, '[^0-9]', '', 'g')::numeric * 1000000
+    ELSE regexp_replace(${tokenExpr}, '[^0-9]', '', 'g')::numeric
+  END`;
+
+  const salaryLowerExpr = buildSalaryValueExpression(salaryLowerTokenExpr);
+  const salaryUpperExpr = buildSalaryValueExpression(salaryUpperTokenExpr);
+  const salaryMidExpr = `CASE
+    WHEN ${salaryLowerExpr} IS NOT NULL AND ${salaryUpperExpr} IS NOT NULL THEN ((${salaryLowerExpr} + ${salaryUpperExpr}) / 2.0)
+    ELSE COALESCE(${salaryLowerExpr}, ${salaryUpperExpr})
+  END`;
+
+  return {
+    salaryLowerExpr,
+    salaryUpperExpr,
+    salaryMidExpr,
+  };
+}
+
+function buildJobDescriptionInsights(jobs = []) {
+  const insights = [];
+
+  jobs.forEach((job) => {
+    const title = job.title || 'Tin tuyển dụng';
+    const descriptionText = stripHtml(job.description || '');
+    const requirementsText = stripHtml(job.requirements || '');
+    const benefitsText = stripHtml(job.benefits || '');
+    const viewCount = parseInt(job.view_count || 0, 10);
+    const applicantCount = parseInt(job.applicant_count || 0, 10);
+    const conversionRate = viewCount > 0 ? (applicantCount / viewCount) * 100 : 0;
+    const salaryText = String(job.salary || '').toLowerCase();
+
+    if (descriptionText.length < 250) {
+      insights.push({
+        job_id: job.id,
+        title,
+        severity: 'high',
+        type: 'description_length',
+        message: 'Mô tả công việc còn ngắn, ứng viên có thể chưa hiểu rõ phạm vi công việc.',
+        recommendation: 'Bổ sung mục tiêu vai trò, nhiệm vụ hằng ngày, stack công nghệ/công cụ và tiêu chí thành công trong 3 tháng đầu.',
+      });
+    }
+
+    if (requirementsText.length < 160) {
+      insights.push({
+        job_id: job.id,
+        title,
+        severity: 'medium',
+        type: 'requirements_detail',
+        message: 'Yêu cầu ứng viên chưa đủ cụ thể để lọc đúng hồ sơ.',
+        recommendation: 'Tách rõ yêu cầu bắt buộc và điểm cộng, nêu số năm kinh nghiệm, kỹ năng chính và mức độ thành thạo.',
+      });
+    }
+
+    if (!benefitsText) {
+      insights.push({
+        job_id: job.id,
+        title,
+        severity: 'medium',
+        type: 'benefits_missing',
+        message: 'Tin chưa nêu quyền lợi nổi bật.',
+        recommendation: 'Thêm phúc lợi, lộ trình phát triển, chính sách làm việc linh hoạt hoặc cơ hội học tập để tăng tỷ lệ ứng tuyển.',
+      });
+    }
+
+    if (!job.salary || salaryText.includes('thỏa thuận') || salaryText.includes('thoả thuận')) {
+      insights.push({
+        job_id: job.id,
+        title,
+        severity: 'medium',
+        type: 'salary_transparency',
+        message: 'Mức lương chưa minh bạch nên có thể làm giảm chuyển đổi.',
+        recommendation: 'Cân nhắc công bố khoảng lương hoặc ghi rõ cấu trúc lương, thưởng và điều kiện review.',
+      });
+    }
+
+    if (viewCount >= 10 && applicantCount === 0) {
+      insights.push({
+        job_id: job.id,
+        title,
+        severity: 'high',
+        type: 'low_conversion',
+        message: `Tin có ${viewCount} lượt xem nhưng chưa có ứng tuyển.`,
+        recommendation: 'Rà lại tiêu đề, mức lương, yêu cầu bắt buộc và lời kêu gọi ứng tuyển. Có thể giảm bớt yêu cầu không thiết yếu.',
+      });
+    } else if (viewCount >= 20 && conversionRate < 3) {
+      insights.push({
+        job_id: job.id,
+        title,
+        severity: 'medium',
+        type: 'conversion_rate',
+        message: `Tỷ lệ chuyển đổi chỉ ${conversionRate.toFixed(1)}% từ lượt xem sang ứng tuyển.`,
+        recommendation: 'Đưa thông tin quan trọng lên đầu tin: lương, địa điểm, hình thức làm việc, quy trình phỏng vấn và quyền lợi khác biệt.',
+      });
+    }
+  });
+
+  const severityRank = { high: 0, medium: 1, low: 2 };
+  return insights
+    .sort((left, right) => (severityRank[left.severity] ?? 9) - (severityRank[right.severity] ?? 9))
+    .slice(0, 6);
 }
 
 /**
@@ -647,9 +765,26 @@ async function getAnalytics(req, res) {
 async function getAnalyticsV2(req, res) {
   try {
     const userId = req.user.id;
-    const deadlineDateSql = buildDeadlineSqlExpression('j.submission_deadline');
+    await ensureJobAnalyticsSchema();
 
-    const [summaryResult, weeklyResult, statusResult, topJobsResult] = await Promise.all([
+    const deadlineDateSql = buildDeadlineSqlExpression('j.submission_deadline');
+    const approvedJobsWhere = `COALESCE(NULLIF(TRIM(j.status), ''), 'approved') = 'approved'`;
+    const openApprovedJobsWhere = `${approvedJobsWhere} AND (${deadlineDateSql} IS NULL OR ${deadlineDateSql} >= CURRENT_DATE)`;
+    const { salaryMidExpr } = buildSalaryExpressions('j.salary');
+
+    const [
+      summaryResult,
+      weeklyResult,
+      statusResult,
+      topJobsResult,
+      sourceResult,
+      weeklyViewsResult,
+      insightJobsResult,
+      marketSummaryResult,
+      marketRolesResult,
+      marketIndustriesResult,
+      marketSkillDemandResult,
+    ] = await Promise.all([
       pool.query(
         `SELECT
             COUNT(DISTINCT j.id) AS total_jobs,
@@ -659,7 +794,13 @@ async function getAnalyticsV2(req, res) {
               THEN j.id
             END) AS active_jobs,
             COUNT(aj.id) AS total_candidates,
-            COUNT(CASE WHEN aj.created_at >= NOW() - INTERVAL '7 days' THEN 1 END) AS new_candidates
+            COUNT(CASE WHEN aj.created_at >= NOW() - INTERVAL '7 days' THEN 1 END) AS new_candidates,
+            (
+              SELECT COUNT(*)::int
+              FROM job_views jv
+              JOIN jobs viewed_job ON viewed_job.id = jv.job_id
+              WHERE viewed_job.employer_id = $1
+            ) AS total_views
          FROM jobs j
          LEFT JOIN applied_jobs aj ON aj.job_id = j.id
          WHERE j.employer_id = $1`,
@@ -701,14 +842,130 @@ async function getAnalyticsV2(req, res) {
         `SELECT
             j.id,
             j.job_title AS title,
-            COUNT(aj.id)::int AS applicant_count
+            COUNT(DISTINCT aj.id)::int AS applicant_count,
+            COUNT(DISTINCT jv.id)::int AS view_count
          FROM jobs j
          LEFT JOIN applied_jobs aj ON aj.job_id = j.id
+         LEFT JOIN job_views jv ON jv.job_id = j.id
          WHERE j.employer_id = $1
          GROUP BY j.id, j.job_title
-         ORDER BY applicant_count DESC, j.id DESC
+         ORDER BY applicant_count DESC, view_count DESC, j.id DESC
          LIMIT 5`,
         [userId]
+      ),
+      pool.query(
+        `SELECT
+            COALESCE(NULLIF(TRIM(aj.application_source), ''), 'organic') AS source,
+            COUNT(*)::int AS count
+         FROM applied_jobs aj
+         JOIN jobs j ON aj.job_id = j.id
+         WHERE j.employer_id = $1
+         GROUP BY COALESCE(NULLIF(TRIM(aj.application_source), ''), 'organic')
+         ORDER BY count DESC, source ASC`,
+        [userId]
+      ),
+      pool.query(
+        `WITH days AS (
+            SELECT generate_series(CURRENT_DATE - INTERVAL '6 days', CURRENT_DATE, INTERVAL '1 day')::date AS day_date
+          ),
+          views AS (
+            SELECT DATE(jv.created_at) AS day_date, COUNT(*)::int AS count
+            FROM job_views jv
+            JOIN jobs j ON j.id = jv.job_id
+            WHERE j.employer_id = $1
+              AND jv.created_at >= CURRENT_DATE - INTERVAL '6 days'
+            GROUP BY DATE(jv.created_at)
+          )
+          SELECT
+            TO_CHAR(days.day_date, 'DD/MM') AS label,
+            COALESCE(views.count, 0) AS count
+          FROM days
+          LEFT JOIN views ON views.day_date = days.day_date
+          ORDER BY days.day_date`,
+        [userId]
+      ),
+      pool.query(
+        `SELECT
+            j.id,
+            j.job_title AS title,
+            j.job_description AS description,
+            j.job_requirements AS requirements,
+            j.benefits,
+            j.salary,
+            COUNT(DISTINCT aj.id)::int AS applicant_count,
+            COUNT(DISTINCT jv.id)::int AS view_count
+         FROM jobs j
+         LEFT JOIN applied_jobs aj ON aj.job_id = j.id
+         LEFT JOIN job_views jv ON jv.job_id = j.id
+         WHERE j.employer_id = $1
+         GROUP BY j.id, j.job_title, j.job_description, j.job_requirements, j.benefits, j.salary, j.created_at
+         ORDER BY j.created_at DESC NULLS LAST, j.id DESC
+         LIMIT 50`,
+        [userId]
+      ),
+      pool.query(
+        `SELECT
+            COUNT(*)::int AS total_jobs,
+            COUNT(*) FILTER (WHERE ${openApprovedJobsWhere})::int AS open_jobs,
+            COUNT(*) FILTER (WHERE ${approvedJobsWhere} AND j.created_at >= NOW() - INTERVAL '30 days')::int AS new_jobs_30d,
+            COUNT(*) FILTER (
+              WHERE ${approvedJobsWhere}
+                AND j.created_at >= NOW() - INTERVAL '60 days'
+                AND j.created_at < NOW() - INTERVAL '30 days'
+            )::int AS previous_jobs_30d,
+            ROUND(AVG(${salaryMidExpr}))::bigint AS avg_salary,
+            ROUND(PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY ${salaryMidExpr}))::bigint AS median_salary
+         FROM jobs j
+         WHERE ${approvedJobsWhere}`
+      ),
+      pool.query(
+        `SELECT
+            COALESCE(NULLIF(TRIM(j.job_title), ''), 'Chưa phân loại') AS role,
+            COUNT(*)::int AS demand_count,
+            ROUND(AVG(${salaryMidExpr}))::bigint AS avg_salary,
+            ROUND(PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY ${salaryMidExpr}))::bigint AS median_salary
+         FROM jobs j
+         WHERE ${approvedJobsWhere}
+         GROUP BY COALESCE(NULLIF(TRIM(j.job_title), ''), 'Chưa phân loại')
+         ORDER BY demand_count DESC, role ASC
+         LIMIT 6`
+      ),
+      pool.query(
+        `SELECT
+            COALESCE(NULLIF(TRIM(j.industry), ''), 'Chưa phân loại') AS industry,
+            COUNT(*)::int AS demand_count
+         FROM jobs j
+         WHERE ${approvedJobsWhere}
+           AND j.industry IS NOT NULL
+           AND TRIM(j.industry) <> ''
+         GROUP BY COALESCE(NULLIF(TRIM(j.industry), ''), 'Chưa phân loại')
+         ORDER BY demand_count DESC, industry ASC
+         LIMIT 6`
+      ),
+      pool.query(
+        `WITH market_text AS (
+            SELECT lower(
+              COALESCE(j.tags, '') || ' ' ||
+              COALESCE(j.job_requirements, '') || ' ' ||
+              COALESCE(j.job_description, '')
+            ) AS text_blob
+            FROM jobs j
+            WHERE ${approvedJobsWhere}
+          )
+          SELECT
+            COUNT(*) FILTER (WHERE text_blob LIKE '%react%' OR text_blob LIKE '%reactjs%' OR text_blob LIKE '%react.js%')::int AS react,
+            COUNT(*) FILTER (WHERE text_blob LIKE '%typescript%')::int AS typescript,
+            COUNT(*) FILTER (WHERE text_blob LIKE '%javascript%')::int AS javascript,
+            COUNT(*) FILTER (WHERE text_blob LIKE '%nodejs%' OR text_blob LIKE '%node.js%')::int AS nodejs,
+            COUNT(*) FILTER (WHERE text_blob LIKE '%python%')::int AS python,
+            COUNT(*) FILTER (WHERE text_blob LIKE '%sql%' OR text_blob LIKE '%postgres%' OR text_blob LIKE '%mysql%')::int AS sql,
+            COUNT(*) FILTER (WHERE text_blob LIKE '%excel%' OR text_blob LIKE '%power bi%' OR text_blob LIKE '%tableau%')::int AS analytics,
+            COUNT(*) FILTER (WHERE text_blob LIKE '%aws%' OR text_blob LIKE '%azure%' OR text_blob LIKE '%gcp%')::int AS cloud,
+            COUNT(*) FILTER (WHERE text_blob LIKE '%docker%' OR text_blob LIKE '%kubernetes%' OR text_blob LIKE '%k8s%')::int AS devops,
+            COUNT(*) FILTER (WHERE text_blob LIKE '%marketing%' OR text_blob LIKE '%seo%' OR text_blob LIKE '%google ads%' OR text_blob LIKE '%facebook ads%')::int AS marketing,
+            COUNT(*) FILTER (WHERE text_blob LIKE '%sales%' OR text_blob LIKE '%crm%')::int AS sales,
+            COUNT(*) FILTER (WHERE text_blob LIKE '%english%' OR text_blob LIKE '%toeic%' OR text_blob LIKE '%ielts%')::int AS english
+          FROM market_text`
       )
     ]);
 
@@ -717,16 +974,50 @@ async function getAnalyticsV2(req, res) {
     const activeJobs = parseInt(summary.active_jobs || 0, 10);
     const totalCandidates = parseInt(summary.total_candidates || 0, 10);
     const newCandidates = parseInt(summary.new_candidates || 0, 10);
+    const totalViews = parseInt(summary.total_views || 0, 10);
+    const marketSummary = marketSummaryResult.rows[0] || {};
+    const marketTotalJobs = parseInt(marketSummary.total_jobs || 0, 10);
+    const marketOpenJobs = parseInt(marketSummary.open_jobs || 0, 10);
+    const marketNewJobs30d = parseInt(marketSummary.new_jobs_30d || 0, 10);
+    const marketPreviousJobs30d = parseInt(marketSummary.previous_jobs_30d || 0, 10);
+    const marketGrowth30d = marketPreviousJobs30d > 0
+      ? Number((((marketNewJobs30d - marketPreviousJobs30d) / marketPreviousJobs30d) * 100).toFixed(1))
+      : marketNewJobs30d > 0 ? 100 : 0;
+    const hotRole = marketRolesResult.rows[0]?.role || '';
+    const hotIndustry = marketIndustriesResult.rows[0]?.industry || '';
+    const skillDemandRow = marketSkillDemandResult.rows[0] || {};
+    const hotSkills = [
+      { skill: 'React', demand_count: parseInt(skillDemandRow.react || 0, 10) },
+      { skill: 'TypeScript', demand_count: parseInt(skillDemandRow.typescript || 0, 10) },
+      { skill: 'JavaScript', demand_count: parseInt(skillDemandRow.javascript || 0, 10) },
+      { skill: 'Node.js', demand_count: parseInt(skillDemandRow.nodejs || 0, 10) },
+      { skill: 'Python', demand_count: parseInt(skillDemandRow.python || 0, 10) },
+      { skill: 'SQL / DB', demand_count: parseInt(skillDemandRow.sql || 0, 10) },
+      { skill: 'Data Analytics', demand_count: parseInt(skillDemandRow.analytics || 0, 10) },
+      { skill: 'Cloud', demand_count: parseInt(skillDemandRow.cloud || 0, 10) },
+      { skill: 'DevOps', demand_count: parseInt(skillDemandRow.devops || 0, 10) },
+      { skill: 'Marketing', demand_count: parseInt(skillDemandRow.marketing || 0, 10) },
+      { skill: 'Sales', demand_count: parseInt(skillDemandRow.sales || 0, 10) },
+      { skill: 'English', demand_count: parseInt(skillDemandRow.english || 0, 10) },
+    ]
+      .filter((item) => item.demand_count > 0)
+      .sort((a, b) => b.demand_count - a.demand_count || a.skill.localeCompare(b.skill, 'vi'))
+      .slice(0, 8);
 
     res.json({
       summary: {
         totalJobs,
         activeJobs,
+        totalViews,
         totalCandidates,
         newCandidates,
-        conversionRate: activeJobs > 0 ? Number(((totalCandidates / activeJobs) * 100).toFixed(1)) : 0,
+        conversionRate: totalViews > 0 ? Number(((totalCandidates / totalViews) * 100).toFixed(1)) : 0,
       },
       weekly: weeklyResult.rows.map((row) => ({
+        ...row,
+        count: parseInt(row.count, 10) || 0,
+      })),
+      weeklyViews: weeklyViewsResult.rows.map((row) => ({
         ...row,
         count: parseInt(row.count, 10) || 0,
       })),
@@ -737,7 +1028,39 @@ async function getAnalyticsV2(req, res) {
       topJobs: topJobsResult.rows.map((row) => ({
         ...row,
         applicant_count: parseInt(row.applicant_count, 10) || 0,
+        view_count: parseInt(row.view_count, 10) || 0,
+        conversion_rate: parseInt(row.view_count, 10) > 0
+          ? Number(((parseInt(row.applicant_count, 10) / parseInt(row.view_count, 10)) * 100).toFixed(1))
+          : 0,
       })),
+      sources: sourceResult.rows.map((row) => ({
+        source: row.source,
+        count: parseInt(row.count, 10) || 0,
+      })),
+      aiInsights: buildJobDescriptionInsights(insightJobsResult.rows),
+      marketInsights: {
+        summary: {
+          totalJobs: marketTotalJobs,
+          openJobs: marketOpenJobs,
+          newJobs30d: marketNewJobs30d,
+          growth30d: marketGrowth30d,
+          avgSalary: marketSummary.avg_salary == null ? null : parseInt(marketSummary.avg_salary, 10),
+          medianSalary: marketSummary.median_salary == null ? null : parseInt(marketSummary.median_salary, 10),
+          hottestRole: hotRole,
+          hottestIndustry: hotIndustry,
+        },
+        topRoles: marketRolesResult.rows.map((row) => ({
+          role: row.role,
+          demand_count: parseInt(row.demand_count, 10) || 0,
+          avg_salary: row.avg_salary == null ? null : parseInt(row.avg_salary, 10),
+          median_salary: row.median_salary == null ? null : parseInt(row.median_salary, 10),
+        })),
+        topIndustries: marketIndustriesResult.rows.map((row) => ({
+          industry: row.industry,
+          demand_count: parseInt(row.demand_count, 10) || 0,
+        })),
+        hotSkills,
+      },
     });
   } catch (err) {
     console.error('Get analytics error:', err);

@@ -7,4 +7,5 @@ module.exports = [
   { path: '/api/verification', router: require('./verification/verification.routes') },
   { path: '/api/notifications', router: require('./notifications/notification.routes') },
   { path: '/api/match', router: require('./match/match.routes') },
+  { path: '/api/messages', router: require('./messages/message.routes') },
 ];

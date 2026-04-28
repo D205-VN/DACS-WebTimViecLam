@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useParams, Link, useNavigate, useLocation } from 'react-router-dom';
 import { MapPin, DollarSign, Clock, Bookmark, BookmarkCheck, Briefcase, ArrowLeft, Send, CheckCircle2, Loader2, GraduationCap, Calendar, Bell, X, Search } from 'lucide-react';
 import { useAuth } from '@features/auth/AuthContext';
 import { findProvinceByName, normalizeProvinceName, normalizeSearchText } from '@shared/geo/provinceCoordinates';
@@ -32,6 +32,7 @@ const getSimilarityScore = (source, target) => target.reduce((score, token) => s
 export default function JobDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const routerLocation = useLocation();
   const { token, isAuthenticated, user } = useAuth();
   const [job, setJob] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -54,7 +55,7 @@ export default function JobDetailPage() {
 
   useEffect(() => {
     queueMicrotask(() => setLoading(true));
-    fetch(`${API}/${id}`)
+    fetch(`${API}/${id}${routerLocation.search || ''}`)
       .then(r => r.json())
       .then(d => { setJob(d.data); setLoading(false); })
       .catch(() => setLoading(false));
@@ -66,7 +67,7 @@ export default function JobDetailPage() {
       fetch(`${API}/alert-ids`, { headers: { Authorization: `Bearer ${token}` } })
         .then(r => r.json()).then(d => { if (d.ids?.includes(parseInt(id))) setAlertSubscribed(true); });
     }
-  }, [id, token]);
+  }, [id, token, routerLocation.search]);
 
   useEffect(() => {
     if (!job) return;
@@ -124,7 +125,16 @@ export default function JobDetailPage() {
     if (applied) return;
     setActionLoading('apply');
     try {
-      const res = await fetch(`${API}/${id}/apply`, { method: 'POST', headers: { Authorization: `Bearer ${token}` } });
+      const query = new URLSearchParams(routerLocation.search);
+      const source = query.get('source') || (query.get('ref') ? 'referral' : 'organic');
+      const res = await fetch(`${API}/${id}/apply`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ source }),
+      });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
         throw new Error(data.error || 'Không thể nộp hồ sơ lúc này');

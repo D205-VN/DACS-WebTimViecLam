@@ -19,6 +19,7 @@ import CVBuilderPage from '@pages/seeker/CVBuilderPage';
 import ManageCVsPage from '@pages/seeker/ManageCVsPage';
 import CVImportImagePage from '@pages/seeker/CVImportImagePage';
 import BlockchainVerificationPage from '@pages/seeker/BlockchainVerificationPage';
+import JobAlertsPage from '@pages/seeker/JobAlertsPage';
 import EmployerDashboard from '@pages/employer/EmployerDashboard';
 import PostJob from '@pages/employer/PostJob';
 import VerificationPublicPage from '@pages/VerificationPublicPage';
@@ -73,6 +74,7 @@ const router = createBrowserRouter([
   { path: '/seeker/change-password', element: <MainLayout><SeekerRoute><ChangePasswordPage /></SeekerRoute></MainLayout> },
   { path: '/seeker/saved-jobs', element: <MainLayout><SeekerRoute><SavedJobsPage /></SeekerRoute></MainLayout> },
   { path: '/seeker/applied-jobs', element: <MainLayout><SeekerRoute><AppliedJobsPage /></SeekerRoute></MainLayout> },
+  { path: '/seeker/job-alerts', element: <MainLayout><SeekerRoute><JobAlertsPage /></SeekerRoute></MainLayout> },
   { path: '/seeker/cv-builder', element: <MainLayout><SeekerRoute><CVBuilderPage /></SeekerRoute></MainLayout> },
   { path: '/seeker/my-cvs', element: <MainLayout><SeekerRoute><ManageCVsPage /></SeekerRoute></MainLayout> },
   { path: '/seeker/cv-import', element: <MainLayout><SeekerRoute><CVImportImagePage /></SeekerRoute></MainLayout> },

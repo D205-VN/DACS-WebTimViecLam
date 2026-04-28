@@ -39,7 +39,8 @@ function getNavLinks(roleCode) {
         pathname.startsWith('/saved-jobs') ||
         pathname.startsWith('/applied-jobs') ||
         pathname.startsWith('/seeker/saved-jobs') ||
-        pathname.startsWith('/seeker/applied-jobs'),
+        pathname.startsWith('/seeker/applied-jobs') ||
+        pathname.startsWith('/seeker/job-alerts'),
     },
     {
       name: 'Công ty',
@@ -140,6 +141,14 @@ function getUserMenuLinks(roleCode) {
       icon: Send,
       iconClass: 'bg-green-50 text-green-500',
       match: (pathname) => pathname.startsWith('/applied-jobs') || pathname.startsWith('/seeker/applied-jobs'),
+    },
+    {
+      to: getRouteByRole(roleCode, 'jobAlerts'),
+      label: 'Job alerts',
+      description: 'Nhận việc phù hợp mỗi tuần',
+      icon: Bell,
+      iconClass: 'bg-cyan-50 text-cyan-500',
+      match: (pathname) => pathname.startsWith('/seeker/job-alerts'),
     },
     {
       to: getRouteByRole(roleCode, 'cvBuilder'),
@@ -256,6 +265,10 @@ function getNotificationTypeMeta(type) {
       return { icon: Send, iconClass: 'bg-emerald-50 text-emerald-500' };
     case 'seeker_application_rejected':
       return { icon: Bell, iconClass: 'bg-red-50 text-red-500' };
+    case 'seeker_job_alert_digest':
+      return { icon: Bell, iconClass: 'bg-cyan-50 text-cyan-500' };
+    case 'message_new':
+      return { icon: Send, iconClass: 'bg-cyan-50 text-cyan-500' };
     default:
       return { icon: Bell, iconClass: 'bg-blue-50 text-blue-500' };
   }

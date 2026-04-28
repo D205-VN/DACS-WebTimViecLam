@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom';
-import { FileText, ShieldCheck, Sparkles } from 'lucide-react';
+import { Bell, FileText, ShieldCheck, Sparkles } from 'lucide-react';
 
 const seekerTools = [
   {
@@ -23,12 +23,19 @@ const seekerTools = [
     icon: ShieldCheck,
     gradient: 'from-emerald-500 to-cyan-600',
   },
+  {
+    to: '/seeker/job-alerts',
+    label: 'Job alerts',
+    description: 'Nhận việc phù hợp hằng tuần',
+    icon: Bell,
+    gradient: 'from-cyan-500 to-blue-600',
+  },
 ];
 
 export default function SeekerToolsNav() {
   return (
     <div className="mb-8 rounded-2xl border border-gray-100 bg-white p-2 shadow-sm">
-      <div className="grid grid-cols-1 gap-2 md:grid-cols-3">
+      <div className="grid grid-cols-1 gap-2 md:grid-cols-4">
         {seekerTools.map((tool) => (
           <NavLink
             key={tool.to}
