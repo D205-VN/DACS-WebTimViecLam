@@ -5,6 +5,7 @@ import { useAuth } from '@features/auth/AuthContext';
 import API_BASE_URL from '@shared/api/baseUrl';
 import EmployerHeader from '@widgets/employer/EmployerHeader';
 import { requestCurrentLocation } from '@shared/geo/currentLocation';
+import { analyzeJobQuality, getTodayDateInputValue } from '@shared/utils/jobQuality';
 
 const JOB_TYPES = ['Toàn thời gian', 'Bán thời gian', 'Thực tập', 'Freelance', 'Remote'];
 const EXPERIENCE_LEVELS = ['Không yêu cầu', 'Dưới 1 năm', '1-2 năm', '2-3 năm', '3-5 năm', 'Trên 5 năm'];
@@ -40,6 +41,8 @@ export default function PostJob() {
     Boolean(currentLocation) &&
     Number.isFinite(currentCoordinates?.lat) &&
     Number.isFinite(currentCoordinates?.lng);
+  const jobQuality = analyzeJobQuality({ ...formData, currentLocation });
+  const todayInputValue = getTodayDateInputValue();
 
   const handleDetectCurrentLocation = async () => {
     setDetectingLocation(true);
@@ -155,6 +158,31 @@ export default function PostJob() {
             {error}
           </div>
         )}
+
+        <div className="mb-6 rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
+          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-[0.2em] text-gray-400">Chất lượng tin</p>
+              <h2 className="mt-2 text-xl font-extrabold text-gray-800">{jobQuality.score}/100 - {jobQuality.label}</h2>
+              <p className="mt-1 text-sm text-gray-500">Gợi ý được tính theo nội dung bạn đang nhập và ngày hiện tại.</p>
+            </div>
+            <div className="h-3 w-full overflow-hidden rounded-full bg-gray-100 md:w-64">
+              <div
+                className={`h-full rounded-full ${
+                  jobQuality.tone === 'emerald' ? 'bg-emerald-500' : jobQuality.tone === 'amber' ? 'bg-amber-500' : 'bg-red-500'
+                }`}
+                style={{ width: `${jobQuality.score}%` }}
+              />
+            </div>
+          </div>
+          <div className="mt-4 grid gap-2 md:grid-cols-2">
+            {jobQuality.suggestions.slice(0, 4).map((item) => (
+              <div key={item.text} className="rounded-xl bg-gray-50 px-4 py-3 text-sm text-gray-600">
+                {item.text}
+              </div>
+            ))}
+          </div>
+        </div>
 
         <form onSubmit={handleSubmit} className="space-y-8">
           {/* Section 1: Basic Info */}
@@ -333,6 +361,7 @@ export default function PostJob() {
                 <input
                   type="date"
                   value={formData.deadline}
+                  min={todayInputValue}
                   onChange={(e) => handleChange('deadline', e.target.value)}
                   className={inputClass}
                 />

@@ -172,6 +172,7 @@ function mapAlertRule(row) {
   return {
     id: row.id,
     user_id: row.user_id,
+    job_id: row.job_id || null,
     keyword: row.keyword || '',
     location: row.location || '',
     salary_range: row.salary_range || '',
@@ -181,6 +182,25 @@ function mapAlertRule(row) {
     last_checked_at: row.last_checked_at || null,
     created_at: row.created_at,
     updated_at: row.updated_at,
+  };
+}
+
+function mapSimilarJobAlert(row) {
+  return {
+    ...mapAlertRule(row),
+    type: 'similar_job',
+    source_job_title: row.source_job_title || '',
+    source_industry: row.source_industry || '',
+    source_location: row.source_location || '',
+    source_company_address: row.source_company_address || '',
+    source_job: {
+      id: row.job_id,
+      title: row.source_job_title || '',
+      company_name: row.source_company_name || '',
+      location: row.source_location || row.source_company_address || '',
+      salary: row.source_salary || '',
+      industry: row.source_industry || '',
+    },
   };
 }
 
@@ -398,18 +418,36 @@ async function getUserJobAlertRules(userId) {
   await ensureJobAlertSchema();
 
   const result = await pool.query(
-    `SELECT id, user_id, keyword, location, salary_range, frequency, is_active,
-            last_digest_sent_at, last_checked_at, created_at, updated_at
-     FROM job_alerts
-     WHERE user_id = $1
-       AND job_id IS NULL
-     ORDER BY created_at DESC, id DESC`,
+    `SELECT
+        ja.id,
+        ja.user_id,
+        ja.job_id,
+        ja.keyword,
+        ja.location,
+        ja.salary_range,
+        ja.frequency,
+        ja.is_active,
+        ja.last_digest_sent_at,
+        ja.last_checked_at,
+        ja.created_at,
+        ja.updated_at,
+        src.job_title AS source_job_title,
+        src.company_name AS source_company_name,
+        src.industry AS source_industry,
+        src.job_address AS source_location,
+        src.company_address AS source_company_address,
+        src.salary AS source_salary
+     FROM job_alerts ja
+     JOIN jobs src ON src.id = ja.job_id
+     WHERE ja.user_id = $1
+       AND ja.job_id IS NOT NULL
+     ORDER BY ja.created_at DESC, ja.id DESC`,
     [userId]
   );
 
   const rules = [];
   for (const row of result.rows) {
-    const rule = mapAlertRule(row);
+    const rule = mapSimilarJobAlert(row);
     const matches = await findJobsForAlert(rule, 3);
     rules.push({
       ...rule,
@@ -477,7 +515,6 @@ async function deleteJobAlertRule(userId, alertId) {
     `DELETE FROM job_alerts
      WHERE id = $1
        AND user_id = $2
-       AND job_id IS NULL
      RETURNING id`,
     [alertId, userId]
   );
@@ -514,15 +551,10 @@ async function getDueJobAlerts(limit = 100) {
      LEFT JOIN jobs src ON src.id = ja.job_id
      WHERE COALESCE(ja.is_active, TRUE) = TRUE
        AND COALESCE(ja.frequency, 'weekly') = 'weekly'
+       AND ja.job_id IS NOT NULL
        AND COALESCE(r.code, 'seeker') = 'seeker'
        AND u.email IS NOT NULL
        AND TRIM(u.email) <> ''
-       AND (
-         ja.job_id IS NOT NULL
-         OR NULLIF(TRIM(COALESCE(ja.keyword, '')), '') IS NOT NULL
-         OR NULLIF(TRIM(COALESCE(ja.location, '')), '') IS NOT NULL
-         OR NULLIF(TRIM(COALESCE(ja.salary_range, '')), '') IS NOT NULL
-       )
        AND (
          COALESCE(ja.last_digest_sent_at, ja.last_checked_at) IS NULL
          OR COALESCE(ja.last_digest_sent_at, ja.last_checked_at) <= NOW() - INTERVAL '7 days'

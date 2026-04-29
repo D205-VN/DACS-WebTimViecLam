@@ -25,8 +25,8 @@ const seekerTools = [
   },
   {
     to: '/seeker/job-alerts',
-    label: 'Job alerts',
-    description: 'Nhận việc phù hợp hằng tuần',
+    label: 'Việc tương tự',
+    description: 'Tin đã bật thông báo',
     icon: Bell,
     gradient: 'from-cyan-500 to-blue-600',
   },

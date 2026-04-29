@@ -18,6 +18,7 @@ import {
 import { useAuth } from '@features/auth/AuthContext';
 import API_BASE_URL from '@shared/api/baseUrl';
 import { useNavigate } from 'react-router-dom';
+import { analyzeJobQuality, getTodayDateInputValue } from '@shared/utils/jobQuality';
 
 function parseJobDeadline(deadline) {
   if (!deadline) return null;
@@ -254,6 +255,8 @@ export default function ManageJobsTab() {
   const approvedCount = jobs.filter((job) => normalizeModerationStatus(job.status) === 'approved').length;
   const rejectedCount = jobs.filter((job) => normalizeModerationStatus(job.status) === 'rejected').length;
   const visibleCount = jobs.filter((job) => normalizeModerationStatus(job.status) === 'approved' && !isRecruitmentClosed(job)).length;
+  const editJobQuality = analyzeJobQuality(editFormData);
+  const todayInputValue = getTodayDateInputValue();
 
   if (loading) {
     return (
@@ -401,7 +404,7 @@ export default function ManageJobsTab() {
                     </td>
 
                     <td className="p-4 text-sm font-medium text-slate-600">
-                      {parseJobDeadline(job.deadline)?.toLocaleDateString('vi-VN') || 'Không thời hạn'}
+                      {parseJobDeadline(job.deadline)?.toLocaleDateString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' }) || 'Không thời hạn'}
                     </td>
 
                     <td className="p-4">
@@ -521,7 +524,7 @@ export default function ManageJobsTab() {
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-500">Hạn nộp:</span>
                     <span className="font-bold text-gray-800">
-                      {parseJobDeadline(viewingJob.deadline)?.toLocaleDateString('vi-VN') || 'Không thời hạn'}
+                      {parseJobDeadline(viewingJob.deadline)?.toLocaleDateString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' }) || 'Không thời hạn'}
                     </span>
                   </div>
                   <div className="flex justify-between text-sm">
@@ -603,6 +606,28 @@ export default function ManageJobsTab() {
             </div>
 
             <form onSubmit={handleEditSubmit} className="flex-1 overflow-y-auto p-6 space-y-6">
+              <div className="rounded-2xl border border-gray-100 bg-gray-50 p-4">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <p className="text-xs font-bold uppercase tracking-[0.18em] text-gray-400">Chất lượng tin</p>
+                    <h4 className="mt-1 text-lg font-extrabold text-gray-800">{editJobQuality.score}/100 - {editJobQuality.label}</h4>
+                  </div>
+                  <div className="h-2 w-full overflow-hidden rounded-full bg-white sm:w-56">
+                    <div
+                      className={`h-full rounded-full ${
+                        editJobQuality.tone === 'emerald' ? 'bg-emerald-500' : editJobQuality.tone === 'amber' ? 'bg-amber-500' : 'bg-red-500'
+                      }`}
+                      style={{ width: `${editJobQuality.score}%` }}
+                    />
+                  </div>
+                </div>
+                <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                  {editJobQuality.suggestions.slice(0, 4).map((item) => (
+                    <p key={item.text} className="rounded-xl bg-white px-3 py-2 text-xs text-gray-600">{item.text}</p>
+                  ))}
+                </div>
+              </div>
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="md:col-span-2">
                   <label className="block text-sm font-semibold text-gray-700 mb-1.5">Tiêu đề công việc</label>
@@ -669,6 +694,7 @@ export default function ManageJobsTab() {
                   <input
                     type="date"
                     value={editFormData.deadline}
+                    min={todayInputValue}
                     onChange={(event) => setEditFormData({ ...editFormData, deadline: event.target.value })}
                     className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-navy-100 outline-none"
                   />

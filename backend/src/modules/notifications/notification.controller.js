@@ -127,7 +127,7 @@ async function deleteJobAlert(req, res) {
       return res.status(404).json({ error: 'Không tìm thấy job alert' });
     }
 
-    res.json({ message: 'Đã xóa job alert' });
+    res.json({ message: 'Đã hủy nhận thông báo việc tương tự' });
   } catch (err) {
     console.error('Delete job alert error:', err);
     res.status(500).json({ error: 'Lỗi khi xóa job alert' });

@@ -278,7 +278,7 @@ export default function ManageCVsPage() {
                 </div>
                 <div className="flex items-center gap-2 text-sm text-gray-500">
                   <Calendar className="w-4 h-4 text-gray-400 shrink-0" />
-                  <span>Ngày tạo: {new Date(cv.created_at).toLocaleDateString('vi-VN')}</span>
+                  <span>Ngày tạo: {new Date(cv.created_at).toLocaleDateString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' })}</span>
                 </div>
               </div>
               

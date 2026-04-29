@@ -16,11 +16,14 @@ import {
   ExternalLink,
   FileText,
   MessageCircle,
+  Columns3,
+  List,
 } from 'lucide-react';
 import { useAuth } from '@features/auth/AuthContext';
 import ConversationModal from '@features/messages/ConversationModal';
 import API_BASE_URL from '@shared/api/baseUrl';
 import UserAvatar from '@shared/ui/UserAvatar';
+import { getNowDateTimeLocalValue } from '@shared/utils/jobQuality';
 
 function getStatusMeta(status) {
   switch (status) {
@@ -96,6 +99,8 @@ export default function ManageCandidatesTab() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [activeStage, setActiveStage] = useState('all');
+  const [viewMode, setViewMode] = useState('list');
+  const [draggingCandidateId, setDraggingCandidateId] = useState(null);
   const [actionLoading, setActionLoading] = useState(null);
   const [selectedCandidateId, setSelectedCandidateId] = useState(null);
   const [candidateDetail, setCandidateDetail] = useState(null);
@@ -275,8 +280,21 @@ export default function ManageCandidatesTab() {
   const visibleCandidates = candidates.filter(
     (candidate) => activeStage === 'all' || (candidate.status || 'pending') === activeStage
   );
+  const kanbanStages = stages.filter((stage) => stage.id !== 'all');
   const lockedInterviewMode = candidateDetail?.candidate_interview_mode || candidateDetail?.interview_mode || '';
   const resolvedInterviewMode = lockedInterviewMode || interviewForm.interview_mode;
+  const nowDateTimeValue = getNowDateTimeLocalValue();
+
+  const handleDropCandidate = async (stageId) => {
+    const candidateId = draggingCandidateId;
+    setDraggingCandidateId(null);
+    if (!candidateId || stageId === 'all') return;
+
+    const candidate = candidates.find((item) => item.id === candidateId);
+    if (!candidate || (candidate.status || 'pending') === stageId) return;
+
+    await handleStatusUpdate(candidateId, stageId);
+  };
 
   if (loading) {
     return (
@@ -290,33 +308,149 @@ export default function ManageCandidatesTab() {
   return (
     <>
       <div className="space-y-6">
-        <div className="flex overflow-x-auto gap-2 pb-2 scrollbar-hide">
-          {stages.map((stage) => (
-            <button
-              key={stage.id}
-              onClick={() => setActiveStage(stage.id)}
-              className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold whitespace-nowrap transition-all ${
-                activeStage === stage.id
-                  ? 'bg-navy-700 text-white shadow-md'
-                  : 'bg-white text-gray-600 hover:bg-gray-50 border border-gray-200'
-              }`}
-            >
-              {stage.label}
-              <span
-                className={`px-2 py-0.5 rounded-full text-xs ${
-                  activeStage === stage.id ? 'bg-white/20' : 'bg-gray-100 text-gray-500'
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex overflow-x-auto gap-2 pb-2 scrollbar-hide">
+            {stages.map((stage) => (
+              <button
+                key={stage.id}
+                onClick={() => setActiveStage(stage.id)}
+                disabled={viewMode === 'kanban' && stage.id === 'all'}
+                className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold whitespace-nowrap transition-all ${
+                  activeStage === stage.id && viewMode === 'list'
+                    ? 'bg-navy-700 text-white shadow-md'
+                    : 'bg-white text-gray-600 hover:bg-gray-50 border border-gray-200'
+                } disabled:cursor-not-allowed disabled:opacity-60`}
+              >
+                {stage.label}
+                <span
+                  className={`px-2 py-0.5 rounded-full text-xs ${
+                    activeStage === stage.id && viewMode === 'list' ? 'bg-white/20' : 'bg-gray-100 text-gray-500'
+                  }`}
+                >
+                  {stage.count}
+                </span>
+              </button>
+            ))}
+          </div>
+
+          <div className="inline-flex w-fit rounded-xl border border-gray-200 bg-white p-1 shadow-sm">
+            {[
+              { id: 'list', label: 'Danh sách', icon: List },
+              { id: 'kanban', label: 'Kanban', icon: Columns3 },
+            ].map((mode) => (
+              <button
+                key={mode.id}
+                type="button"
+                onClick={() => setViewMode(mode.id)}
+                className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-semibold transition ${
+                  viewMode === mode.id ? 'bg-navy-700 text-white' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-700'
                 }`}
               >
-                {stage.count}
-              </span>
-            </button>
-          ))}
+                <mode.icon className="h-4 w-4" />
+                {mode.label}
+              </button>
+            ))}
+          </div>
         </div>
 
         {error ? (
           <div className="p-4 bg-red-50 text-red-600 text-sm rounded-xl border border-red-100">{error}</div>
         ) : null}
 
+        {viewMode === 'kanban' ? (
+          <div className="grid gap-4 xl:grid-cols-4">
+            {kanbanStages.map((stage) => {
+              const stageCandidates = candidates.filter((candidate) => (candidate.status || 'pending') === stage.id);
+              return (
+                <div
+                  key={stage.id}
+                  onDragOver={(event) => event.preventDefault()}
+                  onDrop={() => handleDropCandidate(stage.id)}
+                  className="min-h-[420px] rounded-2xl border border-gray-100 bg-gray-50 p-3"
+                >
+                  <div className="mb-3 flex items-center justify-between px-1">
+                    <div>
+                      <h3 className="font-bold text-gray-800">{stage.label}</h3>
+                      <p className="text-xs text-gray-400">Kéo thả ứng viên vào đây</p>
+                    </div>
+                    <span className="rounded-full bg-white px-2.5 py-1 text-xs font-bold text-gray-500 shadow-sm">{stage.count}</span>
+                  </div>
+
+                  <div className="space-y-3">
+                    {stageCandidates.map((candidate) => {
+                      const preferredMode = candidate.candidate_interview_mode || candidate.interview_mode || '';
+                      return (
+                        <div
+                          key={candidate.id}
+                          draggable={actionLoading !== candidate.id}
+                          onDragStart={() => setDraggingCandidateId(candidate.id)}
+                          onDragEnd={() => setDraggingCandidateId(null)}
+                          className={`rounded-2xl border bg-white p-4 shadow-sm transition ${
+                            draggingCandidateId === candidate.id ? 'border-navy-300 opacity-60' : 'border-gray-100 hover:border-navy-100 hover:shadow-md'
+                          }`}
+                        >
+                          <div className="flex items-start gap-3">
+                            <UserAvatar
+                              src={candidate.avatar_url}
+                              alt={candidate.candidate_name}
+                              className="h-11 w-11 rounded-full object-cover ring-2 ring-gray-100"
+                              fallbackClassName="flex h-11 w-11 items-center justify-center rounded-full bg-gradient-to-br from-navy-500 to-navy-700 ring-2 ring-gray-100"
+                              iconClassName="h-5 w-5 text-white"
+                            />
+                            <div className="min-w-0 flex-1">
+                              <p className="truncate font-bold text-gray-800">{candidate.candidate_name}</p>
+                              <p className="mt-1 line-clamp-2 text-xs font-semibold text-navy-600">{candidate.job_title}</p>
+                              <p className="mt-1 text-xs text-gray-400">{formatDate(candidate.created_at)}</p>
+                            </div>
+                          </div>
+
+                          {preferredMode || candidate.interview_at ? (
+                            <div className="mt-3 rounded-xl bg-slate-50 px-3 py-2 text-xs text-slate-500">
+                              {preferredMode ? formatInterviewMode(preferredMode) : null}
+                              {candidate.interview_at ? <span className="block">{formatDateTime(candidate.interview_at)}</span> : null}
+                            </div>
+                          ) : null}
+
+                          <div className="mt-3 flex flex-wrap gap-2">
+                            <button
+                              type="button"
+                              onClick={() => openCandidateModal(candidate.id, 'profile')}
+                              className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-gray-200 px-3 py-2 text-xs font-semibold text-gray-600 transition hover:bg-gray-50"
+                            >
+                              <Eye className="h-3.5 w-3.5" /> Hồ sơ
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setChatCandidate(candidate)}
+                              className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-xl bg-cyan-50 px-3 py-2 text-xs font-semibold text-cyan-700 transition hover:bg-cyan-100"
+                            >
+                              <MessageCircle className="h-3.5 w-3.5" /> Chat
+                            </button>
+                            {stage.id === 'interview' || stage.id === 'hired' ? (
+                              <button
+                                type="button"
+                                onClick={() => openCandidateModal(candidate.id, 'interview')}
+                                className="inline-flex w-full items-center justify-center gap-1.5 rounded-xl bg-blue-50 px-3 py-2 text-xs font-semibold text-blue-700 transition hover:bg-blue-100"
+                              >
+                                <Video className="h-3.5 w-3.5" /> Lịch phỏng vấn
+                              </button>
+                            ) : null}
+                          </div>
+                        </div>
+                      );
+                    })}
+
+                    {stageCandidates.length === 0 ? (
+                      <div className="rounded-2xl border border-dashed border-gray-200 bg-white/70 p-6 text-center text-sm text-gray-400">
+                        Chưa có ứng viên.
+                      </div>
+                    ) : null}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden divide-y divide-gray-100">
           {visibleCandidates.length > 0 ? (
             visibleCandidates.map((candidate) => {
@@ -373,7 +507,7 @@ export default function ManageCandidatesTab() {
 
                   <div className="flex flex-col sm:flex-row lg:flex-col items-start sm:items-center lg:items-end gap-4 w-full lg:w-auto">
                     <div className="text-xs text-gray-400 font-medium">
-                      Ứng tuyển: {new Date(candidate.created_at).toLocaleDateString('vi-VN')}
+                      Ứng tuyển: {new Date(candidate.created_at).toLocaleDateString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' })}
                     </div>
 
                     <div className="flex flex-wrap gap-2 w-full sm:w-auto">
@@ -415,7 +549,7 @@ export default function ManageCandidatesTab() {
                                 <XCircle className="w-4 h-4" /> Từ chối
                               </button>
                             </>
-                          ) : candidate.status === 'hired' ? (
+                          ) : candidate.status === 'hired' || candidate.status === 'interview' ? (
                             <button
                               type="button"
                               onClick={() => openCandidateModal(candidate.id, 'interview')}
@@ -440,6 +574,7 @@ export default function ManageCandidatesTab() {
             </div>
           )}
         </div>
+        )}
       </div>
 
       {selectedCandidateId ? (
@@ -464,10 +599,10 @@ export default function ManageCandidatesTab() {
               </button>
             </div>
 
-            {candidateDetail && (candidateDetail.status === 'hired' || candidateDetail.status === 'rejected') ? (
+            {candidateDetail && (candidateDetail.status === 'hired' || candidateDetail.status === 'interview' || candidateDetail.status === 'rejected') ? (
               <div className="border-b border-slate-200 px-6">
                 <div className="flex gap-1 overflow-x-auto">
-                  {candidateDetail.status === 'hired' ? (
+                  {candidateDetail.status === 'hired' || candidateDetail.status === 'interview' ? (
                     <>
                       <button
                         type="button"
@@ -491,17 +626,19 @@ export default function ManageCandidatesTab() {
                       >
                         <Video className="w-4 h-4 inline mr-1.5" /> Phỏng vấn
                       </button>
-                      <button
-                        type="button"
-                        onClick={() => setModalSection('approved')}
-                        className={`px-5 py-3.5 text-sm font-semibold border-b-2 transition ${
-                          modalSection === 'approved'
-                            ? 'border-navy-700 text-navy-700'
-                            : 'border-transparent text-slate-500 hover:text-slate-700'
-                        }`}
-                      >
-                        <CheckCircle className="w-4 h-4 inline mr-1.5" /> Đã duyệt hồ sơ
-                      </button>
+                      {candidateDetail.status === 'hired' ? (
+                        <button
+                          type="button"
+                          onClick={() => setModalSection('approved')}
+                          className={`px-5 py-3.5 text-sm font-semibold border-b-2 transition ${
+                            modalSection === 'approved'
+                              ? 'border-navy-700 text-navy-700'
+                              : 'border-transparent text-slate-500 hover:text-slate-700'
+                          }`}
+                        >
+                          <CheckCircle className="w-4 h-4 inline mr-1.5" /> Đã duyệt hồ sơ
+                        </button>
+                      ) : null}
                     </>
                   ) : candidateDetail.status === 'rejected' ? (
                     <>
@@ -545,7 +682,7 @@ export default function ManageCandidatesTab() {
                 </div>
               ) : candidateDetail ? (
                 <>
-                  {(modalSection === 'profile' || (candidateDetail.status !== 'hired' && candidateDetail.status !== 'rejected')) && (
+                  {(modalSection === 'profile' || (candidateDetail.status !== 'hired' && candidateDetail.status !== 'interview' && candidateDetail.status !== 'rejected')) && (
                     <div className="grid gap-6 xl:grid-cols-[360px_minmax(0,1fr)]">
                       <div className="space-y-6">
                     <div className="rounded-[1.75rem] border border-slate-200 bg-slate-50 p-5">
@@ -598,6 +735,13 @@ export default function ManageCandidatesTab() {
                         ) : null}
                       </div>
                     </div>
+
+                    {candidateDetail.cover_letter ? (
+                      <div className="rounded-[1.75rem] border border-cyan-100 bg-cyan-50/70 p-5">
+                        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-cyan-600">Thư giới thiệu</p>
+                        <p className="mt-3 whitespace-pre-line text-sm leading-6 text-slate-700">{candidateDetail.cover_letter}</p>
+                      </div>
+                    ) : null}
                   </div>
 
                   <div className="space-y-6">
@@ -731,7 +875,7 @@ export default function ManageCandidatesTab() {
                   </div>
                 )}
 
-                  {modalSection === 'interview' && candidateDetail.status === 'hired' && (
+                  {modalSection === 'interview' && (candidateDetail.status === 'hired' || candidateDetail.status === 'interview') && (
                     <div className="rounded-[1.75rem] border border-slate-200 bg-white p-6 shadow-sm max-h-[60vh] overflow-y-auto">
                       <div className="mb-6">
                         <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Lịch phỏng vấn</p>
@@ -779,6 +923,7 @@ export default function ManageCandidatesTab() {
                             <input
                               type="datetime-local"
                               value={interviewForm.interview_at}
+                              min={nowDateTimeValue}
                               onChange={(event) =>
                                 setInterviewForm((prev) => ({ ...prev, interview_at: event.target.value }))
                               }

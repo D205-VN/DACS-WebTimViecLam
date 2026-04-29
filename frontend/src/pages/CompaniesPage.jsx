@@ -1,6 +1,6 @@
 import { useDeferredValue, useEffect, useMemo, useState } from 'react';
-import { Briefcase, Building2, MapPin, Search, Users } from 'lucide-react';
-import { useSearchParams } from 'react-router-dom';
+import { Briefcase, Building2, MapPin, Search, Users, ExternalLink } from 'lucide-react';
+import { useSearchParams, Link } from 'react-router-dom';
 import JobList from '@widgets/home/JobList';
 import API_BASE_URL from '@shared/api/baseUrl';
 
@@ -161,8 +161,17 @@ export default function CompaniesPage() {
                     <div className="w-14 h-14 bg-gradient-to-br from-navy-500 to-cyan-500 rounded-2xl flex items-center justify-center text-white shadow-sm shrink-0">
                       <Building2 className="w-7 h-7" />
                     </div>
-                    <div className="min-w-0">
-                      <h2 className="text-xl font-bold text-gray-800">{selectedCompany}</h2>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-start justify-between gap-3">
+                        <h2 className="text-xl font-bold text-gray-800">{selectedCompany}</h2>
+                        <Link
+                          to={`/company?name=${encodeURIComponent(selectedCompany)}`}
+                          className="flex items-center gap-1.5 px-3 py-1.5 bg-navy-700 text-white rounded-lg text-xs font-semibold hover:bg-navy-800 transition-colors shrink-0"
+                        >
+                          <ExternalLink className="w-3.5 h-3.5" />
+                          Trang công ty
+                        </Link>
+                      </div>
                       <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-2 text-sm text-gray-500">
                         <span className="inline-flex items-center gap-1.5">
                           <Briefcase className="w-4 h-4" />

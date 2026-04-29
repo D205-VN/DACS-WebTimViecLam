@@ -12,6 +12,7 @@ function formatMessageTime(value) {
   if (Number.isNaN(parsed.getTime())) return '';
 
   return parsed.toLocaleString('vi-VN', {
+    timeZone: 'Asia/Ho_Chi_Minh',
     hour: '2-digit',
     minute: '2-digit',
     day: '2-digit',

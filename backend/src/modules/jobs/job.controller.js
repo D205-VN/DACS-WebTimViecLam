@@ -441,7 +441,8 @@ exports.getAppliedJobs = async (req, res) => {
               aj.interview_mode,
               aj.interview_link,
               aj.candidate_interview_mode,
-              aj.cv_id
+              aj.cv_id,
+              aj.cover_letter
        FROM applied_jobs aj
        JOIN jobs j ON j.id = aj.job_id
        WHERE aj.user_id = $1
@@ -530,6 +531,12 @@ exports.applyJob = async (req, res) => {
     const jobId = req.params.id;
     const userId = req.user.id;
     const applicationSource = resolveTrafficSource(req);
+    const requestedCvId = Number(req.body?.cv_id);
+    const coverLetter = String(req.body?.cover_letter || '').trim();
+
+    if (coverLetter.length > 2000) {
+      return res.status(400).json({ error: 'Thư giới thiệu không được vượt quá 2000 ký tự' });
+    }
 
     const jobResult = await pool.query(
       `SELECT id, employer_id, job_title, company_name
@@ -552,17 +559,36 @@ exports.applyJob = async (req, res) => {
       return res.status(400).json({ error: 'Bạn đã ứng tuyển việc làm này rồi' });
     }
 
-    const primaryCvResult = await pool.query(
-      `SELECT id
-       FROM user_cvs
-       WHERE user_id = $1
-         AND is_primary = TRUE
-       ORDER BY created_at DESC, id DESC
-       LIMIT 1`,
-      [userId]
-    );
+    let selectedCvId = null;
 
-    let selectedCvId = primaryCvResult.rows[0]?.id || null;
+    if (Number.isInteger(requestedCvId) && requestedCvId > 0) {
+      const requestedCvResult = await pool.query(
+        `SELECT id
+         FROM user_cvs
+         WHERE id = $1 AND user_id = $2
+         LIMIT 1`,
+        [requestedCvId, userId]
+      );
+
+      selectedCvId = requestedCvResult.rows[0]?.id || null;
+      if (!selectedCvId) {
+        return res.status(400).json({ error: 'CV đã chọn không hợp lệ hoặc không thuộc tài khoản của bạn' });
+      }
+    }
+
+    if (!selectedCvId) {
+      const primaryCvResult = await pool.query(
+        `SELECT id
+         FROM user_cvs
+         WHERE user_id = $1
+           AND is_primary = TRUE
+         ORDER BY created_at DESC, id DESC
+         LIMIT 1`,
+        [userId]
+      );
+
+      selectedCvId = primaryCvResult.rows[0]?.id || null;
+    }
 
     if (!selectedCvId) {
       const latestCvResult = await pool.query(
@@ -591,8 +617,10 @@ exports.applyJob = async (req, res) => {
     }
 
     const applicationResult = await pool.query(
-      'INSERT INTO applied_jobs (user_id, job_id, cv_id, application_source) VALUES ($1, $2, $3, $4) RETURNING id',
-      [userId, jobId, selectedCvId, applicationSource]
+      `INSERT INTO applied_jobs (user_id, job_id, cv_id, application_source, cover_letter)
+       VALUES ($1, $2, $3, $4, $5)
+       RETURNING id`,
+      [userId, jobId, selectedCvId, applicationSource, coverLetter || null]
     );
 
     const job = jobResult.rows[0];
@@ -615,7 +643,7 @@ exports.applyJob = async (req, res) => {
       });
     }
 
-    res.json({ message: 'Ứng tuyển thành công!' });
+    res.json({ message: 'Ứng tuyển thành công!', application_id: applicationResult.rows[0]?.id || null, cv_id: selectedCvId });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Lỗi khi ứng tuyển' });

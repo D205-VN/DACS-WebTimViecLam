@@ -85,7 +85,7 @@ export default function NotificationsTab() {
                 <div className="flex justify-between items-start mb-1">
                   <h4 className={`text-sm font-semibold ${!note.read ? 'text-gray-900' : 'text-gray-700'}`}>{note.title}</h4>
                   <span className="text-xs text-gray-400 whitespace-nowrap ml-4">
-                    {new Date(note.created_at).toLocaleString('vi-VN')}
+                    {new Date(note.created_at).toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' })}
                   </span>
                 </div>
                 <p className={`text-sm ${!note.read ? 'text-gray-700 font-medium' : 'text-gray-500'}`}>{note.message}</p>

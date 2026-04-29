@@ -2,11 +2,13 @@ const express = require('express');
 const router = express.Router();
 const jobController = require('./job.controller');
 const { authenticateToken } = require('../../core/middlewares/auth.middleware');
+const { getCompanyPublicProfile } = require('../employer/employer.controller');
 
 // Public routes
 router.get('/', jobController.getJobs);
 router.get('/filters', jobController.getJobFilters);
 router.get('/companies', jobController.getCompanies);
+router.get('/company-profile', getCompanyPublicProfile);
 router.get('/saved', authenticateToken, jobController.getSavedJobs);
 router.get('/applied', authenticateToken, jobController.getAppliedJobs);
 router.get('/saved-ids', authenticateToken, jobController.getSavedJobIds);

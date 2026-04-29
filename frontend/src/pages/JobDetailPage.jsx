@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate, useLocation } from 'react-router-dom';
-import { MapPin, DollarSign, Clock, Bookmark, BookmarkCheck, Briefcase, ArrowLeft, Send, CheckCircle2, Loader2, GraduationCap, Calendar, Bell, X, Search } from 'lucide-react';
+import { MapPin, DollarSign, Clock, Bookmark, BookmarkCheck, Briefcase, ArrowLeft, Send, CheckCircle2, Loader2, GraduationCap, Calendar, Bell, X, FileText, Sparkles, Target } from 'lucide-react';
 import { useAuth } from '@features/auth/AuthContext';
 import { findProvinceByName, normalizeProvinceName, normalizeSearchText } from '@shared/geo/provinceCoordinates';
 import { getCompanyFilterRoute, getDefaultRouteByRole, getJobDetailRoute } from '@shared/utils/roleRedirect';
@@ -28,6 +28,72 @@ const getLocationLookupText = (...values) => getRegionFromAddress(...values) || 
 
 const getTags = (text) => text?.split(/[,/]/).map(tag => tag.trim().toLowerCase()).filter(Boolean) || [];
 const getSimilarityScore = (source, target) => target.reduce((score, token) => score + (source.includes(token) ? 1 : 0), 0);
+const VIETNAMESE_STOP_WORDS = new Set([
+  'và', 'hoặc', 'các', 'cho', 'với', 'của', 'trong', 'ngoài', 'theo', 'một', 'những', 'được', 'làm', 'việc',
+  'ứng', 'viên', 'công', 'ty', 'kinh', 'nghiệm', 'yêu', 'cầu', 'mô', 'tả', 'quyền', 'lợi', 'chưa', 'cập', 'nhật',
+]);
+
+const stripHtml = (value = '') => String(value || '')
+  .replace(/<style[\s\S]*?<\/style>/gi, ' ')
+  .replace(/<script[\s\S]*?<\/script>/gi, ' ')
+  .replace(/<[^>]+>/g, ' ')
+  .replace(/&nbsp;/gi, ' ')
+  .replace(/&amp;/gi, '&')
+  .replace(/\s+/g, ' ')
+  .trim();
+
+const tokenize = (value = '') => normalizeSearchText(stripHtml(value))
+  .split(/[^a-z0-9à-ỹ]+/i)
+  .map(token => token.trim())
+  .filter(token => token.length > 2 && !VIETNAMESE_STOP_WORDS.has(token));
+
+function buildCvJobFit(cv, job) {
+  if (!cv || !job) {
+    return {
+      score: 0,
+      tone: 'text-slate-600',
+      label: 'Chưa có CV',
+      matches: [],
+      tips: ['Chọn một CV để hệ thống tính mức độ phù hợp.'],
+    };
+  }
+
+  const cvText = `${cv.title || ''} ${cv.target_role || ''} ${stripHtml(cv.html_content || '')}`;
+  const jobText = `${job.title || ''} ${job.description || ''} ${job.requirements || ''} ${job.industry || ''} ${job.tags || ''}`;
+  const cvTokens = new Set(tokenize(cvText));
+  const jobTokens = [...new Set(tokenize(jobText))].slice(0, 90);
+  const matches = jobTokens.filter(token => cvTokens.has(token)).slice(0, 10);
+  const titleTokens = tokenize(job.title || '');
+  const roleTokens = tokenize(`${cv.target_role || ''} ${cv.title || ''}`);
+  const roleMatches = titleTokens.filter(token => roleTokens.includes(token));
+  const cvLocation = normalizeSearchText(cv.current_location || '');
+  const jobLocation = normalizeSearchText(job.location || job.company_address || '');
+  const createdAt = cv.created_at ? new Date(cv.created_at) : null;
+  const ageDays = createdAt && !Number.isNaN(createdAt.getTime())
+    ? Math.floor((Date.now() - createdAt.getTime()) / (1000 * 60 * 60 * 24))
+    : null;
+
+  let score = 20;
+  score += Math.min(42, matches.length * 6);
+  score += roleMatches.length > 0 ? 18 : 0;
+  score += cvLocation && jobLocation && jobLocation.includes(cvLocation) ? 10 : cvLocation || jobLocation ? 4 : 6;
+  score += ageDays === null ? 4 : ageDays <= 180 ? 10 : ageDays <= 365 ? 6 : 2;
+  score = Math.max(0, Math.min(100, Math.round(score)));
+
+  const tips = [];
+  if (matches.length < 5) tips.push('Bổ sung thêm kỹ năng/từ khóa xuất hiện trong mô tả công việc.');
+  if (roleMatches.length === 0) tips.push('Điều chỉnh tiêu đề CV hoặc vị trí mục tiêu gần hơn với tin tuyển dụng.');
+  if (ageDays !== null && ageDays > 180) tips.push('CV đã tạo khá lâu, nên cập nhật lại trước khi nộp.');
+  if (!tips.length) tips.push('CV đang khá khớp, hãy viết thư giới thiệu nêu rõ thành tích liên quan.');
+
+  return {
+    score,
+    tone: score >= 75 ? 'text-emerald-700' : score >= 55 ? 'text-amber-700' : 'text-red-700',
+    label: score >= 75 ? 'Rất phù hợp' : score >= 55 ? 'Có tiềm năng' : 'Cần cải thiện',
+    matches,
+    tips,
+  };
+}
 
 export default function JobDetailPage() {
   const { id } = useParams();
@@ -43,6 +109,12 @@ export default function JobDetailPage() {
   const [similarJobs, setSimilarJobs] = useState([]);
   const [similarLoading, setSimilarLoading] = useState(false);
   const [alertSubscribed, setAlertSubscribed] = useState(false);
+  const [applyModalOpen, setApplyModalOpen] = useState(false);
+  const [cvs, setCvs] = useState([]);
+  const [cvsLoading, setCvsLoading] = useState(false);
+  const [selectedCvId, setSelectedCvId] = useState('');
+  const [coverLetter, setCoverLetter] = useState('');
+  const [applyError, setApplyError] = useState('');
 
   const tabs = [
     { id: 'description', label: 'Mô tả' },
@@ -100,6 +172,29 @@ export default function JobDetailPage() {
   }, [job]);
 
   useEffect(() => {
+    if (!token || user?.role_code !== 'seeker') {
+      setCvs([]);
+      setSelectedCvId('');
+      return;
+    }
+
+    setCvsLoading(true);
+    fetch(`${API_BASE_URL}/api/cv/my-cvs`, { headers: { Authorization: `Bearer ${token}` } })
+      .then(r => r.json())
+      .then(data => {
+        const list = data.cvs || [];
+        setCvs(list);
+        const primary = list.find(cv => cv.is_primary) || list[0];
+        setSelectedCvId(primary?.id ? String(primary.id) : '');
+      })
+      .catch(() => {
+        setCvs([]);
+        setSelectedCvId('');
+      })
+      .finally(() => setCvsLoading(false));
+  }, [token, user?.role_code]);
+
+  useEffect(() => {
     if (job) {
       document.title = `${job.title || job.job_title || 'Chi tiết việc làm'} | AptertekWork`;
     } else {
@@ -123,6 +218,16 @@ export default function JobDetailPage() {
   const handleApply = async () => {
     if (!isAuthenticated) { navigate('/login'); return; }
     if (applied) return;
+    setApplyError('');
+    setApplyModalOpen(true);
+  };
+
+  const handleConfirmApply = async () => {
+    if (!selectedCvId) {
+      setApplyError('Vui lòng chọn CV trước khi ứng tuyển.');
+      return;
+    }
+
     setActionLoading('apply');
     try {
       const query = new URLSearchParams(routerLocation.search);
@@ -133,15 +238,18 @@ export default function JobDetailPage() {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ source }),
+        body: JSON.stringify({ source, cv_id: Number(selectedCvId), cover_letter: coverLetter.trim() }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
         throw new Error(data.error || 'Không thể nộp hồ sơ lúc này');
       }
       setApplied(true);
+      setApplyModalOpen(false);
+      setCoverLetter('');
+      setApplyError('');
     } catch (err) {
-      alert(err.message);
+      setApplyError(err.message || 'Không thể nộp hồ sơ lúc này');
     }
     setActionLoading('');
   };
@@ -202,6 +310,16 @@ export default function JobDetailPage() {
   const postedOn = formatDate(job.created_at || job.updated_at || job.posted_at);
   const remainingDays = getRemainingDays(jobDeadline);
   const backRoute = getDefaultRouteByRole(user?.role_code);
+  const selectedCv = cvs.find(cv => String(cv.id) === String(selectedCvId)) || null;
+  const cvFit = buildCvJobFit(selectedCv, {
+    title: jobTitle,
+    description: jobDescription,
+    requirements: jobRequirements,
+    industry: job.industry,
+    tags: tags.join(' '),
+    location: jobLocation,
+    company_address: companyAddress,
+  });
 
   const handleCompanyClick = () => {
     if (!companyName) return;
@@ -338,11 +456,18 @@ export default function JobDetailPage() {
             </div>
             {isAuthenticated && user?.role_code === 'seeker' ? (
               <div className="mt-3 rounded-3xl border border-cyan-200/20 bg-cyan-300/10 px-4 py-3 text-sm text-cyan-50">
-                Khi bấm ứng tuyển, hệ thống sẽ dùng <b>CV chính</b> trong{' '}
-                <Link to="/seeker/my-cvs" className="font-semibold underline underline-offset-2">
-                  Quản lý hồ sơ CV
-                </Link>
-                .
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <p className="font-semibold">Điểm phù hợp CV/job</p>
+                    <p className="mt-1 text-cyan-50/80">
+                      {selectedCv ? `Đang dùng ${selectedCv.title}` : 'Chọn CV khi ứng tuyển để tính điểm chi tiết.'}
+                    </p>
+                  </div>
+                  <span className="inline-flex w-fit items-center gap-2 rounded-full bg-white px-3 py-1.5 text-xs font-bold text-slate-900">
+                    <Target className="h-4 w-4 text-cyan-600" />
+                    {selectedCv ? `${cvFit.score}% - ${cvFit.label}` : 'Chưa có CV'}
+                  </span>
+                </div>
               </div>
             ) : null}
 
@@ -507,6 +632,137 @@ export default function JobDetailPage() {
           </section>
         </div>
       </div>
+
+      {applyModalOpen ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 px-4 py-6">
+          <div className="max-h-[92vh] w-full max-w-5xl overflow-hidden rounded-[2rem] bg-white shadow-2xl">
+            <div className="flex items-start justify-between gap-4 border-b border-slate-200 px-6 py-5">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-400">Ứng tuyển</p>
+                <h3 className="mt-2 text-2xl font-bold text-slate-900">{jobTitle}</h3>
+                <p className="mt-1 text-sm text-slate-500">{companyName || 'Nhà tuyển dụng'}</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setApplyModalOpen(false)}
+                className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-100 text-slate-500 transition hover:bg-slate-200"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div className="grid max-h-[calc(92vh-90px)] overflow-y-auto lg:grid-cols-[1.1fr_0.9fr]">
+              <div className="space-y-5 p-6">
+                <div>
+                  <label className="mb-2 block text-sm font-semibold text-slate-700">Chọn CV nộp hồ sơ</label>
+                  {cvsLoading ? (
+                    <div className="flex items-center gap-2 rounded-2xl border border-slate-200 px-4 py-3 text-sm text-slate-500">
+                      <Loader2 className="h-4 w-4 animate-spin" /> Đang tải CV...
+                    </div>
+                  ) : cvs.length === 0 ? (
+                    <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-700">
+                      Bạn chưa có CV. Hãy tạo hoặc import CV trước khi ứng tuyển.
+                      <Link to="/seeker/cv-builder" className="ml-1 font-semibold underline underline-offset-2">Tạo CV ngay</Link>
+                    </div>
+                  ) : (
+                    <div className="grid gap-3">
+                      {cvs.map(cv => {
+                        const active = String(selectedCvId) === String(cv.id);
+                        return (
+                          <button
+                            key={cv.id}
+                            type="button"
+                            onClick={() => setSelectedCvId(String(cv.id))}
+                            className={`flex items-start gap-3 rounded-2xl border p-4 text-left transition ${
+                              active ? 'border-navy-500 bg-navy-50' : 'border-slate-200 bg-white hover:bg-slate-50'
+                            }`}
+                          >
+                            <div className={`mt-0.5 flex h-10 w-10 items-center justify-center rounded-xl ${active ? 'bg-navy-700 text-white' : 'bg-slate-100 text-slate-500'}`}>
+                              <FileText className="h-5 w-5" />
+                            </div>
+                            <div className="min-w-0">
+                              <div className="flex flex-wrap items-center gap-2">
+                                <p className="font-semibold text-slate-900">{cv.title}</p>
+                                {cv.is_primary ? <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-semibold text-emerald-700">CV chính</span> : null}
+                              </div>
+                              <p className="mt-1 text-sm text-slate-500">{cv.target_role || 'Chưa có vị trí mục tiêu'}</p>
+                              {cv.current_location ? <p className="mt-1 text-xs text-slate-400">{cv.current_location}</p> : null}
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+
+                <div>
+                  <label className="mb-2 block text-sm font-semibold text-slate-700">Thư giới thiệu ngắn</label>
+                  <textarea
+                    value={coverLetter}
+                    onChange={(event) => setCoverLetter(event.target.value.slice(0, 2000))}
+                    rows={7}
+                    placeholder="Nêu 2-3 điểm mạnh liên quan trực tiếp tới vị trí này..."
+                    className="w-full resize-y rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none transition focus:border-navy-400 focus:ring-2 focus:ring-navy-100"
+                  />
+                  <p className="mt-1 text-right text-xs text-slate-400">{coverLetter.length}/2000</p>
+                </div>
+
+                {applyError ? (
+                  <div className="rounded-2xl border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-600">{applyError}</div>
+                ) : null}
+              </div>
+
+              <div className="border-t border-slate-200 bg-slate-50 p-6 lg:border-l lg:border-t-0">
+                <div className="rounded-[1.75rem] border border-slate-200 bg-white p-5 shadow-sm">
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Phù hợp</p>
+                      <h4 className={`mt-2 text-4xl font-black ${cvFit.tone}`}>{selectedCv ? `${cvFit.score}%` : '--'}</h4>
+                    </div>
+                    <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-cyan-50 text-cyan-700">
+                      <Sparkles className="h-7 w-7" />
+                    </div>
+                  </div>
+                  <p className="mt-3 font-semibold text-slate-900">{cvFit.label}</p>
+                  <div className="mt-4">
+                    <p className="text-sm font-semibold text-slate-700">Từ khóa trùng</p>
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {cvFit.matches.length > 0 ? cvFit.matches.map(token => (
+                        <span key={token} className="rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700">{token}</span>
+                      )) : <span className="text-sm text-slate-400">Chưa tìm thấy từ khóa trùng nổi bật.</span>}
+                    </div>
+                  </div>
+                  <div className="mt-5">
+                    <p className="text-sm font-semibold text-slate-700">Gợi ý trước khi nộp</p>
+                    <ul className="mt-2 space-y-2 text-sm text-slate-600">
+                      {cvFit.tips.map(tip => <li key={tip} className="rounded-2xl bg-slate-50 px-3 py-2">{tip}</li>)}
+                    </ul>
+                  </div>
+                </div>
+
+                <div className="mt-5 flex flex-col gap-3 sm:flex-row">
+                  <button
+                    type="button"
+                    onClick={() => setApplyModalOpen(false)}
+                    className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-600 transition hover:bg-slate-100"
+                  >
+                    Hủy
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleConfirmApply}
+                    disabled={actionLoading === 'apply' || cvsLoading || cvs.length === 0}
+                    className="inline-flex flex-1 items-center justify-center gap-2 rounded-2xl bg-navy-700 px-5 py-3 text-sm font-semibold text-white transition hover:bg-navy-800 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {actionLoading === 'apply' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                    Nộp hồ sơ
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

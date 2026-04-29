@@ -7,6 +7,7 @@ import { getBlogDetailRoute } from '@shared/utils/roleRedirect';
 
 function formatDate(date) {
   return new Date(date).toLocaleDateString('vi-VN', {
+    timeZone: 'Asia/Ho_Chi_Minh',
     day: '2-digit',
     month: '2-digit',
     year: 'numeric',

@@ -23,6 +23,7 @@ import JobAlertsPage from '@pages/seeker/JobAlertsPage';
 import EmployerDashboard from '@pages/employer/EmployerDashboard';
 import PostJob from '@pages/employer/PostJob';
 import VerificationPublicPage from '@pages/VerificationPublicPage';
+import CompanyBrandingPage from '@pages/CompanyBrandingPage';
 
 function RoleBasedHome() {
   const { user, isAuthenticated, loading } = useAuth();
@@ -51,6 +52,7 @@ function RoleBasedHome() {
 const router = createBrowserRouter([
   { path: '/', element: <RoleBasedHome /> },
   { path: '/companies', element: <MainLayout><CompaniesPage /></MainLayout> },
+  { path: '/company', element: <MainLayout><CompanyBrandingPage /></MainLayout> },
   { path: '/blog', element: <MainLayout><BlogPage /></MainLayout> },
   { path: '/blog/:slug', element: <MainLayout><BlogDetailPage /></MainLayout> },
   { path: '/login', element: <LoginPage /> },

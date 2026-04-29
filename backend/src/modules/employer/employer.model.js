@@ -3,6 +3,7 @@ const pool = require('../../infrastructure/database/postgres');
 let employerJobSchemaReady = false;
 let employerProfileSchemaReady = false;
 let employerApplicationSchemaReady = false;
+let companyBrandingSchemaReady = false;
 
 async function ensureEmployerJobSchema() {
   if (employerJobSchemaReady) return;
@@ -84,6 +85,7 @@ async function ensureEmployerApplicationSchema() {
     ADD COLUMN IF NOT EXISTS candidate_interview_mode VARCHAR(20),
     ADD COLUMN IF NOT EXISTS interview_reminder_sent_at TIMESTAMP,
     ADD COLUMN IF NOT EXISTS application_source VARCHAR(40) DEFAULT 'organic',
+    ADD COLUMN IF NOT EXISTS cover_letter TEXT,
     ADD COLUMN IF NOT EXISTS cv_id INTEGER REFERENCES user_cvs(id) ON DELETE SET NULL,
     ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT NOW()
   `);
@@ -99,8 +101,24 @@ async function ensureEmployerApplicationSchema() {
   employerApplicationSchemaReady = true;
 }
 
+async function ensureCompanyBrandingSchema() {
+  if (companyBrandingSchemaReady) return;
+
+  await pool.query(`
+    ALTER TABLE users
+    ADD COLUMN IF NOT EXISTS company_gallery JSONB DEFAULT '[]'::jsonb,
+    ADD COLUMN IF NOT EXISTS company_video_url TEXT,
+    ADD COLUMN IF NOT EXISTS company_perks JSONB DEFAULT '[]'::jsonb,
+    ADD COLUMN IF NOT EXISTS company_founded_year VARCHAR(10),
+    ADD COLUMN IF NOT EXISTS company_industry VARCHAR(255)
+  `);
+
+  companyBrandingSchemaReady = true;
+}
+
 module.exports = {
   ensureEmployerJobSchema,
   ensureEmployerProfileSchema,
   ensureEmployerApplicationSchema,
+  ensureCompanyBrandingSchema,
 };

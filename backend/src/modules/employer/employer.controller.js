@@ -7,6 +7,7 @@ const {
   ensureEmployerJobSchema,
   ensureEmployerProfileSchema,
   ensureEmployerApplicationSchema,
+  ensureCompanyBrandingSchema,
 } = require('./employer.model');
 
 function normalizeDeadline(deadline) {
@@ -14,6 +15,12 @@ function normalizeDeadline(deadline) {
   const parsed = new Date(deadline);
   if (Number.isNaN(parsed.getTime())) return null;
   return parsed.toISOString().split('T')[0];
+}
+
+function isPastDeadline(normalizedDeadline) {
+  if (!normalizedDeadline) return false;
+  const endOfDeadline = new Date(`${normalizedDeadline}T23:59:59.999`);
+  return !Number.isNaN(endOfDeadline.getTime()) && endOfDeadline.getTime() < Date.now();
 }
 
 function normalizeSalary(salaryMin, salaryMax) {
@@ -37,6 +44,7 @@ async function ensureEmployerJobSchemaForRequest(req, res, next) {
     await ensureEmployerProfileSchema();
     await ensureEmployerApplicationSchema();
     await ensureJobAnalyticsSchema();
+    await ensureCompanyBrandingSchema();
     return next();
   } catch (err) {
     console.error('Ensure employer job schema error:', err);
@@ -341,6 +349,9 @@ async function createJob(req, res) {
     );
     const company = userResult.rows[0];
     const normalizedDeadline = normalizeDeadline(deadline);
+    if (isPastDeadline(normalizedDeadline)) {
+      return res.status(400).json({ error: 'Hạn nộp hồ sơ không được nhỏ hơn ngày hiện tại' });
+    }
     const normalizedSalary = normalizeSalary(salary_min, salary_max);
     const normalizedTags = Array.isArray(tags)
       ? tags.map((tag) => String(tag).trim()).filter(Boolean).join(', ')
@@ -452,7 +463,7 @@ async function getCandidates(req, res) {
       conditions.push(`DATE(aj.created_at) <= $${params.length}`);
     }
     const result = await pool.query(
-      `SELECT aj.id, aj.user_id, aj.job_id, aj.cv_text, aj.cv_id, aj.note, aj.interview_at, aj.interview_mode,
+      `SELECT aj.id, aj.user_id, aj.job_id, aj.cv_text, aj.cv_id, aj.cover_letter, aj.note, aj.interview_at, aj.interview_mode,
               aj.candidate_interview_mode,
               aj.interview_link, aj.created_at, aj.updated_at,
               COALESCE(NULLIF(TRIM(aj.status), ''), 'pending') as status,
@@ -502,7 +513,7 @@ async function getCandidateById(req, res) {
     const userId = req.user.id;
     const applicationId = req.params.id;
     const result = await pool.query(
-      `SELECT aj.id, aj.user_id, aj.job_id, aj.cv_text, aj.cv_id, aj.note, aj.interview_at, aj.interview_mode,
+      `SELECT aj.id, aj.user_id, aj.job_id, aj.cv_text, aj.cv_id, aj.cover_letter, aj.note, aj.interview_at, aj.interview_mode,
               aj.candidate_interview_mode,
               aj.interview_link, aj.created_at, aj.updated_at,
               COALESCE(NULLIF(TRIM(aj.status), ''), 'pending') as status,
@@ -583,7 +594,13 @@ async function getProfile(req, res) {
   try {
     const userId = req.user.id;
     const result = await pool.query(
-      'SELECT id, email, full_name, company_name, company_description, company_city, company_website, company_size, phone, avatar_url, company_cover_url FROM users WHERE id = $1',
+      `SELECT id, email, full_name, company_name, company_description, company_city, company_website,
+              company_size, phone, avatar_url, company_cover_url,
+              COALESCE(company_gallery, '[]'::jsonb) AS company_gallery,
+              company_video_url,
+              COALESCE(company_perks, '[]'::jsonb) AS company_perks,
+              company_founded_year, company_industry
+       FROM users WHERE id = $1`,
       [userId]
     );
     res.json({ data: result.rows[0] });
@@ -609,10 +626,15 @@ async function updateProfile(req, res) {
       phone,
       avatar_url,
       company_cover_url,
+      company_gallery,
+      company_video_url,
+      company_perks,
+      company_founded_year,
+      company_industry,
     } = req.body;
 
     const currentUserResult = await pool.query(
-      'SELECT avatar_url, company_cover_url FROM users WHERE id = $1',
+      'SELECT avatar_url, company_cover_url, company_gallery FROM users WHERE id = $1',
       [userId]
     );
     const currentUser = currentUserResult.rows[0] || {};
@@ -622,13 +644,40 @@ async function updateProfile(req, res) {
       return trimmed || null;
     };
 
+    // Validate and normalize gallery (max 8 images)
+    let normalizedGallery = currentUser.company_gallery || [];
+    if (company_gallery !== undefined) {
+      const galleryArr = Array.isArray(company_gallery) ? company_gallery : [];
+      normalizedGallery = galleryArr.slice(0, 8);
+    }
+
+    // Validate and normalize perks (max 12)
+    let normalizedPerks = [];
+    if (company_perks !== undefined) {
+      const perksArr = Array.isArray(company_perks) ? company_perks : [];
+      normalizedPerks = perksArr.slice(0, 12).map((perk) => ({
+        icon: String(perk.icon || '').slice(0, 10),
+        title: String(perk.title || '').trim().slice(0, 100),
+        description: String(perk.description || '').trim().slice(0, 300),
+      }));
+    } else {
+      const currentPerksResult = await pool.query('SELECT company_perks FROM users WHERE id = $1', [userId]);
+      normalizedPerks = currentPerksResult.rows[0]?.company_perks || [];
+    }
+
     const result = await pool.query(
       `UPDATE users 
        SET company_name = $1, company_description = $2, company_city = $3, 
            company_website = $4, company_size = $5, phone = $6,
-           avatar_url = $7, company_cover_url = $8, updated_at = NOW()
-       WHERE id = $9
-       RETURNING id, company_name, company_description, company_city, company_website, company_size, phone, avatar_url, company_cover_url`,
+           avatar_url = $7, company_cover_url = $8,
+           company_gallery = $9::jsonb, company_video_url = $10,
+           company_perks = $11::jsonb,
+           company_founded_year = $12, company_industry = $13,
+           updated_at = NOW()
+       WHERE id = $14
+       RETURNING id, company_name, company_description, company_city, company_website, company_size,
+                 phone, avatar_url, company_cover_url, company_gallery, company_video_url,
+                 company_perks, company_founded_year, company_industry`,
       [
         company_name?.trim() || null,
         company_description?.trim() || null,
@@ -638,6 +687,11 @@ async function updateProfile(req, res) {
         phone?.trim() || null,
         resolveImageValue(avatar_url, currentUser.avatar_url),
         resolveImageValue(company_cover_url, currentUser.company_cover_url),
+        JSON.stringify(normalizedGallery),
+        company_video_url?.trim() || null,
+        JSON.stringify(normalizedPerks),
+        company_founded_year?.trim() || null,
+        company_industry?.trim() || null,
         userId
       ]
     );
@@ -646,6 +700,64 @@ async function updateProfile(req, res) {
   } catch (err) {
     console.error('Update profile error:', err);
     res.status(500).json({ error: 'Lỗi khi cập nhật hồ sơ' });
+  }
+}
+
+/**
+ * GET /api/jobs/company-profile?name=<company_name>
+ * Public endpoint — Lấy toàn bộ branding của 1 công ty cho ứng viên xem
+ */
+async function getCompanyPublicProfile(req, res) {
+  try {
+    await ensureCompanyBrandingSchema();
+    const { name } = req.query;
+    if (!name?.trim()) {
+      return res.status(400).json({ error: 'Thiếu tên công ty' });
+    }
+
+    const profileResult = await pool.query(
+      `SELECT u.id, u.company_name, u.company_description, u.company_city, u.company_website,
+              u.company_size, u.avatar_url, u.company_cover_url,
+              COALESCE(u.company_gallery, '[]'::jsonb) AS company_gallery,
+              u.company_video_url,
+              COALESCE(u.company_perks, '[]'::jsonb) AS company_perks,
+              u.company_founded_year, u.company_industry
+       FROM users u
+       WHERE LOWER(TRIM(u.company_name)) = LOWER(TRIM($1))
+         AND u.role_id = (SELECT id FROM roles WHERE code = 'employer' LIMIT 1)
+       LIMIT 1`,
+      [name.trim()]
+    );
+
+    if (!profileResult.rows.length) {
+      return res.status(404).json({ error: 'Không tìm thấy thông tin công ty' });
+    }
+
+    const company = profileResult.rows[0];
+
+    // Lấy danh sách jobs đang tuyển của công ty
+    const jobsResult = await pool.query(
+      `SELECT j.id, j.job_title AS title, j.job_address AS location, j.salary,
+              j.job_type, j.years_of_experience AS experience,
+              j.submission_deadline AS deadline, j.created_at
+       FROM jobs j
+       WHERE LOWER(TRIM(j.company_name)) = LOWER(TRIM($1))
+         AND COALESCE(NULLIF(TRIM(j.status), ''), 'approved') = 'approved'
+       ORDER BY j.created_at DESC
+       LIMIT 20`,
+      [name.trim()]
+    );
+
+    res.json({
+      data: {
+        ...company,
+        jobs: jobsResult.rows,
+        job_count: jobsResult.rows.length,
+      }
+    });
+  } catch (err) {
+    console.error('Get company public profile error:', err);
+    res.status(500).json({ error: 'Lỗi khi tải thông tin công ty' });
   }
 }
 
@@ -1096,6 +1208,9 @@ async function updateJob(req, res) {
     const nextModerationStatus = currentStatus === 'approved' ? 'approved' : 'pending';
 
     const normalizedDeadline = normalizeDeadline(deadline);
+    if (isPastDeadline(normalizedDeadline)) {
+      return res.status(400).json({ error: 'Hạn nộp hồ sơ không được nhỏ hơn ngày hiện tại' });
+    }
     const normalizedSalary = salary || normalizeSalary(salary_min, salary_max);
     const normalizedTags = Array.isArray(tags)
       ? tags.map((tag) => String(tag).trim()).filter(Boolean).join(', ')
@@ -1231,8 +1346,8 @@ async function updateApplicationStatus(req, res) {
     const { status } = req.body; // pending, interview, hired, rejected
     const normalizedStatus = normalizeApplicationStatus(status);
 
-    if (!['hired', 'rejected'].includes(normalizedStatus)) {
-      return res.status(400).json({ error: 'Chỉ được duyệt hồ sơ hoặc từ chối hồ sơ' });
+    if (!['pending', 'interview', 'hired', 'rejected'].includes(normalizedStatus)) {
+      return res.status(400).json({ error: 'Trạng thái hồ sơ không hợp lệ' });
     }
 
     const ownershipResult = await pool.query(
@@ -1253,10 +1368,6 @@ async function updateApplicationStatus(req, res) {
     }
 
     const ownership = ownershipResult.rows[0];
-    if (['hired', 'rejected'].includes(ownership.current_status)) {
-      return res.status(400).json({ error: 'Hồ sơ này đã được quyết định trước đó và không thể đổi lại' });
-    }
-
     const result = await pool.query(
       `UPDATE applied_jobs
        SET status = $1, updated_at = NOW()
@@ -1265,19 +1376,38 @@ async function updateApplicationStatus(req, res) {
       [normalizedStatus, applicationId]
     );
 
-    await createNotification({
-      userId: ownership.user_id,
-      type: normalizedStatus === 'hired' ? 'seeker_application_hired' : 'seeker_application_rejected',
-      title: normalizedStatus === 'hired' ? 'Hồ sơ đã được duyệt' : 'Hồ sơ bị từ chối',
-      message:
-        normalizedStatus === 'hired'
-          ? `Nhà tuyển dụng đã duyệt hồ sơ của bạn cho vị trí ${ownership.job_title || 'ứng tuyển'}.`
-          : `Nhà tuyển dụng đã từ chối hồ sơ của bạn cho vị trí ${ownership.job_title || 'ứng tuyển'}.`,
-      to: '/seeker/applied-jobs',
-      meta: { application_id: applicationId, company_name: ownership.company_name || null },
-    }).catch((notificationError) => {
-      console.error('Create seeker application status notification error:', notificationError);
-    });
+    if (normalizedStatus !== ownership.current_status && normalizedStatus !== 'pending') {
+      const statusCopy = {
+        interview: {
+          type: 'seeker_application_interview',
+          title: 'Hồ sơ được chuyển sang vòng phỏng vấn',
+          message: `Nhà tuyển dụng đã chuyển hồ sơ của bạn cho vị trí ${ownership.job_title || 'ứng tuyển'} sang vòng phỏng vấn.`,
+        },
+        hired: {
+          type: 'seeker_application_hired',
+          title: 'Hồ sơ đã được duyệt',
+          message: `Nhà tuyển dụng đã duyệt hồ sơ của bạn cho vị trí ${ownership.job_title || 'ứng tuyển'}.`,
+        },
+        rejected: {
+          type: 'seeker_application_rejected',
+          title: 'Hồ sơ bị từ chối',
+          message: `Nhà tuyển dụng đã từ chối hồ sơ của bạn cho vị trí ${ownership.job_title || 'ứng tuyển'}.`,
+        },
+      }[normalizedStatus];
+
+      if (statusCopy) {
+        await createNotification({
+          userId: ownership.user_id,
+          type: statusCopy.type,
+          title: statusCopy.title,
+          message: statusCopy.message,
+          to: '/seeker/applied-jobs',
+          meta: { application_id: applicationId, company_name: ownership.company_name || null },
+        }).catch((notificationError) => {
+          console.error('Create seeker application status notification error:', notificationError);
+        });
+      }
+    }
 
     res.json({ message: 'Đã cập nhật trạng thái ứng viên', data: result.rows[0] });
   } catch (err) {
@@ -1344,6 +1474,10 @@ async function scheduleInterview(req, res) {
       return res.status(400).json({ error: 'Ngày giờ phỏng vấn không hợp lệ' });
     }
 
+    if (normalizedAt.getTime() <= Date.now()) {
+      return res.status(400).json({ error: 'Ngày giờ phỏng vấn phải lớn hơn thời điểm hiện tại' });
+    }
+
     const lockedMode = normalizeInterviewMode(application.candidate_interview_mode);
     const normalizedMode = lockedMode || normalizeInterviewMode(interview_mode) || 'online';
     const normalizedLink = normalizedMode === 'online' ? interview_link?.trim() || null : null;
@@ -1399,5 +1533,6 @@ module.exports = {
   ensureEmployerJobSchemaForRequest,
   getDashboard, createJob, getMyJobs, getCandidates, getCandidateStats, getCandidateById, getProfile, 
   updateProfile, getNotifications, getAnalytics: getAnalyticsV2,
-  updateJob, updateJobStatus, deleteJob, updateApplicationStatus: updateCandidateStatus, saveCandidateNote, scheduleInterview
+  updateJob, updateJobStatus, deleteJob, updateApplicationStatus: updateCandidateStatus, saveCandidateNote, scheduleInterview,
+  getCompanyPublicProfile,
 };

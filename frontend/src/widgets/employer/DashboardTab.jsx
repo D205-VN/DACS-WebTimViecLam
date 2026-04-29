@@ -107,7 +107,7 @@ export default function DashboardTab({ stats, recentJobs, loading, setActiveTab 
                       )}
                       {job.deadline && (
                         <span className="text-xs text-gray-500 flex items-center gap-1">
-                          <Calendar className="w-3 h-3" /> Hạn: {new Date(job.deadline).toLocaleDateString('vi-VN')}
+                          <Calendar className="w-3 h-3" /> Hạn: {new Date(job.deadline).toLocaleDateString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' })}
                         </span>
                       )}
                       <span className="text-xs font-medium text-success-600 flex items-center gap-1">

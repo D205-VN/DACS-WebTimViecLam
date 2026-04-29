@@ -75,6 +75,7 @@ async function ensurePublicApplicationSchema() {
     ADD COLUMN IF NOT EXISTS candidate_interview_mode VARCHAR(20),
     ADD COLUMN IF NOT EXISTS interview_reminder_sent_at TIMESTAMP,
     ADD COLUMN IF NOT EXISTS application_source VARCHAR(40) DEFAULT 'organic',
+    ADD COLUMN IF NOT EXISTS cover_letter TEXT,
     ADD COLUMN IF NOT EXISTS cv_id INTEGER REFERENCES user_cvs(id) ON DELETE SET NULL,
     ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT NOW()
   `);

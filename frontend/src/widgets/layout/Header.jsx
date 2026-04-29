@@ -144,8 +144,8 @@ function getUserMenuLinks(roleCode) {
     },
     {
       to: getRouteByRole(roleCode, 'jobAlerts'),
-      label: 'Job alerts',
-      description: 'Nhận việc phù hợp mỗi tuần',
+      label: 'Việc tương tự',
+      description: 'Các tin đã bật thông báo',
       icon: Bell,
       iconClass: 'bg-cyan-50 text-cyan-500',
       match: (pathname) => pathname.startsWith('/seeker/job-alerts'),
@@ -184,6 +184,7 @@ function formatNotificationTime(value) {
   if (Number.isNaN(date.getTime())) return '';
 
   return date.toLocaleString('vi-VN', {
+    timeZone: 'Asia/Ho_Chi_Minh',
     hour: '2-digit',
     minute: '2-digit',
     day: '2-digit',

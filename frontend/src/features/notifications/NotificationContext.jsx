@@ -9,6 +9,21 @@ export const NotificationProvider = ({ children }) => {
   const { user, token } = useAuth();
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [toasts, setToasts] = useState([]);
+
+  const pushToast = useCallback((notification) => {
+    const toast = {
+      id: `${notification.id || Date.now()}-${Math.random().toString(36).slice(2)}`,
+      title: notification.title || 'Thông báo mới',
+      message: notification.message || '',
+      to: notification.to || notification.to_path || null,
+    };
+
+    setToasts((prev) => [toast, ...prev].slice(0, 4));
+    window.setTimeout(() => {
+      setToasts((prev) => prev.filter((item) => item.id !== toast.id));
+    }, 6000);
+  }, []);
 
   const fetchNotifications = useCallback(async () => {
     if (!token) return;
@@ -56,9 +71,10 @@ export const NotificationProvider = ({ children }) => {
         console.log('New notification received:', notification);
         setNotifications(prev => [notification, ...prev].slice(0, 50));
         setUnreadCount(prev => prev + 1);
+        pushToast(notification);
         
         // Show browser notification if permitted
-        if (Notification.permission === 'granted') {
+        if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
           new Notification(notification.title, {
             body: notification.message,
           });
@@ -82,7 +98,7 @@ export const NotificationProvider = ({ children }) => {
         setUnreadCount(0);
       });
     }
-  }, [user, token, fetchNotifications]);
+  }, [user, token, fetchNotifications, pushToast]);
 
   const markAllAsRead = useCallback(async () => {
     if (!token) return;
@@ -101,6 +117,43 @@ export const NotificationProvider = ({ children }) => {
   return (
     <NotificationContext.Provider value={{ notifications, unreadCount, markAllAsRead, fetchNotifications }}>
       {children}
+      <div className="fixed right-4 top-20 z-[70] flex w-[min(360px,calc(100vw-2rem))] flex-col gap-3">
+        {toasts.map((toast) => (
+          <div key={toast.id} className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl shadow-slate-900/15">
+            <div
+              role="button"
+              tabIndex={0}
+              onClick={() => toast.to && window.location.assign(toast.to)}
+              onKeyDown={(event) => {
+                if ((event.key === 'Enter' || event.key === ' ') && toast.to) {
+                  event.preventDefault();
+                  window.location.assign(toast.to);
+                }
+              }}
+              className="block w-full px-4 py-3 text-left transition hover:bg-slate-50"
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-sm font-bold text-slate-900">{toast.title}</p>
+                  {toast.message ? <p className="mt-1 line-clamp-2 text-sm text-slate-500">{toast.message}</p> : null}
+                  <p className="mt-2 text-xs font-semibold text-cyan-700">Vừa xong</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    setToasts((prev) => prev.filter((item) => item.id !== toast.id));
+                  }}
+                  className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-500 transition hover:bg-slate-200"
+                  aria-label="Đóng thông báo"
+                >
+                  ×
+                </button>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
     </NotificationContext.Provider>
   );
 };
