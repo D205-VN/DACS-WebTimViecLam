@@ -35,7 +35,7 @@ function normalizeSalary(salaryMin, salaryMax) {
 
 function normalizeJobModerationStatus(status) {
   const normalized = String(status || '').trim().toLowerCase();
-  return ['pending', 'approved', 'rejected'].includes(normalized) ? normalized : 'approved';
+  return ['pending', 'approved', 'rejected', 'stopped'].includes(normalized) ? normalized : 'approved';
 }
 
 async function ensureEmployerJobSchemaForRequest(req, res, next) {
@@ -1286,7 +1286,7 @@ async function updateJobStatus(req, res) {
     }
 
     const moderationStatus = normalizeJobModerationStatus(ownership.rows[0].status);
-    if (moderationStatus !== 'approved') {
+    if (moderationStatus !== 'approved' && moderationStatus !== 'stopped') {
       return res.status(400).json({
         error: moderationStatus === 'pending'
           ? 'Tin đang chờ admin phê duyệt nên chưa thể thay đổi trạng thái tuyển dụng'
@@ -1294,12 +1294,19 @@ async function updateJobStatus(req, res) {
       });
     }
 
-    const newDeadline = status === 'Ngừng tuyển' ? new Date(Date.now() - 86400000) : null;
-
-    const result = await pool.query(
-      `UPDATE jobs SET submission_deadline = $1, updated_at = NOW() WHERE id = $2 AND employer_id = $3 RETURNING id`,
-      [newDeadline, jobId, userId]
-    );
+    if (status === 'Ngừng tuyển') {
+      // Set status to 'stopped' so seeker-facing queries (which require status='approved') will exclude this job
+      await pool.query(
+        `UPDATE jobs SET status = 'stopped', updated_at = NOW() WHERE id = $1 AND employer_id = $2`,
+        [jobId, userId]
+      );
+    } else {
+      // Resume recruitment: restore status to 'approved'
+      await pool.query(
+        `UPDATE jobs SET status = 'approved', updated_at = NOW() WHERE id = $1 AND employer_id = $2`,
+        [jobId, userId]
+      );
+    }
 
     res.json({ message: 'Đã cập nhật trạng thái tin' });
   } catch (err) {

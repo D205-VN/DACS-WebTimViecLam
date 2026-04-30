@@ -34,10 +34,11 @@ function parseJobDeadline(deadline) {
 
 function normalizeModerationStatus(status) {
   const normalized = String(status || '').trim().toLowerCase();
-  return ['pending', 'approved', 'rejected'].includes(normalized) ? normalized : 'approved';
+  return ['pending', 'approved', 'rejected', 'stopped'].includes(normalized) ? normalized : 'approved';
 }
 
 function isRecruitmentClosed(job) {
+  if (normalizeModerationStatus(job.status) === 'stopped') return true;
   const parsedDeadline = parseJobDeadline(job.deadline);
   return Boolean(parsedDeadline && parsedDeadline < new Date());
 }
@@ -67,7 +68,14 @@ function getModerationMeta(job) {
 }
 
 function getRecruitmentMeta(job) {
-  if (normalizeModerationStatus(job.status) !== 'approved') return null;
+  const status = normalizeModerationStatus(job.status);
+  if (status === 'stopped') {
+    return {
+      label: 'Ngừng tuyển',
+      className: 'bg-red-50 text-red-700 border border-red-100',
+    };
+  }
+  if (status !== 'approved') return null;
 
   if (isRecruitmentClosed(job)) {
     return {
@@ -137,7 +145,7 @@ export default function ManageJobsTab() {
 
   const handleStatusChange = async (job) => {
     const moderationStatus = normalizeModerationStatus(job.status);
-    if (moderationStatus !== 'approved') return;
+    if (!['approved', 'stopped'].includes(moderationStatus)) return;
 
     const recruitmentMeta = getRecruitmentMeta(job);
     const nextStatus = recruitmentMeta?.label === 'Đang hiển thị' ? 'Ngừng tuyển' : 'Đang tuyển';
@@ -252,7 +260,7 @@ export default function ManageJobsTab() {
   };
 
   const pendingCount = jobs.filter((job) => normalizeModerationStatus(job.status) === 'pending').length;
-  const approvedCount = jobs.filter((job) => normalizeModerationStatus(job.status) === 'approved').length;
+  const approvedCount = jobs.filter((job) => ['approved', 'stopped'].includes(normalizeModerationStatus(job.status))).length;
   const rejectedCount = jobs.filter((job) => normalizeModerationStatus(job.status) === 'rejected').length;
   const visibleCount = jobs.filter((job) => normalizeModerationStatus(job.status) === 'approved' && !isRecruitmentClosed(job)).length;
   const editJobQuality = analyzeJobQuality(editFormData);
@@ -338,7 +346,7 @@ export default function ManageJobsTab() {
               {jobs.length > 0 ? jobs.map((job) => {
                 const moderationMeta = getModerationMeta(job);
                 const recruitmentMeta = getRecruitmentMeta(job);
-                const isApproved = normalizeModerationStatus(job.status) === 'approved';
+                const isApproved = ['approved', 'stopped'].includes(normalizeModerationStatus(job.status));
                 const isActionLoading = actionLoading === job.id;
 
                 return (
