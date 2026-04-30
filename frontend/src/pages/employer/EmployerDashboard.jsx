@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { LayoutDashboard, FileText, Users, Building2, Plus } from 'lucide-react';
+import { LayoutDashboard, FileText, Users, Building2, Plus, ClipboardCheck } from 'lucide-react';
 import { useAuth } from '@features/auth/AuthContext';
 import API_BASE_URL from '@shared/api/baseUrl';
 import EmployerHeader from '@widgets/employer/EmployerHeader';
@@ -11,6 +11,7 @@ import NotificationsTab from '@widgets/employer/NotificationsTab';
 import AnalyticsTab from '@widgets/employer/AnalyticsTab';
 import DashboardTab from '@widgets/employer/DashboardTab';
 import { Bell, BarChart3 } from 'lucide-react';
+import OnboardingTab from '@widgets/employer/OnboardingTab';
 export default function EmployerDashboard() {
   const { user, token } = useAuth();
   const navigate = useNavigate();
@@ -73,6 +74,7 @@ export default function EmployerDashboard() {
     { key: 'notifications', label: 'Thông báo', icon: Bell },
     { key: 'analytics', label: 'Phân tích & Thống kê', icon: BarChart3 },
     { key: 'company', label: 'Hồ sơ công ty', icon: Building2 },
+    { key: 'onboarding', label: 'Hồ sơ & Onboarding', icon: ClipboardCheck },
   ];
 
   // Greeting based on time
@@ -156,6 +158,7 @@ export default function EmployerDashboard() {
             {activeTab === 'notifications' && <NotificationsTab />}
             {activeTab === 'analytics' && <AnalyticsTab />}
             {activeTab === 'company' && <CompanyProfileTab />}
+            {activeTab === 'onboarding' && <OnboardingTab />}
           </div>
         </div>
       </div>

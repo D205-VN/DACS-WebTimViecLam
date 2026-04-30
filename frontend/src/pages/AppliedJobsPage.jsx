@@ -13,6 +13,7 @@ import {
   ExternalLink,
   Building2,
   MessageCircle,
+  ShieldCheck,
 } from 'lucide-react';
 import { useAuth } from '@features/auth/AuthContext';
 import ConversationModal from '@features/messages/ConversationModal';
@@ -163,14 +164,24 @@ export default function AppliedJobsPage() {
                       <span className="flex items-center gap-1 text-sm text-gray-500"><Clock className="w-3.5 h-3.5" />{new Date(job.applied_at).toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' })}</span>
                     </div>
 
-                    <button
-                      type="button"
-                      onClick={() => setChatJob(job)}
-                      className="mt-3 inline-flex items-center gap-2 rounded-xl bg-cyan-50 px-4 py-2 text-sm font-semibold text-cyan-700 transition hover:bg-cyan-100"
-                    >
-                      <MessageCircle className="h-4 w-4" />
-                      Nhắn nhà tuyển dụng
-                    </button>
+                      <button
+                        type="button"
+                        onClick={() => setChatJob(job)}
+                        className="mt-3 inline-flex items-center gap-2 rounded-xl bg-cyan-50 px-4 py-2 text-sm font-semibold text-cyan-700 transition hover:bg-cyan-100"
+                      >
+                        <MessageCircle className="h-4 w-4" />
+                        Nhắn nhà tuyển dụng
+                      </button>
+
+                      {job.status === 'hired' && (
+                        <Link
+                          to={`/seeker/onboarding/${job.application_id}`}
+                          className="mt-3 ml-2 inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2 text-sm font-bold text-white transition hover:bg-emerald-700 shadow-md shadow-emerald-200"
+                        >
+                          <ShieldCheck className="h-4 w-4" />
+                          Hoàn thiện hồ sơ nhận việc
+                        </Link>
+                      )}
 
                     {hasInterviewFlow ? (
                       <div className="mt-4 rounded-[1.5rem] border border-blue-100 bg-blue-50/70 p-4">

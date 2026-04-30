@@ -1,0 +1,15 @@
+
+
+    Directory: D:\DACS\DACS-WebTimViecLam\backend
+
+
+Mode                 LastWriteTime         Length Name                                                                 
+----                 -------------         ------ ----                                                                 
+d-----         4/29/2026   7:49 PM                data                                                                 
+d-----         4/29/2026   7:50 PM                node_modules                                                         
+d-----         4/29/2026   7:49 PM                scripts                                                              
+d-----         4/29/2026   7:49 PM                src                                                                  
+-a----         4/29/2026   8:23 PM          77706 package-lock.json                                                    
+-a----         4/29/2026   7:49 PM            817 package.json                                                         
+
+

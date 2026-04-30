@@ -468,7 +468,9 @@ async function getCandidates(req, res) {
               aj.interview_link, aj.created_at, aj.updated_at,
               COALESCE(NULLIF(TRIM(aj.status), ''), 'pending') as status,
               u.full_name as candidate_name, u.email as candidate_email, u.phone as candidate_phone, u.avatar_url,
-              j.job_title as job_title, j.company_address, j.company_name
+              j.job_title as job_title, j.company_address, j.company_name,
+              COALESCE(NULLIF(TRIM(j.status), ''), 'approved') as job_status,
+              j.submission_deadline as job_deadline
        FROM applied_jobs aj
        JOIN users u ON aj.user_id = u.id
        JOIN jobs j ON aj.job_id = j.id
