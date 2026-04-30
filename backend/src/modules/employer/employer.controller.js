@@ -1301,9 +1301,9 @@ async function updateJobStatus(req, res) {
         [jobId, userId]
       );
     } else {
-      // Resume recruitment: restore status to 'approved'
+      // Resume recruitment: restore status to 'approved' and clear past deadline
       await pool.query(
-        `UPDATE jobs SET status = 'approved', updated_at = NOW() WHERE id = $1 AND employer_id = $2`,
+        `UPDATE jobs SET status = 'approved', submission_deadline = NULL, updated_at = NOW() WHERE id = $1 AND employer_id = $2`,
         [jobId, userId]
       );
     }
