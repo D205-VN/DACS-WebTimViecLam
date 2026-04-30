@@ -41,7 +41,7 @@ export default function OnboardingPage() {
   const { token } = useAuth();
   const [loading, setLoading] = useState(true);
   const [jobInfo, setJobInfo] = useState(null);
-  const [activeStep, setActiveStep] = useState(1); // 0, 1, 2
+  const activeStep = 1; // 0, 1, 2
   const [documents, setDocuments] = useState([
     { id: 'cccd',   name: 'CCCD/CMND (Mặt trước & sau)',  status: 'pending',  required: true,  description: 'Hình ảnh rõ nét, không mất góc',     file: null, feedback: '' },
     { id: 'degree', name: 'Bằng tốt nghiệp / Chứng chỉ',  status: 'pending',  required: true,  description: 'Bản sao công chứng hoặc bản chính',  file: null, feedback: '' },

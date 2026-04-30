@@ -66,7 +66,7 @@ export default function OnboardingTab() {
           }));
         setCandidates(hiredOnboarding);
       }
-    } catch (err) {
+    } catch {
       setError('Không thể tải danh sách onboarding');
     } finally {
       setLoading(false);
@@ -77,7 +77,7 @@ export default function OnboardingTab() {
     if (token) fetchOnboardingCandidates();
   }, [token, fetchOnboardingCandidates]);
 
-  const handleAIScan = (docId) => {
+  const handleAIScan = () => {
     setScanning(true);
     setTimeout(() => {
       setScanning(false);

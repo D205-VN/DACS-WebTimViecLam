@@ -71,6 +71,17 @@ typings/
 # dotenv environment variables file
 .env
 .env.test
+env_all.txt
+backend/env_all.txt
+
+# Local inventory dumps
+backend_files.txt
+dot_files.txt
+backend/check_users.js
+backend/data/USER_DATA_FINAL.csv
+
+# Local editor settings
+.vscode/
 
 # parcel-bundler cache (https://parceljs.org/)
 .cache

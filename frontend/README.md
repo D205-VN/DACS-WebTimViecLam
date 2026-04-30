@@ -1,16 +1,37 @@
-# React + Vite
+# Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+React/Vite application for the job search platform.
 
-Currently, two official plugins are available:
+## Source Layout
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- `src/app/`: app bootstrap, providers, layouts, and router setup.
+- `src/features/`: stateful product capabilities such as auth, messages, notifications, and seeker tools.
+- `src/pages/`: route-level screens.
+- `src/pages/auth/`: login, register, forgot password, and change password screens.
+- `src/pages/admin/`: admin-only route screens.
+- `src/pages/employer/`: employer-only route screens.
+- `src/pages/seeker/`: seeker-only route screens.
+- `src/shared/`: cross-cutting API config, utility functions, geo data, content, and shared UI.
+- `src/widgets/`: composed UI sections reused by pages.
+- `public/`: static files served as-is.
 
-## React Compiler
+## Commands
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+```bash
+npm install
+npm run dev
+npm run build
+npm run lint
+```
 
-## Expanding the ESLint configuration
+## Import Aliases
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+Aliases are configured in `vite.config.js` and `jsconfig.json`:
+
+- `@app/*`
+- `@features/*`
+- `@pages/*`
+- `@shared/*`
+- `@widgets/*`
+
+Prefer aliases over long relative imports for app code.
