@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { Briefcase, LayoutDashboard, FileText, Users, Building2, Plus, Bell, LogOut, ChevronDown, Shield, Menu, X } from 'lucide-react';
+import { Briefcase, LayoutDashboard, FileText, Users, Building2, Plus, Bell, LogOut, ChevronDown, Shield, Menu, X, BrainCircuit } from 'lucide-react';
 import { useAuth } from '@features/auth/AuthContext';
 import { useNotifications } from '@features/notifications/NotificationContext';
 import { getRouteByRole } from '@shared/utils/roleRedirect';
@@ -43,7 +43,12 @@ export default function EmployerHeader() {
     navigate('/');
   };
 
-  const isActive = (path) => location.pathname === path;
+  const isHeaderLinkActive = (link) => {
+    if (link.to === '/employer/ai-tests') {
+      return location.pathname === link.to || location.pathname.startsWith(`${link.to}/`);
+    }
+    return location.pathname === link.to && location.state?.activeTab === link.tab;
+  };
 
   return (
     <header className="bg-white border-b border-gray-100 sticky top-0 z-50 shadow-sm">
@@ -66,9 +71,9 @@ export default function EmployerHeader() {
               <Link
                 key={link.name}
                 to={link.to}
-                state={{ activeTab: link.tab }}
+                state={link.tab ? { activeTab: link.tab } : undefined}
                 className={`flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 ${
-                  isActive(link.to) && location.state?.activeTab === link.tab
+                  isHeaderLinkActive(link)
                     ? 'text-navy-700 bg-navy-50 font-semibold'
                     : 'text-gray-600 hover:text-navy-700 hover:bg-navy-50'
                 }`}
@@ -199,9 +204,9 @@ export default function EmployerHeader() {
             <Link
               key={link.name}
               to={link.to}
-              state={{ activeTab: link.tab }}
+              state={link.tab ? { activeTab: link.tab } : undefined}
               className={`flex items-center gap-2 px-4 py-3 text-sm font-medium rounded-lg transition-colors ${
-                isActive(link.to) && location.state?.activeTab === link.tab ? 'text-navy-700 bg-navy-50' : 'text-gray-600 hover:text-navy-700 hover:bg-navy-50'
+                isHeaderLinkActive(link) ? 'text-navy-700 bg-navy-50' : 'text-gray-600 hover:text-navy-700 hover:bg-navy-50'
               }`}
               onClick={() => setMobileMenuOpen(false)}
             >

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate, useLocation } from 'react-router-dom';
-import { MapPin, DollarSign, Clock, Bookmark, BookmarkCheck, Briefcase, ArrowLeft, Send, CheckCircle2, Loader2, GraduationCap, Calendar, Bell, X, FileText, Sparkles, Target } from 'lucide-react';
+import { MapPin, DollarSign, Clock, Bookmark, BookmarkCheck, Briefcase, ArrowLeft, Send, CheckCircle2, Loader2, GraduationCap, Calendar, Bell, X, FileText, Sparkles, Target, BrainCircuit } from 'lucide-react';
 import { useAuth } from '@features/auth/AuthContext';
 import { findProvinceByName, normalizeProvinceName, normalizeSearchText } from '@shared/geo/provinceCoordinates';
 import { getCompanyFilterRoute, getDefaultRouteByRole, getJobDetailRoute } from '@shared/utils/roleRedirect';
@@ -450,6 +450,19 @@ export default function JobDetailPage() {
                 {actionLoading === 'alert' ? <Loader2 className="w-4 h-4 animate-spin" /> : alertSubscribed ? <CheckCircle2 className="w-4 h-4" /> : <Bell className="w-4 h-4" />}
                 {alertSubscribed ? 'Đã gửi công việc tương tự' : 'Gửi cho tôi việc tương tự'}
               </button>
+              {job.ai_test && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!isAuthenticated) { navigate('/login'); return; }
+                    navigate(`/test/${job.ai_test.id}`);
+                  }}
+                  className="inline-flex items-center justify-center gap-2 rounded-2xl border border-white/30 bg-gradient-to-r from-purple-500/20 to-indigo-500/20 px-4 py-3 text-sm font-semibold text-white transition hover:from-purple-500/30 hover:to-indigo-500/30 hover:shadow-lg hover:shadow-purple-500/10"
+                >
+                  <BrainCircuit className="w-4 h-4" />
+                  Làm bài Test AI
+                </button>
+              )}
             </div>
             <div className="mt-3 rounded-3xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-slate-200">
               Nhận thông báo phù hợp khi có việc tương tự.

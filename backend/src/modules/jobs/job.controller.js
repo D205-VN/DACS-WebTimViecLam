@@ -491,7 +491,19 @@ exports.getJobById = async (req, res) => {
       console.error('Record job view error:', viewError);
     });
 
-    res.json({ data: result.rows[0] });
+    // Check for linked AI test
+    let linkedTest = null;
+    try {
+      const testResult = await pool.query(
+        'SELECT id, title, duration, test_type FROM ai_tests WHERE job_id = $1 LIMIT 1',
+        [result.rows[0].id]
+      );
+      linkedTest = testResult.rows[0] || null;
+    } catch (testErr) {
+      console.error('Error fetching linked AI test:', testErr);
+    }
+
+    res.json({ data: { ...result.rows[0], ai_test: linkedTest } });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Internal server error' });

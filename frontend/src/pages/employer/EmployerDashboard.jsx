@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { LayoutDashboard, FileText, Users, Building2, Plus, ClipboardCheck } from 'lucide-react';
+import { LayoutDashboard, FileText, Users, Building2, Plus, ClipboardCheck, BrainCircuit } from 'lucide-react';
 import { useAuth } from '@features/auth/AuthContext';
 import API_BASE_URL from '@shared/api/baseUrl';
 import EmployerHeader from '@widgets/employer/EmployerHeader';
@@ -73,6 +73,7 @@ export default function EmployerDashboard() {
     { key: 'candidates', label: 'Nhóm Ứng viên', icon: Users },
     { key: 'notifications', label: 'Thông báo', icon: Bell },
     { key: 'analytics', label: 'Phân tích & Thống kê', icon: BarChart3 },
+    { key: 'ai-tests', label: 'Bài Test AI', icon: BrainCircuit, path: '/employer/ai-tests' },
     { key: 'company', label: 'Hồ sơ công ty', icon: Building2 },
     { key: 'onboarding', label: 'Hồ sơ & Onboarding', icon: ClipboardCheck },
   ];
@@ -117,7 +118,13 @@ export default function EmployerDashboard() {
                 {sidebarItems.map((item) => (
                   <button
                     key={item.key}
-                    onClick={() => setActiveTab(item.key)}
+                    onClick={() => {
+                      if (item.path) {
+                        navigate(item.path);
+                        return;
+                      }
+                      setActiveTab(item.key);
+                    }}
                     className={`w-full text-left p-3 rounded-lg flex items-center gap-3 text-sm font-medium transition-all duration-200 ${
                       activeTab === item.key
                         ? 'bg-navy-50 text-navy-700 font-semibold shadow-sm'

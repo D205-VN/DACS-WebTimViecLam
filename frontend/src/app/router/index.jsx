@@ -2,6 +2,7 @@ import { createBrowserRouter, Navigate, RouterProvider } from 'react-router-dom'
 import { useAuth } from '@features/auth/AuthContext';
 import MainLayout from '@app/layouts/MainLayout';
 import { AdminRoute, EmployerRoute, ProtectedRoute, SeekerRoute } from '@app/router/guards';
+import EmployerPageLayout from '@widgets/employer/EmployerPageLayout';
 import HomePage from '@pages/HomePage';
 import CompaniesPage from '@pages/CompaniesPage';
 import BlogPage from '@pages/BlogPage';
@@ -23,6 +24,10 @@ import JobAlertsPage from '@pages/seeker/JobAlertsPage';
 import OnboardingPage from '@pages/seeker/OnboardingPage';
 import EmployerDashboard from '@pages/employer/EmployerDashboard';
 import PostJob from '@pages/employer/PostJob';
+import AITestManagementPage from '@pages/employer/AITestManagementPage';
+import AITestEditPage from '@pages/employer/AITestEditPage';
+import ScoreManagementPage from '@pages/employer/ScoreManagementPage';
+import CandidateTestUI from '@pages/seeker/CandidateTestUI';
 import VerificationPublicPage from '@pages/VerificationPublicPage';
 import CompanyBrandingPage from '@pages/CompanyBrandingPage';
 
@@ -89,6 +94,10 @@ const router = createBrowserRouter([
   { path: '/blockchain-verification', element: <Navigate to="/seeker/blockchain-verification" replace /> },
   { path: '/employer/dashboard', element: <EmployerRoute><EmployerDashboard /></EmployerRoute> },
   { path: '/employer/post-job', element: <EmployerRoute><PostJob /></EmployerRoute> },
+  { path: '/employer/ai-tests', element: <EmployerRoute><EmployerPageLayout activeKey="ai-tests"><AITestManagementPage /></EmployerPageLayout></EmployerRoute> },
+  { path: '/employer/ai-tests/:id/edit', element: <EmployerRoute><EmployerPageLayout activeKey="ai-tests"><AITestEditPage /></EmployerPageLayout></EmployerRoute> },
+  { path: '/employer/ai-tests/:id/scores', element: <EmployerRoute><EmployerPageLayout activeKey="ai-tests"><ScoreManagementPage /></EmployerPageLayout></EmployerRoute> },
+  { path: '/test/:id', element: <ProtectedRoute><CandidateTestUI /></ProtectedRoute> },
   { path: '/admin', element: <Navigate to="/admin/dashboard" replace /> },
   { path: '/admin/dashboard', element: <AdminRoute><AdminDashboard /></AdminRoute> },
 ]);

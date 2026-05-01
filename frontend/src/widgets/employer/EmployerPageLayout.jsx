@@ -1,0 +1,94 @@
+import { useNavigate } from 'react-router-dom';
+import {
+  BarChart3,
+  BrainCircuit,
+  Building2,
+  ClipboardCheck,
+  FileText,
+  LayoutDashboard,
+  Plus,
+  Users,
+  Bell,
+} from 'lucide-react';
+import EmployerHeader from '@widgets/employer/EmployerHeader';
+
+const sidebarItems = [
+  { key: 'dashboard', label: 'Bảng điều khiển', icon: LayoutDashboard, state: { activeTab: 'dashboard' } },
+  { key: 'jobs', label: 'Nhóm Tuyển dụng', icon: FileText, state: { activeTab: 'jobs' } },
+  { key: 'candidates', label: 'Nhóm Ứng viên', icon: Users, state: { activeTab: 'candidates' } },
+  { key: 'notifications', label: 'Thông báo', icon: Bell, state: { activeTab: 'notifications' } },
+  { key: 'analytics', label: 'Phân tích & Thống kê', icon: BarChart3, state: { activeTab: 'analytics' } },
+  { key: 'ai-tests', label: 'Bài Test AI', icon: BrainCircuit, path: '/employer/ai-tests' },
+  { key: 'company', label: 'Hồ sơ công ty', icon: Building2, state: { activeTab: 'company' } },
+  { key: 'onboarding', label: 'Hồ sơ & Onboarding', icon: ClipboardCheck, state: { activeTab: 'onboarding' } },
+];
+
+export default function EmployerPageLayout({ activeKey, children }) {
+  const navigate = useNavigate();
+
+  const handleNavigate = (item) => {
+    if (item.path) {
+      navigate(item.path);
+      return;
+    }
+
+    navigate('/employer/dashboard', { state: item.state });
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-50/80">
+      <EmployerHeader />
+
+      <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="flex flex-col lg:flex-row gap-8">
+          <aside className="w-full lg:w-64 shrink-0">
+            <div className="bg-white rounded-xl shadow-sm p-4 border border-gray-100 sticky top-24">
+              <h3 className="font-bold text-gray-400 mb-4 px-2 uppercase text-[11px] tracking-wider">Hệ thống</h3>
+              <div className="space-y-1">
+                {sidebarItems.map((item) => (
+                  <button
+                    key={item.key}
+                    onClick={() => handleNavigate(item)}
+                    className={`w-full text-left p-3 rounded-lg flex items-center gap-3 text-sm font-medium transition-all duration-200 ${
+                      activeKey === item.key
+                        ? 'bg-navy-50 text-navy-700 font-semibold shadow-sm'
+                        : 'text-gray-600 hover:bg-navy-50/50 hover:text-navy-700'
+                    }`}
+                  >
+                    <item.icon className="w-4.5 h-4.5" />
+                    {item.label}
+                  </button>
+                ))}
+              </div>
+
+              <hr className="my-4 border-gray-100" />
+
+              <button
+                onClick={() => navigate('/employer/post-job')}
+                className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-navy-600 to-navy-800 text-white p-3 rounded-xl font-semibold text-sm hover:shadow-lg hover:shadow-navy-700/25 hover:-translate-y-0.5 transition-all duration-200"
+              >
+                <Plus className="w-4 h-4" />
+                Đăng tin mới
+              </button>
+            </div>
+          </aside>
+
+          <main className="flex-1 min-w-0">{children}</main>
+        </div>
+      </div>
+
+      <footer className="bg-navy-900 text-navy-300 mt-16">
+        <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 py-6">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
+            <p className="text-xs text-navy-400">© 2026 AptertekWork — Bản quyền thuộc về D205-VN</p>
+            <div className="flex gap-4">
+              <a href="#" className="text-xs text-navy-400 hover:text-navy-200 transition-colors">Điều khoản</a>
+              <a href="#" className="text-xs text-navy-400 hover:text-navy-200 transition-colors">Chính sách</a>
+              <a href="#" className="text-xs text-navy-400 hover:text-navy-200 transition-colors">Trợ giúp</a>
+            </div>
+          </div>
+        </div>
+      </footer>
+    </div>
+  );
+}
