@@ -932,19 +932,11 @@ export default function ManageCandidatesTab() {
                           </div>
 
                           {resolvedInterviewMode === 'online' ? (
-                            <div>
-                              <label className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
-                                Link video call
-                              </label>
-                              <input
-                                type="url"
-                                value={interviewForm.interview_link}
-                                onChange={(event) =>
-                                  setInterviewForm((prev) => ({ ...prev, interview_link: event.target.value }))
-                                }
-                                placeholder="https://meet.google.com/..."
-                                className="mt-3 w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-navy-400 focus:ring-2 focus:ring-navy-100"
-                              />
+                            <div className="rounded-2xl border border-blue-100 bg-blue-50 px-4 py-4 text-sm text-blue-700">
+                              <p className="font-semibold text-blue-800">Phòng họp trực tuyến</p>
+                              <p className="mt-2 text-blue-600">
+                                Hệ thống sẽ tự động tạo phòng họp (Meeting Room) và sinh link tham gia khi bạn lưu lịch phỏng vấn này.
+                              </p>
                             </div>
                           ) : (
                             <div className="rounded-2xl bg-slate-50 px-4 py-4 text-sm text-slate-600">

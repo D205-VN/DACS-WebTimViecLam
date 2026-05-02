@@ -9,4 +9,5 @@ module.exports = [
   { path: '/api/notifications', router: require('./notifications/notification.routes') },
   { path: '/api/match', router: require('./match/match.routes') },
   { path: '/api/messages', router: require('./messages/message.routes') },
+  { path: '/api/meeting-rooms', router: require('./meeting-rooms/meeting-room.routes') },
 ];

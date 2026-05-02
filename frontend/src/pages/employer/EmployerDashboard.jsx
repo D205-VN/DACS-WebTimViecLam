@@ -10,8 +10,9 @@ import CompanyProfileTab from '@widgets/employer/CompanyProfileTab';
 import NotificationsTab from '@widgets/employer/NotificationsTab';
 import AnalyticsTab from '@widgets/employer/AnalyticsTab';
 import DashboardTab from '@widgets/employer/DashboardTab';
-import { Bell, BarChart3 } from 'lucide-react';
+import { Bell, BarChart3, Video } from 'lucide-react';
 import OnboardingTab from '@widgets/employer/OnboardingTab';
+import ManageMeetingRoomsTab from '@widgets/employer/ManageMeetingRoomsTab';
 export default function EmployerDashboard() {
   const { user, token } = useAuth();
   const navigate = useNavigate();
@@ -76,6 +77,7 @@ export default function EmployerDashboard() {
     { key: 'ai-tests', label: 'Bài Test AI', icon: BrainCircuit, path: '/employer/ai-tests' },
     { key: 'company', label: 'Hồ sơ công ty', icon: Building2 },
     { key: 'onboarding', label: 'Hồ sơ & Onboarding', icon: ClipboardCheck },
+    { key: 'meeting-rooms', label: 'Phòng Meeting', icon: Video },
   ];
 
   // Greeting based on time
@@ -166,6 +168,7 @@ export default function EmployerDashboard() {
             {activeTab === 'analytics' && <AnalyticsTab />}
             {activeTab === 'company' && <CompanyProfileTab />}
             {activeTab === 'onboarding' && <OnboardingTab />}
+            {activeTab === 'meeting-rooms' && <ManageMeetingRoomsTab />}
           </div>
         </div>
       </div>

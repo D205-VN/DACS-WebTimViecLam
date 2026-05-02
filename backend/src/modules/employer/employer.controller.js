@@ -1489,7 +1489,25 @@ async function scheduleInterview(req, res) {
 
     const lockedMode = normalizeInterviewMode(application.candidate_interview_mode);
     const normalizedMode = lockedMode || normalizeInterviewMode(interview_mode) || 'online';
-    const normalizedLink = normalizedMode === 'online' ? interview_link?.trim() || null : null;
+    
+    let normalizedLink = normalizedMode === 'online' ? interview_link?.trim() || null : null;
+
+    // Tự động sinh phòng meeting nếu chọn phỏng vấn online
+    if (normalizedMode === 'online' && !normalizedLink) {
+      const meetingId = `interview-${applicationId}-${Date.now()}`;
+      normalizedLink = `https://meet.jit.si/${meetingId}`;
+      
+      try {
+        const roomName = `Phỏng vấn ứng viên ${application.candidate_name}`;
+        const description = `Phỏng vấn ứng viên ${application.candidate_name} cho vị trí ${application.job_title}`;
+        await pool.query(
+          'INSERT INTO meeting_rooms (name, location, capacity, description, meeting_link) VALUES ($1, $2, $3, $4, $5)',
+          [roomName, 'Online (Jitsi Meet)', 2, description, normalizedLink]
+        );
+      } catch (roomError) {
+        console.error('Lỗi khi tạo phòng meeting tự động:', roomError);
+      }
+    }
 
     if (normalizedMode === 'online' && !normalizedLink) {
       return res.status(400).json({ error: 'Phỏng vấn online cần có link video call' });
