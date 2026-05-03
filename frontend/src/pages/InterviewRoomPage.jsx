@@ -205,10 +205,11 @@ export default function InterviewRoomPage() {
         sock.emit('webrtc:join-room', room.id);
       });
 
-      // When existing peers are found (we are the late joiner → create offer)
+      // When existing peers are found (we are the late joiner → WE create the offer)
       sock.on('webrtc:existing-peers', ({ peers }) => {
         if (peers.length > 0) {
           const peerId = peers[0];
+          console.log('Found existing peer, creating offer to:', peerId);
           const pc = createPeer(sock, peerId);
           pc.createOffer().then((offer) => pc.setLocalDescription(offer)).then(() => {
             sock.emit('webrtc:offer', { to: peerId, offer: pc.localDescription });
@@ -216,15 +217,10 @@ export default function InterviewRoomPage() {
         }
       });
 
-      // When a new peer joins (we are already here → wait for their offer)
+      // When a new peer joins (we are the existing peer → WAIT for their offer)
       sock.on('webrtc:peer-joined', ({ peerId }) => {
-        // Only create offer if we don't already have a connection
-        if (!pcRef.current || pcRef.current.connectionState === 'closed') {
-          const pc = createPeer(sock, peerId);
-          pc.createOffer().then((offer) => pc.setLocalDescription(offer)).then(() => {
-            sock.emit('webrtc:offer', { to: peerId, offer: pc.localDescription });
-          });
-        }
+        console.log('New peer joined, waiting for their offer:', peerId);
+        // Don't create offer here - the new peer will send us one
       });
 
       sock.on('webrtc:offer', async ({ from, offer }) => {
