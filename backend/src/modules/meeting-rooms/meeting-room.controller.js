@@ -271,7 +271,7 @@ exports.getRoomByAccessToken = async (req, res) => {
             `SELECT
                 mr.id, mr.name, mr.location, mr.description, mr.meeting_link,
                 mr.jitsi_room_id, mr.recording_status, mr.recording_url,
-                mr.queue_status, mr.start_time, mr.end_time,
+                mr.queue_status, mr.host_joined_at, mr.start_time, mr.end_time,
                 mr.host_token,
                 j.job_title,
                 j.company_name
@@ -303,7 +303,7 @@ exports.getRoomByAccessToken = async (req, res) => {
             `SELECT
                 mr.id, mr.name, mr.location, mr.description, mr.meeting_link,
                 mr.jitsi_room_id, mr.recording_status, mr.recording_url,
-                mr.start_time, mr.end_time,
+                mr.host_joined_at, mr.start_time, mr.end_time,
                 ms.id AS schedule_id,
                 ms.application_id,
                 ms.queue_status,
@@ -331,7 +331,7 @@ exports.getRoomByAccessToken = async (req, res) => {
             const room = scheduleResult.rows[0];
             const queuePosition = await getCandidateQueuePosition(pool, room.schedule_id);
             room.queue_position = queuePosition;
-            room.can_join = room.queue_status === 'in_interview';
+            room.can_join = Boolean(room.host_joined_at) && room.queue_status === 'in_interview';
             return res.json({ data: { role: 'candidate', room } });
         }
 
@@ -379,7 +379,7 @@ exports.confirmRoomAccess = async (req, res) => {
         await client.query('BEGIN');
 
         const scheduleResult = await client.query(
-            `SELECT ms.id, ms.meeting_room_id, ms.queue_status, ms.ended_at
+            `SELECT ms.id, ms.meeting_room_id, ms.queue_status, ms.ended_at, mr.host_joined_at
              FROM meeting_schedules ms
              JOIN meeting_rooms mr ON mr.id = ms.meeting_room_id
              WHERE ms.access_token = $1
@@ -403,12 +403,23 @@ exports.confirmRoomAccess = async (req, res) => {
                 [schedule.id]
             );
 
-            await admitFirstWaitingCandidate(client, schedule.meeting_room_id);
+            if (schedule.host_joined_at) {
+                await admitFirstWaitingCandidate(client, schedule.meeting_room_id);
+            }
 
             const updated = await client.query(
-                `SELECT id AS schedule_id, confirmed_at, checked_in_at, admitted_at, started_at, ended_at, queue_status
-                 FROM meeting_schedules
-                 WHERE id = $1`,
+                `SELECT
+                    ms.id AS schedule_id,
+                    ms.confirmed_at,
+                    ms.checked_in_at,
+                    ms.admitted_at,
+                    ms.started_at,
+                    ms.ended_at,
+                    ms.queue_status,
+                    mr.host_joined_at
+                 FROM meeting_schedules ms
+                 JOIN meeting_rooms mr ON mr.id = ms.meeting_room_id
+                 WHERE ms.id = $1`,
                 [schedule.id]
             );
             const queuePosition = await getCandidateQueuePosition(client, schedule.id);
@@ -419,7 +430,7 @@ exports.confirmRoomAccess = async (req, res) => {
                 data: {
                     ...data,
                     queue_position: queuePosition,
-                    can_join: data.queue_status === 'in_interview',
+                    can_join: Boolean(data.host_joined_at) && data.queue_status === 'in_interview',
                 },
             });
         }
@@ -509,6 +520,60 @@ exports.updateRecordingStatus = async (req, res) => {
     } catch (error) {
         console.error('Update recording status error:', error);
         res.status(500).json({ error: 'Lỗi khi cập nhật trạng thái ghi hình' });
+    }
+};
+
+exports.markHostJoined = async (req, res) => {
+    const client = await pool.connect();
+
+    try {
+        const { token } = req.params;
+        await client.query('BEGIN');
+
+        const roomResult = await client.query(
+            `UPDATE meeting_rooms
+             SET host_joined_at = COALESCE(host_joined_at, NOW()),
+                 updated_at = NOW()
+             WHERE host_token = $1
+             RETURNING id, host_joined_at`,
+            [token]
+        );
+
+        const room = roomResult.rows[0];
+        if (!room) {
+            await client.query('ROLLBACK');
+            return res.status(404).json({ error: 'Không có quyền mở phòng HR' });
+        }
+
+        const admitted = await admitFirstWaitingCandidate(client, room.id);
+        const candidates = await getRoomCandidates(client, room.id);
+        const roomStatus = deriveRoomQueueStatus({ queue_status: 'invited' }, candidates);
+        await client.query(
+            `UPDATE meeting_rooms
+             SET queue_status = $1,
+                 updated_at = NOW()
+             WHERE id = $2`,
+            [roomStatus, room.id]
+        );
+
+        await client.query('COMMIT');
+
+        const currentCandidate = getCurrentCandidate(candidates);
+        return res.json({
+            data: {
+                room_id: room.id,
+                host_joined_at: room.host_joined_at,
+                room_status: roomStatus,
+                admitted_schedule_id: admitted?.id || null,
+                current_candidate: currentCandidate,
+            },
+        });
+    } catch (error) {
+        await client.query('ROLLBACK');
+        console.error('Mark host joined error:', error);
+        return res.status(500).json({ error: 'Lỗi khi mở phòng HR' });
+    } finally {
+        client.release();
     }
 };
 

@@ -42,6 +42,7 @@ export default function InterviewRoomPage() {
   const { token } = useParams();
   const containerRef = useRef(null);
   const apiRef = useRef(null);
+  const hostReadyMarkedRef = useRef(false);
   const [loading, setLoading] = useState(true);
   const [joining, setJoining] = useState(false);
   const [room, setRoom] = useState(null);
@@ -61,8 +62,21 @@ export default function InterviewRoomPage() {
         if (!ok) throw new Error(data.error || 'Không thể tải phòng phỏng vấn');
         setRoom(data.data.room);
         setRole(data.data.role);
-        setWaiting(data.data.role === 'candidate' && data.data.room.queue_status === 'waiting');
+        setWaiting(
+          data.data.role === 'candidate'
+            && Boolean(data.data.room.confirmed_at)
+            && !data.data.room.can_join
+            && data.data.room.queue_status !== 'completed'
+        );
+        if (data.data.role === 'host' && data.data.room.host_joined_at) {
+          hostReadyMarkedRef.current = true;
+        }
         setRecordingStatus(data.data.room.recording_status || 'idle');
+        
+        // Auto-join for host
+        if (data.data.role === 'host') {
+          setJoining(true);
+        }
       })
       .catch((err) => {
         if (isMounted) setError(err.message || 'Không thể tải phòng phỏng vấn');
@@ -105,6 +119,20 @@ export default function InterviewRoomPage() {
             SHOW_BRAND_WATERMARK: false,
           },
         });
+
+        const iframe = containerRef.current.querySelector('iframe');
+        if (iframe) {
+          Object.assign(iframe.style, {
+            display: 'block',
+            width: '100%',
+            height: '100%',
+            border: '0',
+          });
+        }
+
+        apiRef.current.addListener('videoConferenceJoined', () => {
+          if (role === 'host') markHostReady();
+        });
       })
       .catch(() => setError('Không thể tải Jitsi SDK'));
 
@@ -126,6 +154,10 @@ export default function InterviewRoomPage() {
         const data = await res.json();
         if (res.ok) {
           setRoom(data.data.room);
+          const shouldWait = Boolean(data.data.room.confirmed_at)
+            && !data.data.room.can_join
+            && data.data.room.queue_status !== 'completed';
+          setWaiting(shouldWait);
           if (data.data.room.can_join) {
             setWaiting(false);
           }
@@ -139,23 +171,59 @@ export default function InterviewRoomPage() {
   }, [joining, role, token, waiting]);
 
   const handleJoin = async () => {
-    if (role === 'candidate' && !room?.confirmed_at) {
-      const res = await fetch(`${API_BASE_URL}/api/meeting-rooms/access/${token}/confirm`, {
-        method: 'PATCH',
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        setError(data.error || 'Không thể xác nhận tham gia phỏng vấn');
-        return;
+    if (role === 'candidate') {
+      if (!room?.confirmed_at) {
+        const res = await fetch(`${API_BASE_URL}/api/meeting-rooms/access/${token}/confirm`, {
+          method: 'PATCH',
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          setError(data.error || 'Không thể xác nhận tham gia phỏng vấn');
+          return;
+        }
+        setRoom((prev) => ({ ...prev, ...data.data }));
+        if (!data.data.can_join) {
+          setWaiting(true);
+          return;
+        }
       }
-      setRoom((prev) => ({ ...prev, ...data.data }));
-      if (!data.data.can_join) {
+
+      if (!room?.can_join && room?.confirmed_at) {
         setWaiting(true);
         return;
       }
     }
 
     setJoining(true);
+  };
+
+  const markHostReady = async () => {
+    if (role !== 'host' || hostReadyMarkedRef.current) return;
+    hostReadyMarkedRef.current = true;
+
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/meeting-rooms/access/${token}/host-start`, {
+        method: 'PATCH',
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        hostReadyMarkedRef.current = false;
+        setError(data.error || 'Không thể mở phòng HR');
+        return;
+      }
+
+      setRoom((prev) => ({
+        ...prev,
+        host_joined_at: data.data?.host_joined_at || prev?.host_joined_at,
+        queue_status: data.data?.room_status || prev?.queue_status,
+        current_candidate: data.data?.current_candidate || prev?.current_candidate,
+        candidate_name: data.data?.current_candidate?.candidate_name || prev?.candidate_name,
+        interview_at: data.data?.current_candidate?.interview_at || prev?.interview_at,
+      }));
+    } catch (err) {
+      hostReadyMarkedRef.current = false;
+      setError('Không thể mở phòng HR');
+    }
   };
 
   const handleRecording = async (nextStatus) => {
@@ -231,57 +299,75 @@ export default function InterviewRoomPage() {
 
   return (
     <div className="min-h-screen bg-slate-950 text-white">
-      <div className="mx-auto flex min-h-screen max-w-7xl flex-col px-4 py-5">
-        <header className="flex flex-col gap-4 border-b border-white/10 pb-4 lg:flex-row lg:items-center lg:justify-between">
-          <div>
-            <Link to={role === 'host' ? '/employer/meeting-rooms' : '/seeker/applied-jobs'} className="mb-3 inline-flex items-center gap-2 text-sm text-slate-300 hover:text-white">
-              <ArrowLeft className="h-4 w-4" />
-              Quay lại
-            </Link>
-            <h1 className="text-2xl font-bold">{room.job_title || room.name}</h1>
-            <div className="mt-2 flex flex-wrap gap-3 text-sm text-slate-300">
-              <span className="inline-flex items-center gap-1.5">
-                <CalendarClock className="h-4 w-4" />
-                {formatDateTime(room.interview_at || room.start_time)}
-              </span>
-              <span>{room.company_name || 'AptertekWork'}</span>
-              {room.candidate_name ? <span>Ứng viên: {room.candidate_name}</span> : null}
+      <div className={`flex min-h-screen flex-col ${joining ? 'mx-0 px-0 py-0' : 'mx-auto max-w-7xl px-4 py-5'}`}>
+        {!joining && (
+          <header className="flex flex-col gap-4 border-b border-white/10 pb-4 lg:flex-row lg:items-center lg:justify-between">
+            <div>
+              <Link to={role === 'host' ? '/employer/meeting-rooms' : '/seeker/applied-jobs'} className="mb-3 inline-flex items-center gap-2 text-sm text-slate-300 hover:text-white">
+                <ArrowLeft className="h-4 w-4" />
+                Quay lại
+              </Link>
+              <h1 className="text-2xl font-bold">{room.job_title || room.name}</h1>
+              <div className="mt-2 flex flex-wrap gap-3 text-sm text-slate-300">
+                <span className="inline-flex items-center gap-1.5">
+                  <CalendarClock className="h-4 w-4" />
+                  {formatDateTime(room.interview_at || room.start_time)}
+                </span>
+                <span>{room.company_name || 'AptertekWork'}</span>
+                {room.candidate_name ? <span>Ứng viên: {room.candidate_name}</span> : null}
+              </div>
             </div>
-          </div>
+          </header>
+        )}
 
-          {role === 'host' && joining ? (
-            <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={() => handleRecording('recording')}
-                className="inline-flex items-center gap-2 rounded-xl bg-red-600 px-4 py-2 text-sm font-semibold hover:bg-red-700"
-              >
-                <Mic className="h-4 w-4" />
-                Ghi hình
-              </button>
-              <button
-                type="button"
-                onClick={() => handleRecording('stored')}
-                className="rounded-xl bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100"
-              >
-                Dừng ghi
-              </button>
-              <span className="rounded-xl border border-white/10 px-4 py-2 text-sm text-slate-300">
-                {recordingStatus === 'recording' ? 'Đang ghi' : 'Sẵn sàng'}
-              </span>
-              <button
-                type="button"
-                onClick={handleCompleteInterview}
-                className="inline-flex items-center gap-2 rounded-xl bg-emerald-500 px-4 py-2 text-sm font-semibold text-slate-950 hover:bg-emerald-400"
-              >
-                <CheckCircle2 className="h-4 w-4" />
-                Hoàn tất lượt
-              </button>
+        {joining && (
+          <header className="flex flex-col gap-4 border-b border-white/10 px-4 py-5 lg:flex-row lg:items-center lg:justify-between">
+            <div>
+              <h1 className="text-2xl font-bold">{room.job_title || room.name}</h1>
+              <div className="mt-2 flex flex-wrap gap-3 text-sm text-slate-300">
+                <span className="inline-flex items-center gap-1.5">
+                  <CalendarClock className="h-4 w-4" />
+                  {formatDateTime(room.interview_at || room.start_time)}
+                </span>
+                <span>{room.company_name || 'AptertekWork'}</span>
+                {room.candidate_name ? <span>Ứng viên: {room.candidate_name}</span> : null}
+              </div>
             </div>
-          ) : null}
-        </header>
 
-        <main className="flex flex-1 flex-col py-5">
+            {role === 'host' ? (
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => handleRecording('recording')}
+                  className="inline-flex items-center gap-2 rounded-xl bg-red-600 px-4 py-2 text-sm font-semibold hover:bg-red-700"
+                >
+                  <Mic className="h-4 w-4" />
+                  Ghi hình
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleRecording('stored')}
+                  className="rounded-xl bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-100"
+                >
+                  Dừng ghi
+                </button>
+                <span className="rounded-xl border border-white/10 px-4 py-2 text-sm text-slate-300">
+                  {recordingStatus === 'recording' ? 'Đang ghi' : 'Sẵn sàng'}
+                </span>
+                <button
+                  type="button"
+                  onClick={handleCompleteInterview}
+                  className="inline-flex items-center gap-2 rounded-xl bg-emerald-500 px-4 py-2 text-sm font-semibold text-slate-950 hover:bg-emerald-400"
+                >
+                  <CheckCircle2 className="h-4 w-4" />
+                  Hoàn tất lượt
+                </button>
+              </div>
+            ) : null}
+          </header>
+        )}
+
+        <main className={`flex flex-1 flex-col ${joining ? 'py-0' : 'py-5'}`}>
           {!joining ? (
             <div className="mx-auto flex w-full max-w-xl flex-1 items-center">
               <div className="w-full rounded-3xl border border-white/10 bg-white/10 p-7 shadow-2xl">
@@ -325,7 +411,7 @@ export default function InterviewRoomPage() {
                   >
                     {role === 'candidate' ? <Users className="h-4 w-4" /> : <Video className="h-4 w-4" />}
                     {role === 'candidate'
-                      ? room.can_join || room.queue_status === 'in_interview'
+                      ? room.can_join
                         ? 'Vào phòng phỏng vấn'
                         : 'Xác nhận vào phòng chờ'
                       : 'Vào phòng HR'}
@@ -334,7 +420,7 @@ export default function InterviewRoomPage() {
               </div>
             </div>
           ) : (
-            <div className="h-[calc(100vh-190px)] min-h-[560px] flex-1 overflow-hidden rounded-3xl border border-white/10 bg-black shadow-2xl">
+            <div className="h-[calc(100vh-86px)] w-full overflow-hidden bg-black">
               <div ref={containerRef} className="h-full w-full" />
             </div>
           )}

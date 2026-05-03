@@ -12,6 +12,7 @@ function requireEmployer(req, res, next) {
 
 router.get('/access/:token', meetingController.ensureMeetingRoomSchemaForRequest, meetingController.getRoomByAccessToken);
 router.patch('/access/:token/confirm', meetingController.ensureMeetingRoomSchemaForRequest, meetingController.confirmRoomAccess);
+router.patch('/access/:token/host-start', meetingController.ensureMeetingRoomSchemaForRequest, meetingController.markHostJoined);
 router.patch('/access/:token/recording', meetingController.ensureMeetingRoomSchemaForRequest, meetingController.updateRecordingStatus);
 router.patch('/access/:token/complete', meetingController.ensureMeetingRoomSchemaForRequest, meetingController.completeCurrentInterview);
 

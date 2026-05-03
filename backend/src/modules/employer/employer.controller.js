@@ -1700,12 +1700,22 @@ async function scheduleInterview(req, res) {
       client.release();
     }
 
+    const notificationTarget = normalizedMode === 'online' && normalizedLink
+      ? (() => {
+          try {
+            return new URL(normalizedLink).pathname;
+          } catch (urlError) {
+            return normalizedLink;
+          }
+        })()
+      : '/seeker/applied-jobs';
+
     await createNotification({
       userId: application.user_id,
       type: 'seeker_application_interview',
       title: 'Bạn có lịch phỏng vấn mới',
       message: `Nhà tuyển dụng đã cập nhật lịch phỏng vấn cho vị trí ${application.job_title || 'ứng tuyển'}.`,
-      to: normalizedMode === 'online' && meetingRoom?.access_token ? `/interview-room/${meetingRoom.access_token}` : '/seeker/applied-jobs',
+      to: notificationTarget,
       meta: {
         application_id: applicationId,
         company_name: application.company_name || null,
