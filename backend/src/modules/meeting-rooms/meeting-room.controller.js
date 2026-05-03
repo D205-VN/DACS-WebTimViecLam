@@ -294,6 +294,7 @@ exports.getRoomByAccessToken = async (req, res) => {
             room.interview_at = currentCandidate?.interview_at || room.start_time;
             room.queue_status = deriveRoomQueueStatus(room, candidates);
             room.can_join = true;
+            room.daily_token = room.host_token;
             delete room.host_token;
 
             return res.json({ data: { role: 'host', room } });

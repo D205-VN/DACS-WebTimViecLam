@@ -1,4 +1,5 @@
 const crypto = require('crypto');
+const jwt = require('jsonwebtoken');
 const pool = require('../../infrastructure/database/postgres');
 const { createNotification, createNotificationsForUsers } = require('../notifications/notification.service');
 const { resolveCurrentLocationPayload } = require('../../core/utils/currentLocation');
@@ -12,6 +13,76 @@ const {
   ensureEmployerApplicationSchema,
   ensureCompanyBrandingSchema,
 } = require('./employer.model');
+
+async function createDailyRoom(roomName) {
+  const apiKey = process.env.DAILY_API_KEY;
+  if (!apiKey) return null;
+  
+  try {
+    const response = await fetch('https://api.daily.co/v1/rooms', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        name: roomName,
+        privacy: 'public',
+        properties: {
+          enable_screenshare: true,
+          enable_chat: true,
+          start_video_off: false,
+          start_audio_off: false,
+        },
+      }),
+    });
+    
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}));
+      console.error('Daily API create room error:', err);
+      return null;
+    }
+    
+    const data = await response.json();
+    return data.url;
+  } catch (err) {
+    console.error('Daily fetch error:', err);
+    return null;
+  }
+}
+
+async function createDailyHostToken(roomName) {
+  const apiKey = process.env.DAILY_API_KEY;
+  if (!apiKey) return null;
+  
+  try {
+    const response = await fetch('https://api.daily.co/v1/meeting-tokens', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        properties: {
+          room_name: roomName,
+          is_owner: true,
+        },
+      }),
+    });
+    
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}));
+      console.error('Daily API create token error:', err);
+      return null;
+    }
+    
+    const data = await response.json();
+    return data.token;
+  } catch (err) {
+    console.error('Daily token fetch error:', err);
+    return null;
+  }
+}
 
 function normalizeDeadline(deadline) {
   if (!deadline) return null;
@@ -82,6 +153,39 @@ function buildJitsiRoomId(jobId, interviewDateKey) {
 function buildInterviewRoomUrl(token) {
   const baseUrl = (process.env.FRONTEND_URL || 'http://localhost:5173').replace(/\/+$/, '');
   return `${baseUrl}/interview-room/${token}`;
+}
+
+function generateJitsiToken(roomName, isModerator = false, userEmail = '', userName = '') {
+  const jitsiSecret = process.env.JITSI_SECRET || 'aptertekwork-jitsi-secret-key-2024';
+  const appId = process.env.JITSI_APP_ID || 'aptertekwork';
+  
+  const now = Math.floor(Date.now() / 1000);
+  const expiresAt = now + 3600; // 1 hour
+  
+  const token = jwt.sign({
+    iss: appId,
+    sub: 'jitsi', // or roomName
+    aud: 'jitsi',
+    room: roomName,
+    exp: expiresAt,
+    iat: now,
+    context: {
+      user: {
+        email: userEmail,
+        name: userName || 'Guest',
+        id: 'host-user',
+        avatar: 'https://avatars.githubusercontent.com/u/1234567?v=4',
+      },
+      features: {
+        livestreaming: isModerator,
+        recording: isModerator,
+        transcription: isModerator,
+      },
+    },
+    moderator: isModerator,
+  }, jitsiSecret, { algorithm: 'HS256' });
+  
+  return token;
 }
 
 function stripHtml(value = '') {
@@ -1554,7 +1658,21 @@ async function scheduleInterview(req, res) {
         const description = `Phòng phỏng vấn trực tuyến chung cho vị trí ${application.job_title || 'ứng tuyển'} tại ${application.company_name || 'công ty'} trong ngày ${interviewDateKey}.`;
         const generatedCandidateToken = createRandomToken();
         const generatedHostToken = createRandomToken();
-        const generatedRoomId = buildJitsiRoomId(application.job_id, interviewDateKey);
+        const generatedRoomName = buildJitsiRoomId(application.job_id, interviewDateKey);
+        
+        let dailyRoomUrl = null;
+        let dailyHostToken = null;
+        
+        if (process.env.DAILY_API_KEY) {
+          dailyRoomUrl = await createDailyRoom(generatedRoomName);
+          if (dailyRoomUrl) {
+            dailyHostToken = await createDailyHostToken(generatedRoomName);
+          }
+        }
+        
+        // Cập nhật giá trị vào biến generatedRoomId để chèn vào database
+        const generatedRoomId = dailyRoomUrl || `https://aptertekwork.daily.co/${generatedRoomName}`;
+        const finalHostToken = dailyHostToken || generatedHostToken;
 
         await client.query(
           `DELETE FROM meeting_schedules ms
@@ -1585,8 +1703,14 @@ async function scheduleInterview(req, res) {
              location = EXCLUDED.location,
              capacity = GREATEST(COALESCE(meeting_rooms.capacity, 0), EXCLUDED.capacity),
              description = EXCLUDED.description,
-             jitsi_room_id = COALESCE(meeting_rooms.jitsi_room_id, EXCLUDED.jitsi_room_id),
-             host_token = COALESCE(meeting_rooms.host_token, EXCLUDED.host_token),
+             jitsi_room_id = CASE 
+               WHEN meeting_rooms.jitsi_room_id LIKE 'https://%' THEN meeting_rooms.jitsi_room_id 
+               ELSE EXCLUDED.jitsi_room_id 
+             END,
+             host_token = CASE 
+               WHEN meeting_rooms.jitsi_room_id LIKE 'https://%' THEN meeting_rooms.host_token 
+               ELSE EXCLUDED.host_token 
+             END,
              recording_status = COALESCE(meeting_rooms.recording_status, EXCLUDED.recording_status),
              queue_status = CASE
                WHEN meeting_rooms.queue_status IN ('waiting', 'in_interview') THEN meeting_rooms.queue_status
@@ -1601,11 +1725,11 @@ async function scheduleInterview(req, res) {
             application.job_id,
             interviewDateKey,
             roomName,
-            'Online (Jitsi Meet)',
+            'Online (Daily.co)',
             20,
             description,
             generatedRoomId,
-            generatedHostToken,
+            finalHostToken,
             interviewStartIso,
             interviewEndIso,
           ]
