@@ -362,6 +362,13 @@ export default function InterviewRoomPage() {
       interview_at: admittedCandidate?.interview_at || prev?.interview_at,
       ended_at: data.data?.room_status === 'completed' ? new Date().toISOString() : prev?.ended_at,
     }));
+    // Auto-rejoin if there's a next candidate
+    if (admittedCandidate) {
+      setTimeout(() => {
+        setNextCandidate(null);
+        setJoining(true);
+      }, 1500);
+    }
   };
 
   // ── Render ──
@@ -491,7 +498,7 @@ export default function InterviewRoomPage() {
               <div className="relative flex flex-1 items-center justify-center bg-slate-900 p-2">
                 {/* Remote video (main) */}
                 <div className="relative h-full w-full max-h-[calc(100vh-140px)] overflow-hidden rounded-2xl bg-slate-800">
-                  <video ref={remoteVideoRef} autoPlay playsInline className="h-full w-full object-cover" />
+                  <video ref={remoteVideoRef} autoPlay playsInline className="h-full w-full object-cover" style={{ transform: 'scaleX(-1)' }} />
                   {!peerConnected && (
                     <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-slate-800/90">
                       <Loader2 className="h-10 w-10 animate-spin text-cyan-400" />

@@ -173,13 +173,7 @@ export default function ManageMeetingRoomsTab() {
           <h2 className="text-xl font-bold text-gray-800">Quản lý phòng Meet</h2>
           <p className="text-sm text-gray-500 mt-1">Phòng online được gộp theo cùng tin tuyển dụng và cùng ngày phỏng vấn.</p>
         </div>
-        <button
-          onClick={() => setIsModalOpen(true)}
-          className="flex items-center gap-2 bg-gradient-to-r from-navy-600 to-navy-800 text-white px-4 py-2 rounded-xl font-semibold hover:shadow-lg transition-all"
-        >
-          <Plus className="w-4 h-4" />
-          Tạo phòng mới
-        </button>
+
       </div>
 
       <div className="mt-6">
@@ -217,7 +211,7 @@ export default function ManageMeetingRoomsTab() {
                     <div>
                       <h3 className="font-bold text-gray-900 leading-tight">{room.room_job_title || room.name}</h3>
                       <p className="text-xs text-gray-500 mt-0.5">{room.name}</p>
-                      <p className="mt-1 text-xs font-semibold text-navy-600">{room.location || 'Online (Jitsi Meet)'}</p>
+                      <p className="mt-1 text-xs font-semibold text-navy-600">{room.location || 'Online'}</p>
                     </div>
                   </div>
                   

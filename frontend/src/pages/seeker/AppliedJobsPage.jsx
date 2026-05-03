@@ -341,14 +341,12 @@ export default function AppliedJobsPage() {
                                 </div>
 
                                 {job.interview_link ? (
-                                  <a
-                                    href={job.interview_link}
-                                    target="_blank"
-                                    rel="noreferrer"
+                                  <Link
+                                    to={`/interview-room/${job.interview_link.split('/interview-room/')[1] || ''}`}
                                     className="mt-4 inline-flex items-center gap-2 rounded-xl bg-navy-700 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-navy-800"
                                   >
                                     Xác nhận & vào phòng <ExternalLink className="h-4 w-4" />
-                                  </a>
+                                  </Link>
                                 ) : (
                                   <button
                                     type="button"

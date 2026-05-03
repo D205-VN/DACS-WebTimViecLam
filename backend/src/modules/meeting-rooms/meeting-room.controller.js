@@ -658,7 +658,7 @@ exports.completeCurrentInterview = async (req, res) => {
         await client.query(
             `UPDATE meeting_rooms
              SET queue_status = $1,
-                 ended_at = CASE WHEN $1 = 'completed' THEN COALESCE(ended_at, NOW()) ELSE ended_at END,
+                 ended_at = CASE WHEN $1::text = 'completed' THEN COALESCE(ended_at, NOW()) ELSE ended_at END,
                  updated_at = NOW()
              WHERE id = $2`,
             [roomStatus, room.id]
