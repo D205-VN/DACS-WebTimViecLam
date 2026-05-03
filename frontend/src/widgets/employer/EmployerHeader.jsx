@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { Briefcase, LayoutDashboard, FileText, Users, Building2, Plus, Bell, LogOut, ChevronDown, Shield, Menu, X, BrainCircuit } from 'lucide-react';
+import { BarChart3, Briefcase, ClipboardCheck, LayoutDashboard, FileText, Users, Building2, Plus, Bell, LogOut, ChevronDown, Shield, Menu, X, Video, BrainCircuit } from 'lucide-react';
 import { useAuth } from '@features/auth/AuthContext';
 import { useNotifications } from '@features/notifications/NotificationContext';
 import { getRouteByRole } from '@shared/utils/roleRedirect';
@@ -19,9 +19,14 @@ export default function EmployerHeader() {
 
   const navLinks = [
     { name: 'Bảng điều khiển', to: '/employer/dashboard', tab: 'dashboard', icon: LayoutDashboard },
-    { name: 'Quản lý tin đăng', to: '/employer/dashboard', tab: 'jobs', icon: FileText },
-    { name: 'Quản lý ứng viên', to: '/employer/dashboard', tab: 'candidates', icon: Users },
+    { name: 'Nhóm Tuyển dụng', to: '/employer/dashboard', tab: 'jobs', icon: FileText },
+    { name: 'Nhóm Ứng viên', to: '/employer/dashboard', tab: 'candidates', icon: Users },
+    { name: 'Thông báo', to: '/employer/dashboard', tab: 'notifications', icon: Bell },
+    { name: 'Phân tích & Thống kê', to: '/employer/dashboard', tab: 'analytics', icon: BarChart3 },
+    { name: 'Bài Test AI', to: '/employer/ai-tests', icon: BrainCircuit },
     { name: 'Hồ sơ công ty', to: '/employer/dashboard', tab: 'company', icon: Building2 },
+    { name: 'Hồ sơ & Onboarding', to: '/employer/dashboard', tab: 'onboarding', icon: ClipboardCheck },
+    { name: 'Phòng Meet', to: '/employer/meeting-rooms', icon: Video },
   ];
 
   useEffect(() => {
@@ -44,10 +49,10 @@ export default function EmployerHeader() {
   };
 
   const isHeaderLinkActive = (link) => {
-    if (link.to === '/employer/ai-tests') {
+    if (link.to !== '/employer/dashboard') {
       return location.pathname === link.to || location.pathname.startsWith(`${link.to}/`);
     }
-    return location.pathname === link.to && location.state?.activeTab === link.tab;
+    return location.pathname === link.to && (location.state?.activeTab || 'dashboard') === link.tab;
   };
 
   return (
@@ -64,25 +69,6 @@ export default function EmployerHeader() {
               <span className="text-success-500">Work</span>
             </span>
           </Link>
-
-          {/* Desktop Navigation */}
-          <nav className="hidden md:flex items-center gap-1">
-            {navLinks.map((link) => (
-              <Link
-                key={link.name}
-                to={link.to}
-                state={link.tab ? { activeTab: link.tab } : undefined}
-                className={`flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-lg transition-all duration-200 ${
-                  isHeaderLinkActive(link)
-                    ? 'text-navy-700 bg-navy-50 font-semibold'
-                    : 'text-gray-600 hover:text-navy-700 hover:bg-navy-50'
-                }`}
-              >
-                <link.icon className="w-4 h-4" />
-                {link.name}
-              </Link>
-            ))}
-          </nav>
 
           {/* Desktop Right Section */}
           <div className="hidden md:flex items-center gap-3">
@@ -210,8 +196,15 @@ export default function EmployerHeader() {
               }`}
               onClick={() => setMobileMenuOpen(false)}
             >
-              <link.icon className="w-4 h-4" />
-              {link.name}
+              <span className="flex items-center gap-2">
+                <link.icon className="w-4 h-4" />
+                {link.name}
+              </span>
+              {link.tab === 'notifications' && unreadCount > 0 ? (
+                <span className="ml-auto rounded-full bg-red-500 px-2 py-0.5 text-[10px] font-bold text-white">
+                  {Math.min(unreadCount, 9)}
+                </span>
+              ) : null}
             </Link>
           ))}
           <button
@@ -219,20 +212,6 @@ export default function EmployerHeader() {
             className="w-full flex items-center gap-2 px-4 py-3 text-sm font-semibold text-white bg-gradient-to-r from-navy-600 to-navy-800 rounded-lg"
           >
             <Plus className="w-4 h-4" /> Đăng tin mới
-          </button>
-          <button
-            onClick={() => { navigate('/employer/dashboard', { state: { activeTab: 'notifications' } }); setMobileMenuOpen(false); }}
-            className="w-full flex items-center justify-between gap-2 px-4 py-3 text-sm font-medium text-gray-600 rounded-lg hover:text-navy-700 hover:bg-navy-50"
-          >
-            <span className="flex items-center gap-2">
-              <Bell className="w-4 h-4" />
-              Thông báo
-            </span>
-            {unreadCount > 0 && (
-              <span className="rounded-full bg-red-500 px-2 py-0.5 text-[10px] font-bold text-white">
-                {Math.min(unreadCount, 9)}
-              </span>
-            )}
           </button>
           <div className="pt-3 border-t border-gray-100">
             <button onClick={() => { handleLogout(); setMobileMenuOpen(false); }} className="w-full flex items-center gap-2 px-4 py-3 text-sm text-red-600 rounded-lg hover:bg-red-50">

@@ -1,8 +1,11 @@
+const crypto = require('crypto');
 const pool = require('../../infrastructure/database/postgres');
 const { createNotification, createNotificationsForUsers } = require('../notifications/notification.service');
 const { resolveCurrentLocationPayload } = require('../../core/utils/currentLocation');
 const { ensureVerificationSchema } = require('../verification/verification.model');
 const { ensureJobAnalyticsSchema } = require('../jobs/job.model');
+const { ensureMeetingRoomSchema } = require('../meeting-rooms/meeting-room.model');
+const { isEmailConfigured, sendInterviewInvitationEmail } = require('../auth/email.service');
 const {
   ensureEmployerJobSchema,
   ensureEmployerProfileSchema,
@@ -45,6 +48,7 @@ async function ensureEmployerJobSchemaForRequest(req, res, next) {
     await ensureEmployerApplicationSchema();
     await ensureJobAnalyticsSchema();
     await ensureCompanyBrandingSchema();
+    await ensureMeetingRoomSchema();
     return next();
   } catch (err) {
     console.error('Ensure employer job schema error:', err);
@@ -60,6 +64,24 @@ function normalizeApplicationStatus(status) {
 function normalizeInterviewMode(value) {
   const normalized = String(value || '').trim().toLowerCase();
   return ['online', 'offline'].includes(normalized) ? normalized : null;
+}
+
+function addMinutes(date, minutes) {
+  return new Date(date.getTime() + minutes * 60 * 1000);
+}
+
+function createRandomToken() {
+  return crypto.randomBytes(24).toString('hex');
+}
+
+function buildJitsiRoomId(jobId, interviewDateKey) {
+  const safeDate = String(interviewDateKey || '').replace(/[^0-9]/g, '') || 'date';
+  return `aptertekwork-interview-${jobId}-${safeDate}-${crypto.randomBytes(8).toString('hex')}`;
+}
+
+function buildInterviewRoomUrl(token) {
+  const baseUrl = (process.env.FRONTEND_URL || 'http://localhost:5173').replace(/\/+$/, '');
+  return `${baseUrl}/interview-room/${token}`;
 }
 
 function stripHtml(value = '') {
@@ -466,6 +488,8 @@ async function getCandidates(req, res) {
       `SELECT aj.id, aj.user_id, aj.job_id, aj.cv_text, aj.cv_id, aj.cover_letter, aj.note, aj.interview_at, aj.interview_mode,
               aj.candidate_interview_mode,
               aj.interview_link, aj.created_at, aj.updated_at,
+              mr.id AS meeting_room_id,
+              mr.meeting_link AS meeting_room_link,
               COALESCE(NULLIF(TRIM(aj.status), ''), 'pending') as status,
               u.full_name as candidate_name, u.email as candidate_email, u.phone as candidate_phone, u.avatar_url,
               j.job_title as job_title, j.company_address, j.company_name,
@@ -474,6 +498,14 @@ async function getCandidates(req, res) {
        FROM applied_jobs aj
        JOIN users u ON aj.user_id = u.id
        JOIN jobs j ON aj.job_id = j.id
+       LEFT JOIN LATERAL (
+         SELECT room.id, room.meeting_link
+         FROM meeting_schedules ms
+         JOIN meeting_rooms room ON room.id = ms.meeting_room_id
+         WHERE ms.application_id = aj.id AND room.employer_id = j.employer_id
+         ORDER BY ms.start_time DESC, ms.id DESC
+         LIMIT 1
+       ) mr ON TRUE
        WHERE ${conditions.join(' AND ')}
        ORDER BY aj.created_at DESC`,
       params
@@ -518,6 +550,8 @@ async function getCandidateById(req, res) {
       `SELECT aj.id, aj.user_id, aj.job_id, aj.cv_text, aj.cv_id, aj.cover_letter, aj.note, aj.interview_at, aj.interview_mode,
               aj.candidate_interview_mode,
               aj.interview_link, aj.created_at, aj.updated_at,
+              mr.id AS meeting_room_id,
+              mr.meeting_link AS meeting_room_link,
               COALESCE(NULLIF(TRIM(aj.status), ''), 'pending') as status,
               u.full_name as candidate_name, u.email as candidate_email, u.phone as candidate_phone, u.avatar_url,
               j.job_title as job_title,
@@ -533,6 +567,14 @@ async function getCandidateById(req, res) {
        FROM applied_jobs aj
        JOIN users u ON aj.user_id = u.id
        JOIN jobs j ON aj.job_id = j.id
+       LEFT JOIN LATERAL (
+         SELECT room.id, room.meeting_link
+         FROM meeting_schedules ms
+         JOIN meeting_rooms room ON room.id = ms.meeting_room_id
+         WHERE ms.application_id = aj.id AND room.employer_id = j.employer_id
+         ORDER BY ms.start_time DESC, ms.id DESC
+         LIMIT 1
+       ) mr ON TRUE
        LEFT JOIN LATERAL (
          SELECT id, title, target_role, html_content, created_at
          FROM user_cvs
@@ -1458,17 +1500,21 @@ async function scheduleInterview(req, res) {
   try {
     const userId = req.user.id;
     const applicationId = req.params.id;
-    const { interview_at, interview_mode, interview_link } = req.body;
+    const { interview_at, interview_mode } = req.body;
 
     const ownership = await pool.query(
       `SELECT aj.id,
+              aj.job_id,
               aj.user_id,
               aj.candidate_interview_mode,
               COALESCE(NULLIF(TRIM(aj.status), ''), 'pending') as status,
+              u.full_name as candidate_name,
+              u.email as candidate_email,
               j.company_address,
               j.job_title,
               j.company_name
        FROM applied_jobs aj
+       JOIN users u ON aj.user_id = u.id
        JOIN jobs j ON aj.job_id = j.id
        WHERE aj.id = $1 AND j.employer_id = $2`,
       [applicationId, userId]
@@ -1490,64 +1536,208 @@ async function scheduleInterview(req, res) {
     const lockedMode = normalizeInterviewMode(application.candidate_interview_mode);
     const normalizedMode = lockedMode || normalizeInterviewMode(interview_mode) || 'online';
     
-    let normalizedLink = normalizedMode === 'online' ? interview_link?.trim() || null : null;
+    let normalizedLink = null;
+    const interviewStartIso = normalizedAt.toISOString();
+    const interviewEndIso = addMinutes(normalizedAt, 60).toISOString();
+    const interviewDateKey = String(interview_at || '').match(/^(\d{4}-\d{2}-\d{2})/)?.[1] || interviewStartIso.slice(0, 10);
 
-    // Tự động sinh phòng meeting nếu chọn phỏng vấn online
-    if (normalizedMode === 'online' && !normalizedLink) {
-      const meetingId = `interview-${applicationId}-${Date.now()}`;
-      normalizedLink = `https://meet.jit.si/${meetingId}`;
-      
-      try {
-        const roomName = `Phỏng vấn ứng viên ${application.candidate_name}`;
-        const description = `Phỏng vấn ứng viên ${application.candidate_name} cho vị trí ${application.job_title}`;
-        await pool.query(
-          'INSERT INTO meeting_rooms (name, location, capacity, description, meeting_link) VALUES ($1, $2, $3, $4, $5)',
-          [roomName, 'Online (Jitsi Meet)', 2, description, normalizedLink]
+    let result;
+    let meetingRoom = null;
+    const client = await pool.connect();
+
+    try {
+      await client.query('BEGIN');
+
+      if (normalizedMode === 'online') {
+        const roomName = `Phỏng vấn ${application.job_title || 'tin tuyển dụng'} - ${interviewDateKey}`;
+        const title = `Phỏng vấn ${application.candidate_name || 'ứng viên'} - ${application.job_title || 'Vị trí ứng tuyển'}`;
+        const description = `Phòng phỏng vấn trực tuyến chung cho vị trí ${application.job_title || 'ứng tuyển'} tại ${application.company_name || 'công ty'} trong ngày ${interviewDateKey}.`;
+        const generatedCandidateToken = createRandomToken();
+        const generatedHostToken = createRandomToken();
+        const generatedRoomId = buildJitsiRoomId(application.job_id, interviewDateKey);
+
+        await client.query(
+          `DELETE FROM meeting_schedules ms
+           USING meeting_rooms mr
+           WHERE ms.meeting_room_id = mr.id
+             AND ms.application_id = $1
+             AND mr.employer_id = $2`,
+          [applicationId, userId]
         );
-      } catch (roomError) {
-        console.error('Lỗi khi tạo phòng meeting tự động:', roomError);
+
+        const roomResult = await client.query(
+          `INSERT INTO meeting_rooms (
+             employer_id, application_id, job_id, interview_date, name, location,
+             capacity, description, meeting_link, jitsi_room_id, access_token,
+             host_token, recording_status, queue_status, start_time, end_time, updated_at
+           )
+           VALUES ($1, NULL, $2, $3::date, $4, $5, $6, $7, NULL, $8, NULL, $9, 'idle', 'invited', $10, $11, NOW())
+           ON CONFLICT (employer_id, job_id, interview_date)
+           WHERE application_id IS NULL
+             AND employer_id IS NOT NULL
+             AND job_id IS NOT NULL
+             AND interview_date IS NOT NULL
+           DO UPDATE SET
+             employer_id = EXCLUDED.employer_id,
+             job_id = EXCLUDED.job_id,
+             interview_date = EXCLUDED.interview_date,
+             name = EXCLUDED.name,
+             location = EXCLUDED.location,
+             capacity = GREATEST(COALESCE(meeting_rooms.capacity, 0), EXCLUDED.capacity),
+             description = EXCLUDED.description,
+             jitsi_room_id = COALESCE(meeting_rooms.jitsi_room_id, EXCLUDED.jitsi_room_id),
+             host_token = COALESCE(meeting_rooms.host_token, EXCLUDED.host_token),
+             recording_status = COALESCE(meeting_rooms.recording_status, EXCLUDED.recording_status),
+             queue_status = CASE
+               WHEN meeting_rooms.queue_status IN ('waiting', 'in_interview') THEN meeting_rooms.queue_status
+               ELSE 'invited'
+             END,
+             start_time = LEAST(COALESCE(meeting_rooms.start_time, EXCLUDED.start_time), EXCLUDED.start_time),
+             end_time = GREATEST(COALESCE(meeting_rooms.end_time, EXCLUDED.end_time), EXCLUDED.end_time),
+             updated_at = NOW()
+           RETURNING *`,
+          [
+            userId,
+            application.job_id,
+            interviewDateKey,
+            roomName,
+            'Online (Jitsi Meet)',
+            20,
+            description,
+            generatedRoomId,
+            generatedHostToken,
+            interviewStartIso,
+            interviewEndIso,
+          ]
+        );
+        meetingRoom = roomResult.rows[0];
+        const hostLink = buildInterviewRoomUrl(meetingRoom.host_token);
+
+        const roomLinkResult = await client.query(
+          `UPDATE meeting_rooms
+           SET meeting_link = $1,
+               updated_at = NOW()
+           WHERE id = $2
+           RETURNING *`,
+          [hostLink, meetingRoom.id]
+        );
+        meetingRoom = roomLinkResult.rows[0];
+
+        const scheduleResult = await client.query(
+          `INSERT INTO meeting_schedules (
+             meeting_room_id, employer_id, seeker_id, application_id, access_token,
+             queue_status, start_time, end_time, title, updated_at
+           )
+           VALUES ($1, $2, $3, $4, $5, 'invited', $6, $7, $8, NOW())
+           RETURNING *`,
+          [meetingRoom.id, userId, application.user_id, applicationId, generatedCandidateToken, interviewStartIso, interviewEndIso, title]
+        );
+        normalizedLink = buildInterviewRoomUrl(scheduleResult.rows[0].access_token);
+      } else {
+        await client.query(
+          `DELETE FROM meeting_schedules ms
+           USING meeting_rooms mr
+           WHERE ms.meeting_room_id = mr.id
+             AND mr.application_id = $1
+             AND mr.employer_id = $2`,
+          [applicationId, userId]
+        );
+        await client.query(
+          `DELETE FROM meeting_schedules ms
+           USING meeting_rooms mr
+           WHERE ms.meeting_room_id = mr.id
+             AND ms.application_id = $1
+             AND mr.employer_id = $2`,
+          [applicationId, userId]
+        );
+        await client.query(
+          `DELETE FROM meeting_rooms
+           WHERE application_id = $1 AND employer_id = $2`,
+          [applicationId, userId]
+        );
       }
-    }
 
-    if (normalizedMode === 'online' && !normalizedLink) {
-      return res.status(400).json({ error: 'Phỏng vấn online cần có link video call' });
-    }
+      await client.query(
+        `DELETE FROM meeting_rooms mr
+         WHERE mr.employer_id = $1
+           AND mr.application_id IS NOT NULL
+           AND NOT EXISTS (
+             SELECT 1 FROM meeting_schedules ms WHERE ms.meeting_room_id = mr.id
+           )`,
+        [userId]
+      );
 
-    const result = await pool.query(
-      `UPDATE applied_jobs
-       SET status = $1,
-           interview_at = $2,
-           interview_mode = $3,
-           interview_link = $4,
-           interview_reminder_sent_at = NULL,
-           updated_at = NOW()
-       WHERE id = $5
-       RETURNING id, COALESCE(NULLIF(TRIM(status), ''), 'pending') as status,
-                 interview_at, interview_mode, interview_link, candidate_interview_mode, updated_at`,
-      ['interview', normalizedAt.toISOString(), normalizedMode, normalizedLink, applicationId]
-    );
+      await client.query(
+        `DELETE FROM meeting_rooms mr
+         WHERE mr.employer_id = $1
+           AND mr.application_id IS NULL
+           AND mr.job_id IS NOT NULL
+           AND NOT EXISTS (
+             SELECT 1 FROM meeting_schedules ms WHERE ms.meeting_room_id = mr.id
+           )`,
+        [userId]
+      );
+
+      result = await client.query(
+        `UPDATE applied_jobs
+         SET status = $1,
+             interview_at = $2,
+             interview_mode = $3,
+             interview_link = $4,
+             interview_reminder_sent_at = NULL,
+             updated_at = NOW()
+         WHERE id = $5
+         RETURNING id, COALESCE(NULLIF(TRIM(status), ''), 'pending') as status,
+                   interview_at, interview_mode, interview_link, candidate_interview_mode, updated_at`,
+        ['interview', interviewStartIso, normalizedMode, normalizedLink, applicationId]
+      );
+
+      await client.query('COMMIT');
+    } catch (transactionError) {
+      await client.query('ROLLBACK');
+      throw transactionError;
+    } finally {
+      client.release();
+    }
 
     await createNotification({
       userId: application.user_id,
       type: 'seeker_application_interview',
       title: 'Bạn có lịch phỏng vấn mới',
       message: `Nhà tuyển dụng đã cập nhật lịch phỏng vấn cho vị trí ${application.job_title || 'ứng tuyển'}.`,
-      to: '/seeker/applied-jobs',
+      to: normalizedMode === 'online' && meetingRoom?.access_token ? `/interview-room/${meetingRoom.access_token}` : '/seeker/applied-jobs',
       meta: {
         application_id: applicationId,
         company_name: application.company_name || null,
-        interview_at: normalizedAt.toISOString(),
+        interview_at: interviewStartIso,
         interview_mode: normalizedMode,
+        meeting_room_id: meetingRoom?.id || null,
       },
     }).catch((notificationError) => {
       console.error('Create seeker interview notification error:', notificationError);
     });
+
+    if (application.candidate_email && isEmailConfigured()) {
+      await sendInterviewInvitationEmail(application.candidate_email, {
+        candidateName: application.candidate_name,
+        jobTitle: application.job_title,
+        companyName: application.company_name,
+        interviewAt: interviewStartIso,
+        interviewMode: normalizedMode,
+        interviewLink: normalizedLink,
+        companyAddress: application.company_address,
+      }).catch((emailError) => {
+        console.error('Send interview invitation email error:', emailError);
+      });
+    }
 
     res.json({
       message: 'Đã lên lịch phỏng vấn',
       data: {
         ...result.rows[0],
         company_address: application.company_address || null,
+        meeting_room_id: meetingRoom?.id || null,
+        meeting_room: meetingRoom,
       },
     });
   } catch (err) {

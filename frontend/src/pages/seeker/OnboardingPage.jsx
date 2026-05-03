@@ -13,9 +13,12 @@ import {
   UserCheck,
   FolderUp,
   ClipboardCheck,
+  ScanLine,
+  Eye,
 } from 'lucide-react';
 import { useAuth } from '@features/auth/AuthContext';
 import API_BASE_URL from '@shared/api/baseUrl';
+import ConversationModal from '@features/messages/ConversationModal';
 
 /* ─── 3 bước quy trình Onboarding ─── */
 const STEPS = [
@@ -32,7 +35,7 @@ const STEPS = [
   {
     icon: ClipboardCheck,
     title: 'Phê Duyệt Hồ Sơ',
-    desc: 'HR kiểm tra và xác nhận hồ sơ hợp lệ, hoàn tất quá trình nhận việc một cách chuyên nghiệp.',
+    desc: 'Nhà tuyển dụng kiểm tra và xác nhận hồ sơ hợp lệ, hoàn tất quá trình nhận việc một cách chuyên nghiệp.',
   },
 ];
 
@@ -42,23 +45,42 @@ export default function OnboardingPage() {
   const [loading, setLoading] = useState(true);
   const [jobInfo, setJobInfo] = useState(null);
   const activeStep = 1; // 0, 1, 2
+  const [chatOpen, setChatOpen] = useState(false);
+  const [scanning, setScanning] = useState(null);
+  const [aiResults, setAiResults] = useState({});
+  const [previews, setPreviews] = useState({});
   const [documents, setDocuments] = useState([
-    { id: 'cccd',   name: 'CCCD/CMND (Mặt trước & sau)',  status: 'pending',  required: true,  description: 'Hình ảnh rõ nét, không mất góc',     file: null, feedback: '' },
+    { id: 'cccd_front', name: 'CCCD/CMND — Mặt trước',       status: 'pending',  required: true,  description: 'Chụp rõ nét, đủ ánh sáng, không mất góc',     file: null, feedback: '' },
+    { id: 'cccd_back',  name: 'CCCD/CMND — Mặt sau',        status: 'pending',  required: true,  description: 'Chụp rõ nét, đủ ánh sáng, không mất góc',     file: null, feedback: '' },
     { id: 'degree', name: 'Bằng tốt nghiệp / Chứng chỉ',  status: 'pending',  required: true,  description: 'Bản sao công chứng hoặc bản chính',  file: null, feedback: '' },
-    { id: 'health', name: 'Giấy khám sức khỏe',            status: 'rejected', required: false, description: 'Thời hạn không quá 6 tháng',         file: null, feedback: 'Ảnh chụp bị mờ, vui lòng chụp lại rõ hơn.' },
+    { id: 'health', name: 'Giấy khám sức khỏe',            status: 'pending',  required: true,  description: 'Thời hạn không quá 6 tháng',         file: null, feedback: '' },
   ]);
 
   useEffect(() => {
     const load = async () => {
       setLoading(true);
       try {
-        // TODO: thay bằng API thật
-        setJobInfo({ title: 'Senior Frontend Developer', company: 'FPT Software', hiredDate: '28/04/2026' });
+        const res = await fetch(`${API_BASE_URL}/api/jobs/applied`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (res.ok) {
+          const data = await res.json();
+          const match = (data.data || []).find(j => String(j.application_id) === String(id));
+          if (match) {
+            setJobInfo({
+              title: match.title || 'Vị trí tuyển dụng',
+              company: match.company_name || 'Công ty',
+              hiredDate: match.applied_at ? new Date(match.applied_at).toLocaleDateString('vi-VN') : '',
+            });
+          }
+        }
+      } catch (err) {
+        console.error('Load onboarding info error:', err);
       } finally {
         setLoading(false);
       }
     };
-    load();
+    if (token) load();
   }, [id, token]);
 
   const calculateProgress = () => {
@@ -69,10 +91,76 @@ export default function OnboardingPage() {
   const handleFileUpload = (docId, e) => {
     const file = e.target.files[0];
     if (!file) return;
+
+    // Tạo preview URL cho ảnh
+    if (file.type.startsWith('image/')) {
+      const url = URL.createObjectURL(file);
+      setPreviews(prev => ({ ...prev, [docId]: url }));
+    }
+
     setDocuments(prev => prev.map(d => d.id === docId ? { ...d, file, status: 'uploaded' } : d));
+
+    // Tự động chạy AI scan khi upload ảnh
+    if (file.type.startsWith('image/')) {
+      runAIScan(docId);
+    }
+  };
+
+  const runAIScan = (docId) => {
+    setScanning(docId);
+    setAiResults(prev => ({ ...prev, [docId]: null }));
+
+    // Giả lập AI scan 2-3 giây
+    setTimeout(() => {
+      const mockResults = {
+        cccd_front: {
+          label: 'CCCD — Mặt trước',
+          confidence: 97.8,
+          fields: [
+            { key: 'Loại giấy tờ', value: 'Căn cước công dân', confidence: 99 },
+            { key: 'Chất lượng ảnh', value: 'Rõ nét, đủ ánh sáng', confidence: 95 },
+            { key: 'Góc chụp', value: 'Đầy đủ 4 góc', confidence: 98 },
+            { key: 'Tính hợp lệ', value: 'Hợp lệ — Sẵn sàng gửi duyệt', confidence: 97 },
+          ],
+        },
+        cccd_back: {
+          label: 'CCCD — Mặt sau',
+          confidence: 96.5,
+          fields: [
+            { key: 'Loại giấy tờ', value: 'Căn cước công dân (mặt sau)', confidence: 98 },
+            { key: 'Chất lượng ảnh', value: 'Rõ nét', confidence: 94 },
+            { key: 'Đặc điểm nhận dạng', value: 'Phát hiện vùng dữ liệu', confidence: 96 },
+            { key: 'Tính hợp lệ', value: 'Hợp lệ — Sẵn sàng gửi duyệt', confidence: 97 },
+          ],
+        },
+        degree: {
+          label: 'Bằng cấp / Chứng chỉ',
+          confidence: 94.2,
+          fields: [
+            { key: 'Loại tài liệu', value: 'Bằng tốt nghiệp', confidence: 96 },
+            { key: 'Chất lượng ảnh', value: 'Rõ nét', confidence: 93 },
+            { key: 'Tính hợp lệ', value: 'Hợp lệ — Sẵn sàng gửi duyệt', confidence: 94 },
+          ],
+        },
+        health: {
+          label: 'Giấy khám sức khỏe',
+          confidence: 92.5,
+          fields: [
+            { key: 'Loại tài liệu', value: 'Giấy khám sức khỏe', confidence: 95 },
+            { key: 'Chất lượng ảnh', value: 'Rõ nét', confidence: 91 },
+            { key: 'Tính hợp lệ', value: 'Hợp lệ — Sẵn sàng gửi duyệt', confidence: 92 },
+          ],
+        },
+      };
+      setAiResults(prev => ({ ...prev, [docId]: mockResults[docId] || mockResults.degree }));
+      setScanning(null);
+    }, 2500);
   };
 
   const handleDelete = (docId) => {
+    if (previews[docId]) URL.revokeObjectURL(previews[docId]);
+    setPreviews(prev => { const n = { ...prev }; delete n[docId]; return n; });
+    setAiResults(prev => { const n = { ...prev }; delete n[docId]; return n; });
     setDocuments(prev => prev.map(d => d.id === docId ? { ...d, file: null, status: 'pending', feedback: '' } : d));
   };
 
@@ -225,7 +313,20 @@ export default function OnboardingPage() {
                     </label>
                   ) : doc.status === 'uploaded' ? (
                     <>
-                      <span className="px-4 py-2 rounded-xl text-sm font-bold bg-amber-50 text-amber-700">Đang chờ HR duyệt</span>
+                      <span className="px-4 py-2 rounded-xl text-sm font-bold bg-amber-50 text-amber-700">Đang chờ duyệt</span>
+                      {!aiResults[doc.id] && scanning !== doc.id && (
+                        <button
+                          onClick={() => runAIScan(doc.id)}
+                          className="px-4 py-2 rounded-xl text-sm font-bold bg-blue-50 text-blue-700 hover:bg-blue-100 transition-colors flex items-center gap-1.5"
+                        >
+                          <ScanLine className="w-4 h-4" /> AI Scan
+                        </button>
+                      )}
+                      {scanning === doc.id && (
+                        <span className="px-4 py-2 rounded-xl text-sm font-bold bg-blue-50 text-blue-700 flex items-center gap-1.5">
+                          <Loader2 className="w-4 h-4 animate-spin" /> Đang quét...
+                        </span>
+                      )}
                       <button onClick={() => handleDelete(doc.id)} className="p-2 text-gray-400 hover:text-red-500 transition-colors" title="Xóa để tải lại">
                         <Trash2 className="w-5 h-5" />
                       </button>
@@ -238,12 +339,49 @@ export default function OnboardingPage() {
                 </div>
               </div>
 
-              {/* HR Feedback */}
+              {/* Preview ảnh */}
+              {previews[doc.id] && (doc.status === 'uploaded' || doc.status === 'approved') && (
+                <div className="mt-4 ml-0 md:ml-16">
+                  <div className="inline-block rounded-xl overflow-hidden border-2 border-gray-100 shadow-sm">
+                    <img src={previews[doc.id]} alt={doc.name} className="max-h-48 object-contain" />
+                  </div>
+                </div>
+              )}
+
+              {/* AI Scan Results */}
+              {aiResults[doc.id] && (
+                <div className="mt-4 ml-0 md:ml-16 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border border-blue-100">
+                  <div className="flex items-center gap-2 mb-3">
+                    <ScanLine className="w-4 h-4 text-blue-600" />
+                    <span className="text-sm font-bold text-blue-800">Kết quả AI Scan</span>
+                    <span className="text-[10px] bg-blue-100 text-blue-700 font-bold px-2 py-0.5 rounded-full">
+                      Độ tin cậy: {aiResults[doc.id].confidence}%
+                    </span>
+                  </div>
+                  <div className="grid gap-2">
+                    {aiResults[doc.id].fields.map((field, i) => (
+                      <div key={i} className="flex items-center justify-between bg-white/70 rounded-lg px-3 py-2">
+                        <span className="text-xs text-gray-500 font-medium">{field.key}</span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs font-bold text-gray-800">{field.value}</span>
+                          <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
+                            field.confidence >= 95 ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'
+                          }`}>
+                            {field.confidence}%
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Feedback từ NTD */}
               {doc.status === 'rejected' && doc.feedback && (
                 <div className="mt-4 p-4 bg-red-100/60 rounded-xl border border-red-200 flex items-start gap-3">
                   <AlertCircle className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
                   <div>
-                    <p className="text-sm font-bold text-red-800">Phản hồi từ HR:</p>
+                    <p className="text-sm font-bold text-red-800">Phản hồi từ Nhà tuyển dụng:</p>
                     <p className="text-sm text-red-700 mt-0.5">{doc.feedback}</p>
                   </div>
                 </div>
@@ -256,10 +394,10 @@ export default function OnboardingPage() {
         <div className="px-8 pb-8">
           <button className="w-full py-4 rounded-2xl bg-gradient-to-r from-gray-800 to-gray-900 text-white font-black text-base hover:from-gray-700 hover:to-gray-800 transition-all shadow-xl active:scale-[0.99] flex items-center justify-center gap-3">
             <ShieldCheck className="w-5 h-5" />
-            Gửi Hồ Sơ Cho HR Xét Duyệt
+            Gửi Hồ Sơ Cho Nhà Tuyển Dụng Xét Duyệt
           </button>
           <p className="text-center text-xs text-gray-400 mt-3">
-            * Sau khi gửi, HR sẽ xem xét và phản hồi trong vòng 1–2 ngày làm việc.
+            * Sau khi gửi, Nhà tuyển dụng sẽ xem xét và phản hồi trong vòng 1–2 ngày làm việc.
           </p>
         </div>
       </div>
@@ -272,13 +410,22 @@ export default function OnboardingPage() {
         <div className="flex-1 text-center md:text-left">
           <h4 className="font-bold text-gray-800">Cần hỗ trợ?</h4>
           <p className="text-sm text-gray-500 mt-1">
-            Liên hệ bộ phận nhân sự <strong>{jobInfo?.company}</strong> qua hotline hoặc nhắn tin trực tiếp trên hệ thống.
+            Liên hệ nhà tuyển dụng <strong>{jobInfo?.company}</strong> qua hotline hoặc nhắn tin trực tiếp trên hệ thống.
           </p>
         </div>
-        <button className="bg-gray-900 text-white px-6 py-3 rounded-xl font-bold text-sm hover:bg-gray-700 transition-all shadow-md">
-          Nhắn tin cho HR
+        <button
+          onClick={() => setChatOpen(true)}
+          className="bg-gray-900 text-white px-6 py-3 rounded-xl font-bold text-sm hover:bg-gray-700 transition-all shadow-md"
+        >
+          Nhắn tin cho Nhà tuyển dụng
         </button>
       </div>
+      <ConversationModal
+        open={chatOpen}
+        applicationId={id}
+        initialTitle={jobInfo?.company || 'Nhà tuyển dụng'}
+        onClose={() => setChatOpen(false)}
+      />
     </div>
   );
 }

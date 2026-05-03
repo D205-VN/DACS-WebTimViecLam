@@ -442,14 +442,78 @@ exports.getAppliedJobs = async (req, res) => {
               aj.interview_link,
               aj.candidate_interview_mode,
               aj.cv_id,
-              aj.cover_letter
+              aj.cover_letter,
+              ait.id as ai_test_id,
+              ait.title as ai_test_title,
+              ait.description as ai_test_description,
+              ait.duration as ai_test_duration,
+              ait.test_type as ai_test_type,
+              ait.created_at as ai_test_created_at,
+              ais.id as ai_submission_id,
+              ais.status as ai_submission_status,
+              ais.total_score as ai_submission_total_score,
+              ais.started_at as ai_submission_started_at,
+              ais.completed_at as ai_submission_completed_at
        FROM applied_jobs aj
        JOIN jobs j ON j.id = aj.job_id
+       LEFT JOIN LATERAL (
+         SELECT id, title, description, duration, test_type, created_at
+         FROM ai_tests
+         WHERE job_id = j.id
+         ORDER BY created_at DESC, id DESC
+         LIMIT 1
+       ) ait ON TRUE
+       LEFT JOIN LATERAL (
+         SELECT id, status, total_score, started_at, completed_at
+         FROM ai_submissions
+         WHERE test_id = ait.id AND candidate_id = aj.user_id
+         ORDER BY completed_at DESC NULLS LAST, started_at DESC NULLS LAST, id DESC
+         LIMIT 1
+       ) ais ON TRUE
        WHERE aj.user_id = $1
        ORDER BY aj.created_at DESC`,
       [req.user.id]
     );
-    res.json({ data: result.rows });
+    const jobs = result.rows.map((row) => {
+      const {
+        ai_test_id,
+        ai_test_title,
+        ai_test_description,
+        ai_test_duration,
+        ai_test_type,
+        ai_test_created_at,
+        ai_submission_id,
+        ai_submission_status,
+        ai_submission_total_score,
+        ai_submission_started_at,
+        ai_submission_completed_at,
+        ...job
+      } = row;
+
+      return {
+        ...job,
+        ai_test: ai_test_id
+          ? {
+              id: ai_test_id,
+              title: ai_test_title,
+              description: ai_test_description,
+              duration: ai_test_duration,
+              test_type: ai_test_type,
+              created_at: ai_test_created_at,
+              submission: ai_submission_id
+                ? {
+                    id: ai_submission_id,
+                    status: ai_submission_status,
+                    total_score: ai_submission_total_score,
+                    started_at: ai_submission_started_at,
+                    completed_at: ai_submission_completed_at,
+                  }
+                : null,
+            }
+          : null,
+      };
+    });
+    res.json({ data: jobs });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Lỗi khi tải danh sách đã ứng tuyển' });
@@ -495,7 +559,7 @@ exports.getJobById = async (req, res) => {
     let linkedTest = null;
     try {
       const testResult = await pool.query(
-        'SELECT id, title, duration, test_type FROM ai_tests WHERE job_id = $1 LIMIT 1',
+        'SELECT id, title, duration, test_type FROM ai_tests WHERE job_id = $1 ORDER BY created_at DESC, id DESC LIMIT 1',
         [result.rows[0].id]
       );
       linkedTest = testResult.rows[0] || null;

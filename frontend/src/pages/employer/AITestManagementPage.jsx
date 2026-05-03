@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Play, Link, Edit } from 'lucide-react';
+import { Plus, Play, Link, Edit, Trash2 } from 'lucide-react';
 import { aiTestApi } from '@shared/api/aiTestApi';
 import { useAuth } from '@features/auth/AuthContext';
 import API_BASE_URL from '@shared/api/baseUrl';
@@ -68,6 +68,17 @@ const AITestManagementPage = () => {
     alert('Đã copy link bài test!');
   };
 
+  const handleDeleteTest = async (testId) => {
+    if (!confirm('Bạn có chắc chắn muốn xóa bài test này? Hành động này không thể hoàn tác.')) return;
+    try {
+      await aiTestApi.deleteTest(testId);
+      fetchTests();
+    } catch (err) {
+      console.error(err);
+      alert('Không thể xóa bài test');
+    }
+  };
+
   return (
     <div className="max-w-6xl mx-auto p-6">
       <div className="flex justify-between items-center mb-6">
@@ -99,37 +110,46 @@ const AITestManagementPage = () => {
                 <td colSpan="6" className="p-8 text-center text-gray-500">Chưa có bài test nào được tạo.</td>
               </tr>
             ) : (
-              tests.map(test => (
-                <tr key={test.id} className="border-b border-gray-100 hover:bg-gray-50">
-                  <td className="p-4 font-medium text-navy-800">{test.title}</td>
-                  <td className="p-4 text-sm text-gray-600">
-                    {test.job_id ? jobs.find(j => j.id == test.job_id)?.job_title || `Tin ID: ${test.job_id}` : <span className="text-gray-400 italic">Không gắn vào tin nào</span>}
-                  </td>
-                  <td className="p-4">
-                    <span className={`px-2 py-1 rounded text-xs font-medium ${
-                      test.test_type === 'video_ai' ? 'bg-blue-100 text-blue-700' :
-                      test.test_type === 'avatar_live2d' ? 'bg-purple-100 text-purple-700' :
-                      'bg-gray-100 text-gray-700'
-                    }`}>
-                      {test.test_type?.toUpperCase() || 'NORMAL'}
-                    </span>
-                  </td>
-                  <td className="p-4 text-gray-600">{test.duration} phút</td>
-                  <td className="p-4 text-gray-600">{new Date(test.created_at).toLocaleDateString('vi-VN')}</td>
-                  <td className="p-4 flex justify-center gap-3">
-                    <button onClick={() => navigate(`/employer/ai-tests/${test.id}/edit`)} className="text-gray-500 hover:text-blue-600" title="Sửa bài test & câu hỏi">
-                      <Edit size={18} />
-                    </button>
-                    <button onClick={() => navigate(`/employer/ai-tests/${test.id}/scores`)} className="text-gray-500 hover:text-green-600" title="Xem danh sách nộp bài">
-                      <Play size={18} />
-                    </button>
-                    <button onClick={() => copyTestLink(test.id)}
-                      className="text-gray-500 hover:text-blue-600" title="Copy link bài test">
-                      <Link size={18} />
-                    </button>
-                  </td>
-                </tr>
-              ))
+              tests.map(test => {
+                const linkedJob = jobs.find(j => String(j.id) === String(test.job_id));
+                const linkedJobTitle = linkedJob?.title || linkedJob?.job_title || test.job_title;
+
+                return (
+                  <tr key={test.id} className="border-b border-gray-100 hover:bg-gray-50">
+                    <td className="p-4 font-medium text-navy-800">{test.title}</td>
+                    <td className="p-4 text-sm text-gray-600">
+                      {test.job_id ? linkedJobTitle || `Tin ID: ${test.job_id}` : <span className="text-gray-400 italic">Không gắn vào tin nào</span>}
+                    </td>
+                    <td className="p-4">
+                      <span className={`px-2 py-1 rounded text-xs font-medium ${
+                        test.test_type === 'video_ai' ? 'bg-blue-100 text-blue-700' :
+                        test.test_type === 'avatar_live2d' ? 'bg-purple-100 text-purple-700' :
+                        'bg-emerald-100 text-emerald-700'
+                      }`}>
+                        {test.test_type === 'normal' ? 'Trắc nghiệm' : test.test_type === 'video_ai' ? 'Video AI + Tự luận' : test.test_type === 'avatar_live2d' ? 'Avatar Live2D' : test.test_type}
+                      </span>
+                    </td>
+                    <td className="p-4 text-gray-600">{test.duration} phút</td>
+                    <td className="p-4 text-gray-600">{new Date(test.created_at).toLocaleDateString('vi-VN')}</td>
+                    <td className="p-4 flex justify-center gap-3">
+                      <button onClick={() => navigate(`/employer/ai-tests/${test.id}/edit`)} className="text-gray-500 hover:text-blue-600" title="Sửa bài test & câu hỏi">
+                        <Edit size={18} />
+                      </button>
+                      <button onClick={() => navigate(`/employer/ai-tests/${test.id}/scores`)} className="text-gray-500 hover:text-green-600" title="Xem danh sách nộp bài">
+                        <Play size={18} />
+                      </button>
+                      <button onClick={() => copyTestLink(test.id)}
+                        className="text-gray-500 hover:text-blue-600" title="Copy link bài test">
+                        <Link size={18} />
+                      </button>
+                      <button onClick={() => handleDeleteTest(test.id)}
+                        className="text-gray-500 hover:text-red-600" title="Xóa bài test">
+                        <Trash2 size={18} />
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })
             )}
           </tbody>
         </table>
@@ -149,9 +169,9 @@ const AITestManagementPage = () => {
                 <textarea className="w-full border rounded-lg p-2" value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})}></textarea>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Chọn tin tuyển dụng</label>
-                <select required className="w-full border rounded-lg p-2" value={formData.job_id} onChange={e => setFormData({...formData, job_id: e.target.value})}>
-                  <option value="">-- Chọn tin tuyển dụng --</option>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Chọn tin tuyển dụng (tùy chọn)</label>
+                <select className="w-full border rounded-lg p-2" value={formData.job_id} onChange={e => setFormData({...formData, job_id: e.target.value})}>
+                  <option value="">-- Không gắn vào tin nào --</option>
                   {jobs.map(job => (
                     <option key={job.id} value={job.id}>{job.title || job.job_title}</option>
                   ))}
@@ -161,9 +181,9 @@ const AITestManagementPage = () => {
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Loại bài test</label>
                   <select className="w-full border rounded-lg p-2" value={formData.test_type} onChange={e => setFormData({...formData, test_type: e.target.value})}>
-                    <option value="normal">Văn bản thường</option>
-                    <option value="video_ai">Video AI</option>
-                    <option value="avatar_live2d">Avatar Live2D</option>
+                    <option value="normal">Trắc nghiệm (MCQ)</option>
+                    <option value="video_ai">Video AI + Tự luận</option>
+                    <option value="avatar_live2d">Avatar Live2D + Tự luận</option>
                   </select>
                 </div>
                 <div>

@@ -5,6 +5,7 @@ import { useAuth } from '@features/auth/AuthContext';
 import API_BASE_URL from '@shared/api/baseUrl';
 import EmployerHeader from '@widgets/employer/EmployerHeader';
 import { requestCurrentLocation } from '@shared/geo/currentLocation';
+import { findProvinceByName, locationCenters, normalizeProvinceName } from '@shared/geo/provinceCoordinates';
 import { analyzeJobQuality, getTodayDateInputValue } from '@shared/utils/jobQuality';
 
 const JOB_TYPES = ['Toàn thời gian', 'Bán thời gian', 'Thực tập', 'Freelance', 'Remote'];
@@ -20,6 +21,9 @@ export default function PostJob() {
   const [currentCoordinates, setCurrentCoordinates] = useState(null);
   const [locationNotice, setLocationNotice] = useState(null);
   const [detectingLocation, setDetectingLocation] = useState(false);
+  const [manualMode, setManualMode] = useState(false);
+  const [manualInput, setManualInput] = useState('');
+  const [suggestions, setSuggestions] = useState([]);
 
   const [formData, setFormData] = useState({
     title: '',
@@ -67,6 +71,31 @@ export default function PostJob() {
     } finally {
       setDetectingLocation(false);
     }
+  };
+
+  const handleManualInput = (value) => {
+    setManualInput(value);
+    if (value.trim().length >= 1) {
+      const normalizedInput = value.trim().toLowerCase();
+      const matched = locationCenters
+        .filter(loc => {
+          const name = normalizeProvinceName(loc.name).toLowerCase();
+          return name.includes(normalizedInput) || normalizedInput.includes(name);
+        })
+        .slice(0, 6);
+      setSuggestions(matched);
+    } else {
+      setSuggestions([]);
+    }
+  };
+
+  const selectManualLocation = (loc) => {
+    const name = normalizeProvinceName(loc.name);
+    setCurrentLocation(name);
+    setCurrentCoordinates({ lat: loc.lat, lng: loc.lng });
+    setManualInput(name);
+    setSuggestions([]);
+    setLocationNotice({ type: 'success', message: `Đã chọn vị trí: ${name}` });
   };
 
   const handleSubmit = async (e) => {
@@ -286,6 +315,40 @@ export default function PostJob() {
                       {locationNotice.message}
                     </p>
                   ) : null}
+                  {(locationNotice?.type === 'error' || manualMode) && (
+                    <div className="relative mt-1">
+                      <input
+                        type="text"
+                        value={manualInput}
+                        onChange={(e) => handleManualInput(e.target.value)}
+                        placeholder="Nhập tên tỉnh/thành phố..."
+                        className={inputClass}
+                      />
+                      {suggestions.length > 0 && (
+                        <div className="absolute z-20 w-full mt-1 bg-white border border-gray-200 rounded-xl shadow-lg max-h-48 overflow-y-auto">
+                          {suggestions.map((loc) => (
+                            <button
+                              key={loc.name}
+                              type="button"
+                              onClick={() => selectManualLocation(loc)}
+                              className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-navy-50 hover:text-navy-700 transition-colors"
+                            >
+                              {normalizeProvinceName(loc.name)}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  {!manualMode && !locationNotice?.type && (
+                    <button
+                      type="button"
+                      onClick={() => setManualMode(true)}
+                      className="text-xs text-navy-600 hover:underline mt-1"
+                    >
+                      Nhập địa chỉ thủ công
+                    </button>
+                  )}
                 </div>
               </div>
 

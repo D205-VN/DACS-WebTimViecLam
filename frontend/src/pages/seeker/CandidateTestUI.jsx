@@ -236,6 +236,13 @@ const CandidateTestUI = () => {
                   className="absolute inset-0 w-full h-full object-cover opacity-90"
                 />
               )
+            ) : currentQ?.type === 'mcq' ? (
+              <div className="text-white/40 flex flex-col items-center">
+                <div className="w-24 h-24 rounded-full border-4 border-dashed border-cyan-500/30 flex items-center justify-center mb-6">
+                  <Square size={40} className="text-cyan-400 opacity-60" />
+                </div>
+                <span className="text-xl tracking-widest font-light uppercase">Multiple Choice</span>
+              </div>
             ) : (
               <div className="text-white/40 flex flex-col items-center">
                 <Mic size={64} className="mb-6 opacity-30" />
@@ -269,69 +276,103 @@ const CandidateTestUI = () => {
               Your Response
             </h3>
             
-            {/* Text Input */}
-            <div className="relative group flex-1 flex flex-col">
-              <div className="absolute -inset-0.5 bg-gradient-to-r from-cyan-400 to-indigo-500 rounded-2xl blur opacity-20 group-hover:opacity-40 transition duration-500"></div>
-              <textarea 
-                className="relative flex-1 w-full bg-black/40 border border-white/10 rounded-2xl p-6 text-white text-lg placeholder-white/30 focus:outline-none focus:border-cyan-400/50 focus:ring-1 focus:ring-cyan-400/50 resize-none transition-all"
-                placeholder="Type your brilliant answer here..."
-                value={textAnswer}
-                onChange={(e) => setTextAnswer(e.target.value)}
-                onCopy={(e) => e.preventDefault()}
-                onPaste={(e) => e.preventDefault()}
-                onCut={(e) => e.preventDefault()}
-              />
-            </div>
-
-            {/* Voice Input Section */}
-            <div className="mt-8 bg-black/20 border border-white/5 rounded-2xl p-6">
-              <h4 className="font-medium text-gray-300 mb-5 flex items-center gap-2 text-sm uppercase tracking-wider">
-                <Mic size={16} className="text-cyan-400" /> Voice Recording
-              </h4>
-              <div className="flex items-center gap-6">
-                {!isRecording ? (
-                  <button 
-                    onClick={startRecording}
-                    className="group relative w-16 h-16 rounded-full bg-gradient-to-br from-red-500 to-rose-600 flex items-center justify-center shadow-[0_0_20px_rgba(239,68,68,0.4)] transition-transform hover:scale-110"
-                  >
-                    <div className="absolute inset-0 rounded-full bg-white/20 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                    <Mic size={28} className="text-white" />
-                  </button>
-                ) : (
-                  <div className="relative">
-                    <div className="absolute -inset-2 bg-red-500/30 rounded-full blur-md animate-pulse"></div>
-                    <button 
-                      onClick={stopRecording}
-                      className="relative w-16 h-16 rounded-full bg-red-600 border-2 border-red-400 text-white flex items-center justify-center animate-pulse shadow-[0_0_30px_rgba(239,68,68,0.8)]"
+            {currentQ?.type === 'mcq' ? (
+              <div className="flex-1 flex flex-col justify-center gap-4">
+                {['A', 'B', 'C', 'D'].map((key) => {
+                  const opts = typeof currentQ.options === 'string' ? JSON.parse(currentQ.options) : (currentQ.options || {});
+                  if (!opts[key]) return null;
+                  const isSelected = textAnswer === key;
+                  return (
+                    <button
+                      key={key}
+                      onClick={() => setTextAnswer(key)}
+                      className={`relative overflow-hidden group text-left w-full p-5 rounded-2xl border transition-all duration-300 ${
+                        isSelected 
+                          ? 'bg-cyan-500/20 border-cyan-400 shadow-[0_0_20px_rgba(34,211,238,0.2)]' 
+                          : 'bg-white/5 border-white/10 hover:bg-white/10 hover:border-white/30'
+                      }`}
                     >
-                      <Square size={24} fill="currentColor" />
-                    </button>
-                  </div>
-                )}
-                
-                <div className="flex-1">
-                  {isRecording ? (
-                    <div className="flex items-center gap-3">
-                      <span className="text-red-400 font-bold tracking-widest animate-pulse">RECORDING</span>
-                      <div className="flex gap-1 h-4 items-center">
-                        <div className="w-1 h-2 bg-red-400 animate-bounce" style={{animationDelay: '0ms'}}></div>
-                        <div className="w-1 h-4 bg-red-400 animate-bounce" style={{animationDelay: '100ms'}}></div>
-                        <div className="w-1 h-3 bg-red-400 animate-bounce" style={{animationDelay: '200ms'}}></div>
-                        <div className="w-1 h-5 bg-red-400 animate-bounce" style={{animationDelay: '300ms'}}></div>
-                        <div className="w-1 h-2 bg-red-400 animate-bounce" style={{animationDelay: '400ms'}}></div>
+                      <div className="flex items-center gap-4 relative z-10">
+                        <div className={`w-8 h-8 rounded-full border-2 flex items-center justify-center font-bold text-sm ${
+                          isSelected ? 'border-cyan-400 bg-cyan-400 text-black' : 'border-gray-500 text-gray-400 group-hover:border-white group-hover:text-white'
+                        }`}>
+                          {key}
+                        </div>
+                        <span className={`text-lg ${isSelected ? 'text-white font-medium' : 'text-gray-300'}`}>
+                          {opts[key]}
+                        </span>
                       </div>
-                    </div>
-                  ) : audioBlob ? (
-                    <div className="flex items-center gap-4 bg-white/5 border border-white/10 px-4 py-3 rounded-xl">
-                      <audio controls src={URL.createObjectURL(audioBlob)} className="h-10 w-full max-w-[250px]" />
-                      <button onClick={() => setAudioBlob(null)} className="text-red-400 text-sm font-semibold hover:text-red-300 transition-colors uppercase tracking-wider">Xóa</button>
-                    </div>
-                  ) : (
-                    <p className="text-gray-500 text-sm">Click the microphone to record your answer instead of typing.</p>
-                  )}
-                </div>
+                    </button>
+                  );
+                })}
               </div>
-            </div>
+            ) : (
+              <>
+                {/* Text Input */}
+                <div className="relative group flex-1 flex flex-col">
+                  <div className="absolute -inset-0.5 bg-gradient-to-r from-cyan-400 to-indigo-500 rounded-2xl blur opacity-20 group-hover:opacity-40 transition duration-500"></div>
+                  <textarea 
+                    className="relative flex-1 w-full bg-black/40 border border-white/10 rounded-2xl p-6 text-white text-lg placeholder-white/30 focus:outline-none focus:border-cyan-400/50 focus:ring-1 focus:ring-cyan-400/50 resize-none transition-all"
+                    placeholder="Type your brilliant answer here..."
+                    value={textAnswer}
+                    onChange={(e) => setTextAnswer(e.target.value)}
+                    onCopy={(e) => e.preventDefault()}
+                    onPaste={(e) => e.preventDefault()}
+                    onCut={(e) => e.preventDefault()}
+                  />
+                </div>
+
+                {/* Voice Input Section */}
+                <div className="mt-8 bg-black/20 border border-white/5 rounded-2xl p-6">
+                  <h4 className="font-medium text-gray-300 mb-5 flex items-center gap-2 text-sm uppercase tracking-wider">
+                    <Mic size={16} className="text-cyan-400" /> Voice Recording
+                  </h4>
+                  <div className="flex items-center gap-6">
+                    {!isRecording ? (
+                      <button 
+                        onClick={startRecording}
+                        className="group relative w-16 h-16 rounded-full bg-gradient-to-br from-red-500 to-rose-600 flex items-center justify-center shadow-[0_0_20px_rgba(239,68,68,0.4)] transition-transform hover:scale-110"
+                      >
+                        <div className="absolute inset-0 rounded-full bg-white/20 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                        <Mic size={28} className="text-white" />
+                      </button>
+                    ) : (
+                      <div className="relative">
+                        <div className="absolute -inset-2 bg-red-500/30 rounded-full blur-md animate-pulse"></div>
+                        <button 
+                          onClick={stopRecording}
+                          className="relative w-16 h-16 rounded-full bg-red-600 border-2 border-red-400 text-white flex items-center justify-center animate-pulse shadow-[0_0_30px_rgba(239,68,68,0.8)]"
+                        >
+                          <Square size={24} fill="currentColor" />
+                        </button>
+                      </div>
+                    )}
+                    
+                    <div className="flex-1">
+                      {isRecording ? (
+                        <div className="flex items-center gap-3">
+                          <span className="text-red-400 font-bold tracking-widest animate-pulse">RECORDING</span>
+                          <div className="flex gap-1 h-4 items-center">
+                            <div className="w-1 h-2 bg-red-400 animate-bounce" style={{animationDelay: '0ms'}}></div>
+                            <div className="w-1 h-4 bg-red-400 animate-bounce" style={{animationDelay: '100ms'}}></div>
+                            <div className="w-1 h-3 bg-red-400 animate-bounce" style={{animationDelay: '200ms'}}></div>
+                            <div className="w-1 h-5 bg-red-400 animate-bounce" style={{animationDelay: '300ms'}}></div>
+                            <div className="w-1 h-2 bg-red-400 animate-bounce" style={{animationDelay: '400ms'}}></div>
+                          </div>
+                        </div>
+                      ) : audioBlob ? (
+                        <div className="flex items-center gap-4 bg-white/5 border border-white/10 px-4 py-3 rounded-xl">
+                          <audio controls src={URL.createObjectURL(audioBlob)} className="h-10 w-full max-w-[250px]" />
+                          <button onClick={() => setAudioBlob(null)} className="text-red-400 text-sm font-semibold hover:text-red-300 transition-colors uppercase tracking-wider">Xóa</button>
+                        </div>
+                      ) : (
+                        <p className="text-gray-500 text-sm">Click the microphone to record your answer instead of typing.</p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </>
+            )}
           </div>
 
           {/* Action Footer */}

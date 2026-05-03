@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   BarChart3,
@@ -9,7 +10,10 @@ import {
   Plus,
   Users,
   Bell,
+  Video,
 } from 'lucide-react';
+import { useAuth } from '@features/auth/AuthContext';
+import API_BASE_URL from '@shared/api/baseUrl';
 import EmployerHeader from '@widgets/employer/EmployerHeader';
 
 const sidebarItems = [
@@ -21,10 +25,32 @@ const sidebarItems = [
   { key: 'ai-tests', label: 'Bài Test AI', icon: BrainCircuit, path: '/employer/ai-tests' },
   { key: 'company', label: 'Hồ sơ công ty', icon: Building2, state: { activeTab: 'company' } },
   { key: 'onboarding', label: 'Hồ sơ & Onboarding', icon: ClipboardCheck, state: { activeTab: 'onboarding' } },
+  { key: 'meeting-rooms', label: 'Phòng Meet', icon: Video, path: '/employer/meeting-rooms' },
 ];
+
+function getGreeting() {
+  const hour = new Date().getHours();
+  if (hour < 12) return 'Chào buổi sáng';
+  if (hour < 18) return 'Chào buổi chiều';
+  return 'Chào buổi tối';
+}
 
 export default function EmployerPageLayout({ activeKey, children }) {
   const navigate = useNavigate();
+  const { user, token } = useAuth();
+  const [stats, setStats] = useState(null);
+
+  useEffect(() => {
+    if (!token) return;
+    fetch(`${API_BASE_URL}/api/employer/dashboard`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then((r) => r.ok ? r.json() : null)
+      .then((data) => { if (data?.stats) setStats(data.stats); })
+      .catch(() => {});
+  }, [token]);
+
+  const displayStats = stats || { pendingJobs: 0, newCandidates: 0 };
 
   const handleNavigate = (item) => {
     if (item.path) {
@@ -40,6 +66,24 @@ export default function EmployerPageLayout({ activeKey, children }) {
       <EmployerHeader />
 
       <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Welcome Banner */}
+        <div className="bg-gradient-to-r from-navy-700 via-navy-800 to-navy-900 rounded-2xl p-8 mb-8 text-white relative overflow-hidden shadow-xl">
+          <div className="absolute -top-20 -right-20 w-64 h-64 bg-navy-500/20 rounded-full blur-3xl"></div>
+          <div className="absolute -bottom-20 -left-20 w-48 h-48 bg-success-500/10 rounded-full blur-3xl"></div>
+          <div className="relative z-10">
+            <h1 className="text-2xl sm:text-3xl font-bold mb-2">
+              {getGreeting()}, {user?.company_name || user?.full_name || 'Nhà tuyển dụng'}! 👋
+            </h1>
+            <p className="text-navy-200 text-sm sm:text-base">
+              {displayStats.pendingJobs > 0
+                ? `Hiện có ${displayStats.pendingJobs} tin đang chờ admin chấp nhận hoặc từ chối.`
+                : displayStats.newCandidates > 0
+                  ? `Hôm nay bạn có ${displayStats.newCandidates} ứng viên mới đang chờ xử lý.`
+                  : 'Chào mừng bạn đến với bảng điều khiển nhà tuyển dụng.'}
+            </p>
+          </div>
+        </div>
+
         <div className="flex flex-col lg:flex-row gap-8">
           <aside className="w-full lg:w-64 shrink-0">
             <div className="bg-white rounded-xl shadow-sm p-4 border border-gray-100 sticky top-24">

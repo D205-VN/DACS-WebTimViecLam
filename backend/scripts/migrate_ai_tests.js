@@ -15,9 +15,12 @@ async function migrateAITests() {
         start_time TIMESTAMP,
         end_time TIMESTAMP,
         test_type VARCHAR(50) DEFAULT 'normal', -- normal, video_ai, avatar_live2d
+        creator_id INTEGER,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
     `);
+    // Add creator_id column if table already exists
+    await pool.query(`ALTER TABLE ai_tests ADD COLUMN IF NOT EXISTS creator_id INTEGER`).catch(() => {});
     console.log('Created ai_tests table');
 
     // 2. ai_questions
@@ -31,9 +34,12 @@ async function migrateAITests() {
         expected_answer TEXT,
         keywords TEXT, -- comma separated or JSON string
         video_url TEXT,
+        options JSONB, -- MCQ options: {"A": "...", "B": "...", "C": "...", "D": "..."}
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );
     `);
+    // Add options column if table already exists
+    await pool.query(`ALTER TABLE ai_questions ADD COLUMN IF NOT EXISTS options JSONB`).catch(() => {});
     console.log('Created ai_questions table');
 
     // 3. ai_test_questions

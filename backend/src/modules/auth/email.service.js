@@ -224,6 +224,76 @@ async function sendInterviewReminderEmail(to, {
   await transporter.sendMail(mailOptions);
 }
 
+async function sendInterviewInvitationEmail(to, {
+  candidateName = '',
+  jobTitle = '',
+  companyName = '',
+  interviewAt = '',
+  interviewMode = '',
+  interviewLink = '',
+  companyAddress = '',
+} = {}) {
+  if (!isEmailConfigured()) {
+    throw new Error('SMTP_EMAIL hoặc SMTP_PASSWORD chưa được cấu hình');
+  }
+
+  const isOnline = interviewMode === 'online';
+  const formattedTime = formatInterviewDateTime(interviewAt);
+  const safeCandidateName = escapeHtml(candidateName || 'bạn');
+  const safeJobTitle = escapeHtml(jobTitle || 'ứng tuyển');
+  const safeCompanyName = escapeHtml(companyName || '');
+  const safeFormattedTime = escapeHtml(formattedTime);
+  const safeInterviewLink = escapeHtml(interviewLink || '');
+  const safeCompanyAddress = escapeHtml(companyAddress || 'Vui lòng kiểm tra địa chỉ công ty trong hệ thống.');
+  const subjectJobTitle = String(jobTitle || '').replace(/[\r\n]+/g, ' ').trim();
+
+  const mailOptions = {
+    from: `"AptertekWork.vn" <${process.env.SMTP_EMAIL}>`,
+    to,
+    subject: `[AptertekWork.vn] Thư mời phỏng vấn ${subjectJobTitle ? `- ${subjectJobTitle}` : ''}`,
+    html: `
+      <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 580px; margin: 0 auto; background: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 24px rgba(0,0,0,0.08);">
+        <div style="background: linear-gradient(135deg, #1e3a5f, #0f2744); padding: 28px 24px; text-align: center;">
+          <h1 style="margin: 0; font-size: 24px; font-weight: 800;">
+            <span style="color: #ffffff;">Aptertek</span><span style="color: #34d399;">Work</span><span style="color: #93c5fd;">.vn</span>
+          </h1>
+          <p style="margin: 8px 0 0; color: #bfdbfe; font-size: 14px;">Thư mời phỏng vấn</p>
+        </div>
+
+        <div style="padding: 30px 24px;">
+          <h2 style="margin: 0 0 12px; font-size: 20px; color: #1f2937;">Bạn có lịch phỏng vấn mới</h2>
+          <p style="margin: 0 0 20px; color: #4b5563; font-size: 14px; line-height: 1.7;">
+            Xin chào ${safeCandidateName}, nhà tuyển dụng đã mời bạn phỏng vấn cho vị trí <strong>${safeJobTitle}</strong>${companyName ? ` tại <strong>${safeCompanyName}</strong>` : ''}.
+          </p>
+
+          <div style="border: 1px solid #dbeafe; border-radius: 14px; background: #eff6ff; padding: 18px; margin-bottom: 16px;">
+            <p style="margin: 0 0 8px; color: #1d4ed8; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em;">Thời gian phỏng vấn</p>
+            <p style="margin: 0; color: #111827; font-size: 17px; font-weight: 700;">${safeFormattedTime}</p>
+          </div>
+
+          <div style="border: 1px solid #e5e7eb; border-radius: 14px; background: #f9fafb; padding: 18px;">
+            <p style="margin: 0 0 8px; color: #6b7280; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em;">${isOnline ? 'Phòng phỏng vấn trực tuyến' : 'Địa điểm phỏng vấn'}</p>
+            ${
+              isOnline && interviewLink
+                ? `<a href="${safeInterviewLink}" style="display:inline-block; background:#1e3a5f; color:#ffffff; border-radius:12px; padding:12px 18px; font-size:14px; font-weight:700; text-decoration:none;">Xác nhận & vào phòng phỏng vấn</a>
+                   <p style="margin:12px 0 0; color:#6b7280; font-size:12px; line-height:1.5; word-break:break-word;">${safeInterviewLink}</p>`
+                : `<p style="margin: 0; color: #374151; font-size: 14px; line-height: 1.6;">${safeCompanyAddress}</p>`
+            }
+          </div>
+        </div>
+
+        <div style="background: #f9fafb; padding: 16px 24px; text-align: center; border-top: 1px solid #e5e7eb;">
+          <p style="margin: 0; color: #9ca3af; font-size: 11px;">
+            © 2026 AptertekWork.vn — Email được gửi tự động, vui lòng không trả lời.
+          </p>
+        </div>
+      </div>
+    `,
+  };
+
+  await transporter.sendMail(mailOptions);
+}
+
 function formatJobAlertCriteria(alert = {}) {
   const parts = [];
   if (alert.keyword) parts.push(`Từ khóa: ${alert.keyword}`);
@@ -321,5 +391,6 @@ module.exports = {
   sendOTPEmail,
   sendPasswordResetOTPEmail,
   sendInterviewReminderEmail,
+  sendInterviewInvitationEmail,
   sendJobAlertDigestEmail,
 };

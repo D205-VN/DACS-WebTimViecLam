@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Search,
   Mail,
@@ -95,6 +96,7 @@ function toDateTimeLocal(value) {
 
 export default function ManageCandidatesTab() {
   const { token } = useAuth();
+  const navigate = useNavigate();
   const [candidates, setCandidates] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -232,7 +234,7 @@ export default function ManageCandidatesTab() {
         body: JSON.stringify({
           interview_at: interviewForm.interview_at,
           interview_mode: resolvedMode,
-          interview_link: resolvedMode === 'online' ? interviewForm.interview_link : null,
+          interview_link: null,
         }),
       });
       const data = await res.json();
@@ -242,6 +244,7 @@ export default function ManageCandidatesTab() {
       }
 
       const updated = data.data || {};
+      const meetingRoomId = updated.meeting_room_id || updated.meeting_room?.id || null;
       setCandidateDetail((prev) => (
         prev
           ? {
@@ -250,6 +253,8 @@ export default function ManageCandidatesTab() {
               interview_at: updated.interview_at || prev.interview_at,
               interview_mode: updated.interview_mode || prev.interview_mode,
               interview_link: updated.interview_link || null,
+              meeting_room_id: meetingRoomId || prev.meeting_room_id || null,
+              meeting_room: updated.meeting_room || prev.meeting_room || null,
               company_address: updated.company_address || prev.company_address,
             }
           : prev
@@ -261,6 +266,10 @@ export default function ManageCandidatesTab() {
         interview_link: updated.interview_link || '',
       }));
       await fetchCandidates();
+      if ((updated.interview_mode || resolvedMode) === 'online' && meetingRoomId) {
+        navigate(`/employer/meeting-rooms?room=${meetingRoomId}`);
+        return;
+      }
       setModalSection('interview');
     } catch (err) {
       alert(err.message || 'Lỗi kết nối');
@@ -579,7 +588,7 @@ export default function ManageCandidatesTab() {
 
       {selectedCandidateId ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 px-4 py-6">
-          <div className="w-full max-w-6xl max-h-[92vh] overflow-hidden rounded-[2rem] bg-white shadow-2xl shadow-slate-900/30">
+          <div className="w-full max-w-6xl max-h-[92vh] overflow-hidden rounded-[2rem] bg-white shadow-2xl shadow-slate-900/30 flex flex-col">
             <div className="flex items-start justify-between gap-4 border-b border-slate-200 px-6 py-5">
               <div>
                 <p className="text-xs uppercase tracking-[0.24em] text-slate-400">Hồ sơ ứng viên</p>
@@ -670,7 +679,7 @@ export default function ManageCandidatesTab() {
               </div>
             ) : null}
 
-            <div className="max-h-[calc(92vh-96px)] overflow-y-auto p-6">
+            <div className="flex-1 min-h-0 overflow-y-auto p-6">
               {detailLoading ? (
                 <div className="flex flex-col items-center justify-center py-24 text-slate-500">
                   <Loader2 className="w-9 h-9 animate-spin text-navy-600" />
@@ -956,15 +965,14 @@ export default function ManageCandidatesTab() {
                               <p className="mt-1">
                                 Hình thức: {formatInterviewMode(candidateDetail.interview_mode || resolvedInterviewMode)}
                               </p>
-                              {candidateDetail.interview_mode === 'online' && candidateDetail.interview_link ? (
-                                <a
-                                  href={candidateDetail.interview_link}
-                                  target="_blank"
-                                  rel="noreferrer"
+                              {candidateDetail.interview_mode === 'online' ? (
+                                <button
+                                  type="button"
+                                  onClick={() => navigate(`/employer/meeting-rooms${candidateDetail.meeting_room_id ? `?room=${candidateDetail.meeting_room_id}` : ''}`)}
                                   className="mt-3 inline-flex items-center gap-1.5 font-semibold text-emerald-800 hover:underline"
                                 >
-                                  Mở link video call <ExternalLink className="h-4 w-4" />
-                                </a>
+                                  Xem trong Phòng Meet <Video className="h-4 w-4" />
+                                </button>
                               ) : null}
                             </div>
                           ) : null}

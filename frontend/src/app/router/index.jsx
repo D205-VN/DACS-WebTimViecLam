@@ -3,6 +3,7 @@ import { useAuth } from '@features/auth/AuthContext';
 import MainLayout from '@app/layouts/MainLayout';
 import { AdminRoute, EmployerRoute, ProtectedRoute, SeekerRoute } from '@app/router/guards';
 import EmployerPageLayout from '@widgets/employer/EmployerPageLayout';
+import ManageMeetingRoomsTab from '@widgets/employer/ManageMeetingRoomsTab';
 import HomePage from '@pages/HomePage';
 import CompaniesPage from '@pages/CompaniesPage';
 import BlogPage from '@pages/BlogPage';
@@ -30,6 +31,7 @@ import ScoreManagementPage from '@pages/employer/ScoreManagementPage';
 import CandidateTestUI from '@pages/seeker/CandidateTestUI';
 import VerificationPublicPage from '@pages/VerificationPublicPage';
 import CompanyBrandingPage from '@pages/CompanyBrandingPage';
+import InterviewRoomPage from '@pages/InterviewRoomPage';
 
 function RoleBasedHome() {
   const { user, isAuthenticated, loading } = useAuth();
@@ -66,6 +68,7 @@ const router = createBrowserRouter([
   { path: '/forgot-password', element: <ForgotPasswordPage /> },
   { path: '/jobs/:id', element: <MainLayout><JobDetailPage /></MainLayout> },
   { path: '/verify/:code', element: <MainLayout><VerificationPublicPage /></MainLayout> },
+  { path: '/interview-room/:token', element: <InterviewRoomPage /> },
   { path: '/profile', element: <MainLayout><ProtectedRoute><ProfilePage /></ProtectedRoute></MainLayout> },
   { path: '/change-password', element: <MainLayout><ProtectedRoute><ChangePasswordPage /></ProtectedRoute></MainLayout> },
   { path: '/employer/change-password', element: <MainLayout><EmployerRoute><ChangePasswordPage /></EmployerRoute></MainLayout> },
@@ -93,6 +96,7 @@ const router = createBrowserRouter([
   { path: '/cv-import', element: <Navigate to="/seeker/cv-import" replace /> },
   { path: '/blockchain-verification', element: <Navigate to="/seeker/blockchain-verification" replace /> },
   { path: '/employer/dashboard', element: <EmployerRoute><EmployerDashboard /></EmployerRoute> },
+  { path: '/employer/meeting-rooms', element: <EmployerRoute><EmployerPageLayout activeKey="meeting-rooms"><ManageMeetingRoomsTab /></EmployerPageLayout></EmployerRoute> },
   { path: '/employer/post-job', element: <EmployerRoute><PostJob /></EmployerRoute> },
   { path: '/employer/ai-tests', element: <EmployerRoute><EmployerPageLayout activeKey="ai-tests"><AITestManagementPage /></EmployerPageLayout></EmployerRoute> },
   { path: '/employer/ai-tests/:id/edit', element: <EmployerRoute><EmployerPageLayout activeKey="ai-tests"><AITestEditPage /></EmployerPageLayout></EmployerRoute> },

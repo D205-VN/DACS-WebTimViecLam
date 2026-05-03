@@ -14,6 +14,8 @@ import {
   Building2,
   MessageCircle,
   ShieldCheck,
+  BrainCircuit,
+  CheckCircle2,
 } from 'lucide-react';
 import { useAuth } from '@features/auth/AuthContext';
 import ConversationModal from '@features/messages/ConversationModal';
@@ -47,6 +49,17 @@ function formatDateTime(value) {
     month: '2-digit',
     year: 'numeric',
   });
+}
+
+function formatAITestType(type) {
+  if (type === 'video_ai') return 'Video AI + tự luận';
+  if (type === 'avatar_live2d') return 'Avatar Live2D + tự luận';
+  return 'Trắc nghiệm';
+}
+
+function formatSubmissionScore(value) {
+  const score = Number(value);
+  return Number.isFinite(score) ? `${score.toFixed(1)} điểm` : 'Đã nộp';
 }
 
 export default function AppliedJobsPage() {
@@ -142,6 +155,14 @@ export default function AppliedJobsPage() {
             );
             const canChooseMode = hasInterviewFlow && !job.interview_mode;
             const hasSchedule = Boolean(job.interview_at);
+            const aiTest = job.ai_test;
+            const testSubmission = aiTest?.submission;
+            const testCompleted = Boolean(
+              testSubmission?.completed_at ||
+              testSubmission?.status === 'completed' ||
+              testSubmission?.status === 'graded'
+            );
+            const testInProgress = testSubmission?.status === 'in_progress' && !testCompleted;
 
             return (
               <div key={job.application_id || job.id} className="bg-white rounded-2xl border border-gray-100 p-5 hover:shadow-lg hover:border-navy-100 transition-all group">
@@ -182,6 +203,51 @@ export default function AppliedJobsPage() {
                           Hoàn thiện hồ sơ nhận việc
                         </Link>
                       )}
+
+                    {aiTest ? (
+                      <div className="mt-4 rounded-[1.5rem] border border-violet-100 bg-violet-50/80 p-4">
+                        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                          <div className="flex items-start gap-3">
+                            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-white text-violet-700 shadow-sm">
+                              <BrainCircuit className="h-5 w-5" />
+                            </div>
+                            <div>
+                              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-violet-500">Bài test AI</p>
+                              <h4 className="mt-1 text-base font-bold text-violet-950">{aiTest.title}</h4>
+                              <div className="mt-2 flex flex-wrap gap-2 text-xs font-semibold text-violet-700">
+                                <span className="rounded-full bg-white px-2.5 py-1 border border-violet-100">
+                                  {formatAITestType(aiTest.test_type)}
+                                </span>
+                                <span className="rounded-full bg-white px-2.5 py-1 border border-violet-100">
+                                  {aiTest.duration || 60} phút
+                                </span>
+                                {testCompleted ? (
+                                  <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-1 text-emerald-700 border border-emerald-100">
+                                    <CheckCircle2 className="h-3.5 w-3.5" />
+                                    {formatSubmissionScore(testSubmission?.total_score)}
+                                  </span>
+                                ) : testInProgress ? (
+                                  <span className="rounded-full bg-amber-50 px-2.5 py-1 text-amber-700 border border-amber-100">
+                                    Đang làm
+                                  </span>
+                                ) : null}
+                              </div>
+                              {aiTest.description ? (
+                                <p className="mt-2 line-clamp-2 text-sm text-violet-700">{aiTest.description}</p>
+                              ) : null}
+                            </div>
+                          </div>
+
+                          <Link
+                            to={`/test/${aiTest.id}`}
+                            className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-violet-700 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-violet-800"
+                          >
+                            <BrainCircuit className="h-4 w-4" />
+                            {testCompleted ? 'Làm lại bài test' : 'Làm bài test'}
+                          </Link>
+                        </div>
+                      </div>
+                    ) : null}
 
                     {hasInterviewFlow ? (
                       <div className="mt-4 rounded-[1.5rem] border border-blue-100 bg-blue-50/70 p-4">
@@ -281,7 +347,7 @@ export default function AppliedJobsPage() {
                                     rel="noreferrer"
                                     className="mt-4 inline-flex items-center gap-2 rounded-xl bg-navy-700 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-navy-800"
                                   >
-                                    Video call <ExternalLink className="h-4 w-4" />
+                                    Xác nhận & vào phòng <ExternalLink className="h-4 w-4" />
                                   </a>
                                 ) : (
                                   <button

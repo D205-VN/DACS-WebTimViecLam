@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { LayoutDashboard, FileText, Users, Building2, Plus, ClipboardCheck, BrainCircuit } from 'lucide-react';
+import { LayoutDashboard, FileText, Users, Building2, Plus, ClipboardCheck, BrainCircuit, Bell, BarChart3, Video } from 'lucide-react';
 import { useAuth } from '@features/auth/AuthContext';
 import API_BASE_URL from '@shared/api/baseUrl';
 import EmployerHeader from '@widgets/employer/EmployerHeader';
@@ -10,7 +10,6 @@ import CompanyProfileTab from '@widgets/employer/CompanyProfileTab';
 import NotificationsTab from '@widgets/employer/NotificationsTab';
 import AnalyticsTab from '@widgets/employer/AnalyticsTab';
 import DashboardTab from '@widgets/employer/DashboardTab';
-import { Bell, BarChart3, Video } from 'lucide-react';
 import OnboardingTab from '@widgets/employer/OnboardingTab';
 import ManageMeetingRoomsTab from '@widgets/employer/ManageMeetingRoomsTab';
 export default function EmployerDashboard() {
@@ -77,7 +76,7 @@ export default function EmployerDashboard() {
     { key: 'ai-tests', label: 'Bài Test AI', icon: BrainCircuit, path: '/employer/ai-tests' },
     { key: 'company', label: 'Hồ sơ công ty', icon: Building2 },
     { key: 'onboarding', label: 'Hồ sơ & Onboarding', icon: ClipboardCheck },
-    { key: 'meeting-rooms', label: 'Phòng Meeting', icon: Video },
+    { key: 'meeting-rooms', label: 'Phòng Meet', icon: Video, path: '/employer/meeting-rooms' },
   ];
 
   // Greeting based on time
