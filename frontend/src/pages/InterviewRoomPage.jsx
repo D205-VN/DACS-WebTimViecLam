@@ -42,7 +42,6 @@ export default function InterviewRoomPage() {
   const { token } = useParams();
   const containerRef = useRef(null);
   const apiRef = useRef(null);
-  const hostReadyMarkedRef = useRef(false);
   const [loading, setLoading] = useState(true);
   const [joining, setJoining] = useState(false);
   const [room, setRoom] = useState(null);
@@ -55,35 +54,77 @@ export default function InterviewRoomPage() {
   useEffect(() => {
     let isMounted = true;
 
-    fetch(`${API_BASE_URL}/api/meeting-rooms/access/${token}`)
-      .then((res) => res.json().then((data) => ({ ok: res.ok, data })))
-      .then(({ ok, data }) => {
-        if (!isMounted) return;
-        if (!ok) throw new Error(data.error || 'Không thể tải phòng phỏng vấn');
-        setRoom(data.data.room);
-        setRole(data.data.role);
-        setWaiting(
-          data.data.role === 'candidate'
-            && Boolean(data.data.room.confirmed_at)
-            && !data.data.room.can_join
-            && data.data.room.queue_status !== 'completed'
-        );
-        if (data.data.role === 'host' && data.data.room.host_joined_at) {
-          hostReadyMarkedRef.current = true;
-        }
-        setRecordingStatus(data.data.room.recording_status || 'idle');
+    const initializeRoom = async () => {
+      try {
+        // Step 1: Fetch room data
+        const roomRes = await fetch(`${API_BASE_URL}/api/meeting-rooms/access/${token}`);
+        const roomData = await roomRes.json();
         
-        // Auto-join for host
-        if (data.data.role === 'host') {
-          setJoining(true);
+        if (!isMounted) return;
+        if (!roomRes.ok) throw new Error(roomData.error || 'Không thể tải phòng phỏng vấn');
+        
+        setRoom(roomData.data.room);
+        setRole(roomData.data.role);
+        setRecordingStatus(roomData.data.room.recording_status || 'idle');
+        
+        // Step 2: Handle host flow
+        if (roomData.data.role === 'host') {
+          try {
+            // Mark host joined and admit first candidate
+            const hostRes = await fetch(`${API_BASE_URL}/api/meeting-rooms/access/${token}/host-start`, {
+              method: 'PATCH',
+            });
+            const hostData = await hostRes.json();
+            if (hostRes.ok && isMounted) {
+              setRoom((prev) => ({
+                ...prev,
+                host_joined_at: hostData.data?.host_joined_at || prev?.host_joined_at,
+                queue_status: hostData.data?.room_status || prev?.queue_status,
+                current_candidate: hostData.data?.current_candidate || prev?.current_candidate,
+                candidate_name: hostData.data?.current_candidate?.candidate_name || prev?.candidate_name,
+                interview_at: hostData.data?.current_candidate?.interview_at || prev?.interview_at,
+              }));
+            }
+          } catch (err) {
+            console.error('Mark host joined error:', err);
+          }
+          // Auto join jitsi for host
+          if (isMounted) setJoining(true);
+          return;
         }
-      })
-      .catch((err) => {
+        
+        // Step 3: Handle candidate flow
+        if (roomData.data.role === 'candidate') {
+          try {
+            // Auto-confirm candidate
+            const confirmRes = await fetch(`${API_BASE_URL}/api/meeting-rooms/access/${token}/confirm`, {
+              method: 'PATCH',
+            });
+            const confirmData = await confirmRes.json();
+            if (confirmRes.ok && isMounted) {
+              setRoom((prev) => ({ ...prev, ...confirmData.data }));
+              setWaiting(
+                confirmData.data.queue_status !== 'in_interview'
+                && confirmData.data.queue_status !== 'completed'
+              );
+              // If can join immediately, auto join
+              if (confirmData.data.can_join) {
+                setJoining(true);
+              }
+            }
+          } catch (err) {
+            console.error('Auto-confirm candidate error:', err);
+            setError('Không thể xác nhận tham gia phỏng vấn');
+          }
+        }
+      } catch (err) {
         if (isMounted) setError(err.message || 'Không thể tải phòng phỏng vấn');
-      })
-      .finally(() => {
+      } finally {
         if (isMounted) setLoading(false);
-      });
+      }
+    };
+
+    initializeRoom();
 
     return () => {
       isMounted = false;
@@ -131,7 +172,7 @@ export default function InterviewRoomPage() {
         }
 
         apiRef.current.addListener('videoConferenceJoined', () => {
-          if (role === 'host') markHostReady();
+          // Host already marked as ready on page load
         });
       })
       .catch(() => setError('Không thể tải Jitsi SDK'));
@@ -158,8 +199,11 @@ export default function InterviewRoomPage() {
             && !data.data.room.can_join
             && data.data.room.queue_status !== 'completed';
           setWaiting(shouldWait);
-          if (data.data.room.can_join) {
+          
+          // Auto-join when candidate is admitted
+          if (data.data.room.can_join && !joining) {
             setWaiting(false);
+            setJoining(true);
           }
         }
       } catch (err) {
@@ -170,60 +214,8 @@ export default function InterviewRoomPage() {
     return () => window.clearInterval(intervalId);
   }, [joining, role, token, waiting]);
 
-  const handleJoin = async () => {
-    if (role === 'candidate') {
-      if (!room?.confirmed_at) {
-        const res = await fetch(`${API_BASE_URL}/api/meeting-rooms/access/${token}/confirm`, {
-          method: 'PATCH',
-        });
-        const data = await res.json();
-        if (!res.ok) {
-          setError(data.error || 'Không thể xác nhận tham gia phỏng vấn');
-          return;
-        }
-        setRoom((prev) => ({ ...prev, ...data.data }));
-        if (!data.data.can_join) {
-          setWaiting(true);
-          return;
-        }
-      }
-
-      if (!room?.can_join && room?.confirmed_at) {
-        setWaiting(true);
-        return;
-      }
-    }
-
+  const handleJoin = () => {
     setJoining(true);
-  };
-
-  const markHostReady = async () => {
-    if (role !== 'host' || hostReadyMarkedRef.current) return;
-    hostReadyMarkedRef.current = true;
-
-    try {
-      const res = await fetch(`${API_BASE_URL}/api/meeting-rooms/access/${token}/host-start`, {
-        method: 'PATCH',
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        hostReadyMarkedRef.current = false;
-        setError(data.error || 'Không thể mở phòng HR');
-        return;
-      }
-
-      setRoom((prev) => ({
-        ...prev,
-        host_joined_at: data.data?.host_joined_at || prev?.host_joined_at,
-        queue_status: data.data?.room_status || prev?.queue_status,
-        current_candidate: data.data?.current_candidate || prev?.current_candidate,
-        candidate_name: data.data?.current_candidate?.candidate_name || prev?.candidate_name,
-        interview_at: data.data?.current_candidate?.interview_at || prev?.interview_at,
-      }));
-    } catch (err) {
-      hostReadyMarkedRef.current = false;
-      setError('Không thể mở phòng HR');
-    }
   };
 
   const handleRecording = async (nextStatus) => {
@@ -379,16 +371,19 @@ export default function InterviewRoomPage() {
                 </h2>
                 <p className="mt-3 text-sm leading-6 text-slate-300">
                   {waiting
-                    ? `Bạn đang xếp hàng chờ. Vị trí hiện tại: ${room.queue_position || 'đang cập nhật'}. Khi tới lượt, nút vào phòng sẽ mở.`
+                    ? `Bạn đang xếp hàng chờ. Vị trí hiện tại: ${room.queue_position || 'đang cập nhật'}. Nhà tuyển dụng sẽ gọi bạn vào lượt.`
                     : nextCandidate
                       ? `${nextCandidate.candidate_name || 'Ứng viên tiếp theo'} đã được chuyển vào lượt phỏng vấn.`
                       : role === 'candidate'
-                    ? 'Xác nhận tham gia để vào phòng đúng lịch.'
-                    : 'Vào phòng với quyền HR.'}
+                    ? 'Bạn đã được xác nhận. Chờ nhà tuyển dụng gọi vào.'
+                    : 'Bạn đã vào phòng HR. Bắt đầu phỏng vấn khi sẵn sàng.'}
                 </p>
                 {waiting ? (
                   <div className="mt-6 rounded-2xl border border-cyan-300/20 bg-cyan-300/10 px-4 py-3 text-sm text-cyan-100">
-                    Trang sẽ tự cập nhật mỗi vài giây. Bạn có thể giữ tab này mở.
+                    <div className="flex items-center gap-2">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      <span>Trang sẽ tự cập nhật mỗi vài giây. Bạn có thể giữ tab này mở.</span>
+                    </div>
                   </div>
                 ) : nextCandidate ? (
                   <button
@@ -402,21 +397,16 @@ export default function InterviewRoomPage() {
                     <UserCheck className="h-4 w-4" />
                     Vào lượt tiếp theo
                   </button>
-                ) : (
+                ) : role === 'host' ? (
                   <button
                     type="button"
                     onClick={handleJoin}
-                    disabled={role === 'candidate' && room.queue_status === 'completed'}
-                    className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-cyan-400 px-5 py-3 text-sm font-bold text-slate-950 transition hover:bg-cyan-300 disabled:cursor-not-allowed disabled:opacity-50"
+                    className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-cyan-400 px-5 py-3 text-sm font-bold text-slate-950 transition hover:bg-cyan-300"
                   >
-                    {role === 'candidate' ? <Users className="h-4 w-4" /> : <Video className="h-4 w-4" />}
-                    {role === 'candidate'
-                      ? room.can_join
-                        ? 'Vào phòng phỏng vấn'
-                        : 'Xác nhận vào phòng chờ'
-                      : 'Vào phòng HR'}
+                    <Video className="h-4 w-4" />
+                    Vào phòng HR
                   </button>
-                )}
+                ) : null}
               </div>
             </div>
           ) : (
