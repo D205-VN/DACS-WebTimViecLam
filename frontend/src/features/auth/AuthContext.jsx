@@ -63,7 +63,7 @@ export function AuthProvider({ children }) {
       });
   }, [token]);
 
-  // Periodic check for account suspension (every 60 seconds)
+  // Periodic check for account suspension while a session is already open
   useEffect(() => {
     if (!token || !user) return;
 
@@ -88,8 +88,21 @@ export function AuthProvider({ children }) {
       }
     };
 
-    const interval = setInterval(checkSuspension, 60 * 1000);
-    return () => clearInterval(interval);
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        checkSuspension();
+      }
+    };
+
+    const interval = setInterval(checkSuspension, 15 * 1000);
+    window.addEventListener('focus', checkSuspension);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('focus', checkSuspension);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
   }, [token, user]);
 
   const login = useCallback((newToken, userData) => {

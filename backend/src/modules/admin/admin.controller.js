@@ -1,6 +1,7 @@
 const pool = require('../../infrastructure/database/postgres');
 const { createNotification } = require('../notifications/notification.service');
 const { ensureAdminJobSchema } = require('./admin.model');
+const { ensureUserAccountStatusSchema } = require('../auth/auth.model');
 
 async function ensureAdminSchemaForRequest(req, res, next) {
   try {
@@ -39,10 +40,7 @@ exports.getStats = async (req, res) => {
 
 exports.getUsers = async (req, res) => {
   try {
-    // Ensure is_suspended column exists
-    await pool.query(`
-      ALTER TABLE users ADD COLUMN IF NOT EXISTS is_suspended BOOLEAN DEFAULT false
-    `).catch(() => {});
+    await ensureUserAccountStatusSchema();
 
     const result = await pool.query(
       `SELECT
@@ -169,9 +167,7 @@ exports.toggleUserSuspend = async (req, res) => {
   }
 
   try {
-    await pool.query(`
-      ALTER TABLE users ADD COLUMN IF NOT EXISTS is_suspended BOOLEAN DEFAULT false
-    `).catch(() => {});
+    await ensureUserAccountStatusSchema();
 
     if (parseInt(id) === req.user.id) {
       return res.status(400).json({ error: 'Không thể tạm dừng tài khoản của chính mình' });

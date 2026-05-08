@@ -2,6 +2,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const pool = require('../../infrastructure/database/postgres');
 const { sendOTPEmail, sendPasswordResetOTPEmail } = require('./email.service');
+const { ensureUserAccountStatusSchema } = require('./auth.model');
 const { OAuth2Client } = require('google-auth-library');
 require('dotenv').config();
 
@@ -85,6 +86,8 @@ async function verifyOTP(req, res) {
   const { email, otp } = req.body;
 
   try {
+    await ensureUserAccountStatusSchema();
+
     const result = await pool.query(
       'SELECT * FROM email_otps WHERE email = $1 AND otp = $2 AND expires_at > NOW() ORDER BY created_at DESC LIMIT 1',
       [email, otp]
@@ -101,9 +104,14 @@ async function verifyOTP(req, res) {
 
     // Get user and return token
     const user = await pool.query(`
-      SELECT u.id, u.full_name, u.email, u.avatar_url, r.code as role_code, r.name as role_name 
+      SELECT u.id, u.full_name, u.email, u.avatar_url, COALESCE(u.is_suspended, false) AS is_suspended, r.code as role_code, r.name as role_name
       FROM users u JOIN roles r ON u.role_id = r.id 
       WHERE email = $1`, [email]);
+
+    if (user.rows[0].is_suspended) {
+      return res.status(403).json({ error: 'Tài khoản của bạn đã bị tạm dừng bởi quản trị viên.', suspended: true });
+    }
+
     const token = createToken(user.rows[0]);
 
     res.json({
@@ -158,6 +166,8 @@ async function login(req, res) {
   const { email, password } = req.body;
 
   try {
+    await ensureUserAccountStatusSchema();
+
     const result = await pool.query(`
       SELECT u.*, r.code as role_code, r.name as role_name 
       FROM users u JOIN roles r ON u.role_id = r.id 
@@ -214,6 +224,8 @@ async function googleAuth(req, res) {
   const { credential } = req.body;
 
   try {
+    await ensureUserAccountStatusSchema();
+
     const ticket = await googleClient.verifyIdToken({
       idToken: credential,
       audience: process.env.GOOGLE_CLIENT_ID,
@@ -235,7 +247,7 @@ async function googleAuth(req, res) {
         [name, email, googleId, picture]
       );
       user = await pool.query(`
-        SELECT u.id, u.full_name, u.email, u.avatar_url, r.code as role_code, r.name as role_name 
+        SELECT u.id, u.full_name, u.email, u.avatar_url, COALESCE(u.is_suspended, false) AS is_suspended, r.code as role_code, r.name as role_name
         FROM users u JOIN roles r ON u.role_id = r.id 
         WHERE email = $1`, [email]);
     } else {
@@ -247,17 +259,17 @@ async function googleAuth(req, res) {
         );
       }
       user = await pool.query(`
-        SELECT u.id, u.full_name, u.email, u.avatar_url, r.code as role_code, r.name as role_name 
+        SELECT u.id, u.full_name, u.email, u.avatar_url, COALESCE(u.is_suspended, false) AS is_suspended, r.code as role_code, r.name as role_name
         FROM users u JOIN roles r ON u.role_id = r.id 
         WHERE email = $1`, [email]);
     }
-
-    const token = createToken(user.rows[0]);
 
     // Check if user is suspended
     if (user.rows[0].is_suspended) {
       return res.status(403).json({ error: 'Tài khoản của bạn đã bị tạm dừng bởi quản trị viên. Vui lòng liên hệ hỗ trợ để biết thêm chi tiết.', suspended: true });
     }
+
+    const token = createToken(user.rows[0]);
 
     res.json({
       message: 'Đăng nhập Google thành công!',
@@ -278,7 +290,7 @@ async function getMe(req, res) {
   try {
     const result = await pool.query(
       `SELECT u.id, u.full_name, u.email, u.phone, u.avatar_url, u.company_name, u.company_email, 
-              u.company_city, u.company_ward, u.created_at, r.code as role_code, r.name as role_name 
+              u.company_city, u.company_ward, u.created_at, COALESCE(u.is_suspended, false) AS is_suspended, r.code as role_code, r.name as role_name
        FROM users u JOIN roles r ON u.role_id = r.id 
        WHERE u.id = $1`,
       [req.user.id]
