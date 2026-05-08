@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Plus, Save, Video, Trash2, Sparkles, Loader2, Brain, X } from 'lucide-react';
-import EmployerHeader from '@widgets/employer/EmployerHeader';
+import { ArrowLeft, Plus, Save, Video, Trash2, Sparkles, Loader2, X, CheckSquare, Bot } from 'lucide-react';
 import { aiTestApi } from '@shared/api/aiTestApi';
 import { useAuth } from '@features/auth/AuthContext';
 import API_BASE_URL from '@shared/api/baseUrl';
@@ -156,28 +155,56 @@ const AITestEditPage = () => {
     }
   };
 
-  const formatTestType = (t) => t === 'normal' ? 'Trắc nghiệm' : t === 'video_ai' ? 'Video AI + Tự luận' : ['avatar_live3d', 'avatar_live2d'].includes(t) ? 'Avatar Live3D' : t;
+  const formatTestType = (t) => t === 'normal' ? 'Trắc nghiệm (MCQ)' : t === 'video_ai' ? 'Video AI + Tự luận' : ['avatar_live3d', 'avatar_live2d'].includes(t) ? 'Avatar Live3D + Tự luận' : t;
   const backToTests = () => navigate(getEmployerDashboardPath('ai-tests'), { state: getEmployerDashboardState('ai-tests') });
 
-  if (!test) return <div className="aw-page"><EmployerHeader /><div className="flex items-center justify-center py-20"><Loader2 className="w-8 h-8 animate-spin text-indigo-600" /></div></div>;
+  const getTheme = (type) => {
+    if (type === 'video_ai') return {
+      accent: 'from-blue-500 via-cyan-500 to-teal-500',
+      iconBg: 'from-blue-500 to-cyan-600',
+      icon: Video,
+      desc: 'Ứng viên xem video và trả lời câu hỏi tự luận bằng giọng nói hoặc văn bản',
+      listAccent: 'from-blue-500 to-cyan-500',
+      configAccent: 'from-cyan-500 to-teal-500',
+    };
+    if (['avatar_live3d', 'avatar_live2d'].includes(type)) return {
+      accent: 'from-purple-500 via-pink-500 to-rose-500',
+      iconBg: 'from-purple-500 to-pink-600',
+      icon: Bot,
+      desc: 'Avatar AI 3D phỏng vấn trực tiếp ứng viên với giọng nói tự nhiên',
+      listAccent: 'from-purple-500 to-pink-500',
+      configAccent: 'from-pink-500 to-rose-500',
+    };
+    return {
+      accent: 'from-emerald-500 via-teal-500 to-cyan-500',
+      iconBg: 'from-emerald-500 to-teal-600',
+      icon: CheckSquare,
+      desc: 'Bài trắc nghiệm chấm điểm tự động — Đúng/Sai',
+      listAccent: 'from-emerald-500 to-teal-500',
+      configAccent: 'from-teal-500 to-cyan-500',
+    };
+  };
+
+  if (!test) return <div className="flex items-center justify-center py-20"><Loader2 className="w-8 h-8 animate-spin text-indigo-600" /></div>;
+
+  const theme = getTheme(test.test_type);
+  const ThemeIcon = theme.icon;
 
   return (
-    <div className="aw-page">
-      <EmployerHeader />
-      <div className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8">
+    <div className="flex flex-col gap-6">
       <div className="relative overflow-hidden rounded-2xl border border-indigo-100/60 bg-white/90 p-6 shadow-sm backdrop-blur-sm">
-        <div className="absolute left-0 right-0 top-0 h-1 rounded-t-2xl bg-gradient-to-r from-indigo-500 via-violet-500 to-purple-500"></div>
+        <div className={`absolute left-0 right-0 top-0 h-1.5 rounded-t-2xl bg-gradient-to-r ${theme.accent}`}></div>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center shadow-lg shadow-indigo-200">
-              <Brain className="w-6 h-6 text-white" />
+            <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${theme.iconBg} flex items-center justify-center shadow-lg`}>
+              <ThemeIcon className="w-6 h-6 text-white" />
             </div>
             <div>
               <button onClick={backToTests} className="text-xs text-gray-400 hover:text-indigo-600 mb-1 flex items-center gap-1 transition-colors">
                 <ArrowLeft size={12} /> Quay lại danh sách
               </button>
               <h1 className="text-xl font-extrabold bg-gradient-to-r from-indigo-700 to-violet-700 bg-clip-text text-transparent">Sửa bài test: {test.title}</h1>
-              <p className="text-gray-500 text-xs mt-0.5">Loại: {formatTestType(test.test_type)} | Thời lượng: {test.duration} phút</p>
+              <p className="text-gray-500 text-xs mt-0.5">{formatTestType(test.test_type)} &middot; {test.duration} phút &middot; {theme.desc}</p>
             </div>
           </div>
         </div>
@@ -186,7 +213,7 @@ const AITestEditPage = () => {
       <div className="flex flex-col gap-6 xl:flex-row">
         {/* Left Side: Questions */}
         <div className="relative flex-1 overflow-hidden rounded-2xl border border-indigo-100/60 bg-white/90 p-6 shadow-sm backdrop-blur-sm">
-          <div className="absolute left-0 right-0 top-0 h-1 rounded-t-2xl bg-gradient-to-r from-indigo-500 to-violet-500"></div>
+          <div className={`absolute left-0 right-0 top-0 h-1 rounded-t-2xl bg-gradient-to-r ${theme.listAccent}`}></div>
           <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <h2 className="text-lg font-bold text-gray-800">Danh sách câu hỏi ({questions.length})</h2>
             <div className="flex flex-col gap-2 sm:flex-row">
@@ -262,7 +289,7 @@ const AITestEditPage = () => {
 
         {/* Right Side: Scoring Config */}
         <div className="relative h-fit w-full overflow-hidden rounded-2xl border border-indigo-100/60 bg-white/90 p-6 shadow-sm backdrop-blur-sm xl:sticky xl:top-24 xl:w-80">
-          <div className="absolute left-0 right-0 top-0 h-1 rounded-t-2xl bg-gradient-to-r from-violet-500 to-purple-500"></div>
+          <div className={`absolute left-0 right-0 top-0 h-1 rounded-t-2xl bg-gradient-to-r ${theme.configAccent}`}></div>
           <h2 className="text-lg font-bold text-gray-800 mb-6 flex items-center gap-2">
             <Save className="w-4 h-4 text-violet-500" /> Cấu hình điểm số
           </h2>
@@ -457,7 +484,6 @@ const AITestEditPage = () => {
           </div>
         </div>
       )}
-    </div>
     </div>
   );
 };

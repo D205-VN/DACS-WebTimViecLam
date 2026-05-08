@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, CheckCircle, AlertTriangle, ClipboardList } from 'lucide-react';
-import EmployerHeader from '@widgets/employer/EmployerHeader';
 import { aiTestApi } from '@shared/api/aiTestApi';
 import { getEmployerDashboardPath, getEmployerDashboardState } from '@shared/utils/employerDashboardRoutes';
 
@@ -53,9 +52,7 @@ const ScoreManagementPage = () => {
   };
 
   return (
-    <div className="aw-page">
-      <EmployerHeader />
-      <div className="mx-auto flex max-w-7xl flex-col gap-6 px-4 py-6 sm:px-6 lg:flex-row lg:px-8">
+    <div className="flex flex-col gap-6 lg:flex-row">
       {/* Sidebar */}
       <div className="relative w-full overflow-hidden rounded-2xl border border-indigo-100/60 bg-white/90 p-5 shadow-sm backdrop-blur-sm lg:w-1/3">
         <div className="absolute left-0 right-0 top-0 h-1 rounded-t-2xl bg-gradient-to-r from-indigo-500 to-violet-500"></div>
@@ -209,7 +206,6 @@ const ScoreManagementPage = () => {
           </div>
         )}
       </div>
-    </div>
     </div>
   );
 };

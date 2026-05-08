@@ -30,10 +30,12 @@ import { getNowDateTimeLocalValue } from '@shared/utils/jobQuality';
 
 function getStatusMeta(status) {
   switch (status) {
+    case 'approved':
+      return { label: 'Đã duyệt hồ sơ', className: 'bg-emerald-100 text-emerald-700' };
     case 'interview':
       return { label: 'Phỏng vấn', className: 'bg-blue-100 text-blue-700' };
     case 'hired':
-      return { label: 'Duyệt hồ sơ', className: 'bg-emerald-100 text-emerald-700' };
+      return { label: 'Trúng tuyển', className: 'bg-violet-100 text-violet-700' };
     case 'rejected':
       return { label: 'Từ chối', className: 'bg-red-100 text-red-700' };
     default:
@@ -208,7 +210,15 @@ export default function ManageCandidatesTab() {
       await fetchCandidates();
 
       if (selectedCandidateId === applicationId) {
-        setCandidateDetail((prev) => (prev ? { ...prev, status: data.data?.status || newStatus } : prev));
+        const nextStatus = data.data?.status || newStatus;
+        setCandidateDetail((prev) => (
+          prev
+            ? { ...prev, status: nextStatus, updated_at: data.data?.updated_at || prev.updated_at }
+            : prev
+        ));
+        if (nextStatus === 'approved') setModalSection('approved');
+        if (nextStatus === 'hired') setModalSection('hired');
+        if (nextStatus === 'rejected') setModalSection('rejected');
       }
     } catch (err) {
       alert(err.message || 'Lỗi kết nối');
@@ -284,8 +294,9 @@ export default function ManageCandidatesTab() {
   const stages = [
     { id: 'all', label: 'Tất cả', count: candidates.length },
     { id: 'pending', label: 'Chờ xử lý', count: candidates.filter((c) => c.status === 'pending' || !c.status).length },
+    { id: 'approved', label: 'Đã duyệt hồ sơ', count: candidates.filter((c) => c.status === 'approved').length },
     { id: 'interview', label: 'Phỏng vấn', count: candidates.filter((c) => c.status === 'interview').length },
-    { id: 'hired', label: 'Duyệt hồ sơ', count: candidates.filter((c) => c.status === 'hired').length },
+    { id: 'hired', label: 'Trúng tuyển', count: candidates.filter((c) => c.status === 'hired').length },
     { id: 'rejected', label: 'Từ chối', count: candidates.filter((c) => c.status === 'rejected').length },
   ];
 
@@ -370,7 +381,7 @@ export default function ManageCandidatesTab() {
         ) : null}
 
         {viewMode === 'kanban' ? (
-          <div className="grid gap-4 xl:grid-cols-4">
+          <div className="grid gap-4 xl:grid-cols-5">
             {kanbanStages.map((stage) => {
               const stageCandidates = candidates.filter((candidate) => (candidate.status || 'pending') === stage.id);
               return (
@@ -438,13 +449,22 @@ export default function ManageCandidatesTab() {
                             >
                               <MessageCircle className="h-3.5 w-3.5" /> Chat
                             </button>
-                            {stage.id === 'interview' || stage.id === 'hired' ? (
+                            {stage.id === 'approved' || stage.id === 'interview' ? (
                               <button
                                 type="button"
                                 onClick={() => openCandidateModal(candidate.id, 'interview')}
                                 className="inline-flex w-full items-center justify-center gap-1.5 rounded-lg bg-blue-50 px-3 py-2 text-xs font-semibold text-blue-700 transition hover:bg-blue-100"
                               >
                                 <Video className="h-3.5 w-3.5" /> Lịch phỏng vấn
+                              </button>
+                            ) : null}
+                            {stage.id === 'interview' ? (
+                              <button
+                                type="button"
+                                onClick={() => handleStatusUpdate(candidate.id, 'hired')}
+                                className="inline-flex w-full items-center justify-center gap-1.5 rounded-lg bg-violet-50 px-3 py-2 text-xs font-semibold text-violet-700 transition hover:bg-violet-100"
+                              >
+                                <CheckCircle className="h-3.5 w-3.5" /> Trúng tuyển
                               </button>
                             ) : null}
                           </div>
@@ -522,57 +542,104 @@ export default function ManageCandidatesTab() {
                       Ứng tuyển: {new Date(candidate.created_at).toLocaleDateString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' })}
                     </div>
 
-                    <div className="flex flex-wrap gap-2 w-full sm:w-auto">
+                    <div className="flex flex-col gap-1.5 w-full sm:w-auto">
                       {actionLoading === candidate.id ? (
-                        <div className="px-8 py-2">
+                        <div className="px-8 py-2 flex justify-center">
                           <Loader2 className="w-5 h-5 animate-spin text-indigo-600" />
                         </div>
                       ) : (
                         <>
-                          <button
-                            type="button"
-                            onClick={() => openCandidateModal(candidate.id, 'profile')}
-                            className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-4 py-2 bg-white border border-indigo-100/60 text-gray-700 rounded-lg text-sm font-semibold hover:bg-indigo-50/30 transition-colors"
-                          >
-                            <Eye className="w-4 h-4" /> Xem hồ sơ
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setChatCandidate(candidate)}
-                            className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-4 py-2 bg-cyan-50 text-cyan-700 rounded-lg text-sm font-semibold hover:bg-cyan-100 transition-colors"
-                          >
-                            <MessageCircle className="w-4 h-4" /> Nhắn tin
-                          </button>
+                          {/* Hàng 1: Xem hồ sơ + Nhắn tin + Hành động chính */}
+                          <div className="flex gap-1.5">
+                            <button
+                              type="button"
+                              onClick={() => openCandidateModal(candidate.id, 'profile')}
+                              className="flex items-center gap-1 px-3 py-1.5 bg-white border border-gray-200 text-gray-600 rounded-lg text-xs font-medium hover:bg-gray-50 transition-colors"
+                            >
+                              <Eye className="w-3.5 h-3.5" /> Hồ sơ
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setChatCandidate(candidate)}
+                              className="flex items-center gap-1 px-3 py-1.5 bg-cyan-50 text-cyan-700 rounded-lg text-xs font-medium hover:bg-cyan-100 transition-colors"
+                            >
+                              <MessageCircle className="w-3.5 h-3.5" /> Nhắn tin
+                            </button>
 
-                          {candidate.status === 'pending' || !candidate.status ? (
-                            <>
+                            {/* Nút hành động theo giai đoạn */}
+                            {(candidate.status === 'approved' || candidate.status === 'interview') && (
                               <button
                                 type="button"
-                                onClick={() => handleStatusUpdate(candidate.id, 'hired')}
-                                className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-4 py-2 bg-emerald-50 text-emerald-600 rounded-lg text-sm font-semibold hover:bg-emerald-100 transition-colors"
+                                onClick={() => openCandidateModal(candidate.id, 'interview')}
+                                className="flex items-center gap-1 px-3 py-1.5 bg-blue-50 text-blue-600 rounded-lg text-xs font-medium hover:bg-blue-100 transition-colors"
                               >
-                                <CheckCircle className="w-4 h-4" /> Duyệt hồ sơ
+                                <Video className="w-3.5 h-3.5" />
+                                {candidate.status === 'approved' ? 'Lên lịch' : 'Phỏng vấn'}
+                              </button>
+                            )}
+                            {candidate.status === 'hired' && (
+                              <button
+                                type="button"
+                                onClick={() => navigate(getEmployerDashboardPath('onboarding'), { state: getEmployerDashboardState('onboarding') })}
+                                className="flex items-center gap-1 px-3 py-1.5 bg-emerald-50 text-emerald-600 rounded-lg text-xs font-medium hover:bg-emerald-100 transition-colors"
+                              >
+                                <CheckCircle className="w-3.5 h-3.5" /> Onboarding
+                              </button>
+                            )}
+                          </div>
+
+                          {/* Hàng 2: Quyết định tuyển dụng */}
+                          {(candidate.status === 'pending' || !candidate.status) && (
+                            <div className="flex gap-1.5">
+                              <button
+                                type="button"
+                                onClick={() => handleStatusUpdate(candidate.id, 'approved')}
+                                className="flex-1 flex items-center justify-center gap-1 px-3 py-1.5 bg-emerald-500 text-white rounded-lg text-xs font-semibold hover:bg-emerald-600 transition-colors"
+                              >
+                                <CheckCircle className="w-3.5 h-3.5" /> Duyệt hồ sơ
                               </button>
                               <button
                                 type="button"
                                 onClick={() => handleStatusUpdate(candidate.id, 'rejected')}
-                                className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-4 py-2 bg-red-50 text-red-600 rounded-lg text-sm font-semibold hover:bg-red-100 transition-colors"
+                                className="flex-1 flex items-center justify-center gap-1 px-3 py-1.5 bg-red-50 text-red-600 rounded-lg text-xs font-semibold hover:bg-red-100 transition-colors"
                               >
-                                <XCircle className="w-4 h-4" /> Từ chối
+                                <XCircle className="w-3.5 h-3.5" /> Từ chối
                               </button>
-                            </>
-                          ) : candidate.status === 'hired' || candidate.status === 'interview' ? (
-                            <button
-                              type="button"
-                              onClick={() => openCandidateModal(candidate.id, 'interview')}
-                              className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-4 py-2 bg-blue-50 text-blue-600 rounded-lg text-sm font-semibold hover:bg-blue-100 transition-colors"
-                            >
-                              <Video className="w-4 h-4" /> Phỏng vấn
-                            </button>
-                          ) : null}
+                            </div>
+                          )}
+                          {candidate.status === 'approved' && (
+                            <div className="flex gap-1.5">
+                              <button
+                                type="button"
+                                onClick={() => handleStatusUpdate(candidate.id, 'rejected')}
+                                className="flex-1 flex items-center justify-center gap-1 px-3 py-1.5 bg-red-50 text-red-600 rounded-lg text-xs font-semibold hover:bg-red-100 transition-colors"
+                              >
+                                <XCircle className="w-3.5 h-3.5" /> Từ chối
+                              </button>
+                            </div>
+                          )}
+                          {candidate.status === 'interview' && (
+                            <div className="flex gap-1.5">
+                              <button
+                                type="button"
+                                onClick={() => handleStatusUpdate(candidate.id, 'hired')}
+                                className="flex-1 flex items-center justify-center gap-1 px-3 py-1.5 bg-emerald-500 text-white rounded-lg text-xs font-semibold hover:bg-emerald-600 transition-colors"
+                              >
+                                <CheckCircle className="w-3.5 h-3.5" /> Trúng tuyển
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleStatusUpdate(candidate.id, 'rejected')}
+                                className="flex-1 flex items-center justify-center gap-1 px-3 py-1.5 bg-red-50 text-red-600 rounded-lg text-xs font-semibold hover:bg-red-100 transition-colors"
+                              >
+                                <XCircle className="w-3.5 h-3.5" /> Không trúng
+                              </button>
+                            </div>
+                          )}
                         </>
                       )}
                     </div>
+
                   </div>
                 </div>
               );
@@ -611,10 +678,15 @@ export default function ManageCandidatesTab() {
               </button>
             </div>
 
-            {candidateDetail && (candidateDetail.status === 'hired' || candidateDetail.status === 'interview' || candidateDetail.status === 'rejected') ? (
+            {candidateDetail && (
+              candidateDetail.status === 'approved'
+              || candidateDetail.status === 'interview'
+              || candidateDetail.status === 'hired'
+              || candidateDetail.status === 'rejected'
+            ) ? (
               <div className="border-b border-slate-200 px-6">
                 <div className="flex gap-1 overflow-x-auto">
-                  {candidateDetail.status === 'hired' || candidateDetail.status === 'interview' ? (
+                  {candidateDetail.status === 'approved' || candidateDetail.status === 'interview' || candidateDetail.status === 'hired' ? (
                     <>
                       <button
                         type="button"
@@ -627,18 +699,20 @@ export default function ManageCandidatesTab() {
                       >
                         <Eye className="w-4 h-4 inline mr-1.5" /> Hồ sơ
                       </button>
-                      <button
-                        type="button"
-                        onClick={() => setModalSection('interview')}
-                        className={`px-5 py-3.5 text-sm font-semibold border-b-2 transition ${
-                          modalSection === 'interview'
-                            ? 'border-indigo-500 text-indigo-700'
-                            : 'border-transparent text-slate-500 hover:text-slate-700'
-                        }`}
-                      >
-                        <Video className="w-4 h-4 inline mr-1.5" /> Phỏng vấn
-                      </button>
-                      {candidateDetail.status === 'hired' ? (
+                      {candidateDetail.status === 'approved' || candidateDetail.status === 'interview' ? (
+                        <button
+                          type="button"
+                          onClick={() => setModalSection('interview')}
+                          className={`px-5 py-3.5 text-sm font-semibold border-b-2 transition ${
+                            modalSection === 'interview'
+                              ? 'border-indigo-500 text-indigo-700'
+                              : 'border-transparent text-slate-500 hover:text-slate-700'
+                          }`}
+                        >
+                          <Video className="w-4 h-4 inline mr-1.5" /> Phỏng vấn
+                        </button>
+                      ) : null}
+                      {candidateDetail.status === 'approved' ? (
                         <button
                           type="button"
                           onClick={() => setModalSection('approved')}
@@ -649,6 +723,19 @@ export default function ManageCandidatesTab() {
                           }`}
                         >
                           <CheckCircle className="w-4 h-4 inline mr-1.5" /> Đã duyệt hồ sơ
+                        </button>
+                      ) : null}
+                      {candidateDetail.status === 'hired' ? (
+                        <button
+                          type="button"
+                          onClick={() => setModalSection('hired')}
+                          className={`px-5 py-3.5 text-sm font-semibold border-b-2 transition ${
+                            modalSection === 'hired'
+                              ? 'border-indigo-500 text-indigo-700'
+                              : 'border-transparent text-slate-500 hover:text-slate-700'
+                          }`}
+                        >
+                          <CheckCircle className="w-4 h-4 inline mr-1.5" /> Trúng tuyển
                         </button>
                       ) : null}
                     </>
@@ -694,7 +781,12 @@ export default function ManageCandidatesTab() {
                 </div>
               ) : candidateDetail ? (
                 <>
-                  {(modalSection === 'profile' || (candidateDetail.status !== 'hired' && candidateDetail.status !== 'interview' && candidateDetail.status !== 'rejected')) && (
+                  {(modalSection === 'profile' || (
+                    candidateDetail.status !== 'approved'
+                    && candidateDetail.status !== 'hired'
+                    && candidateDetail.status !== 'interview'
+                    && candidateDetail.status !== 'rejected'
+                  )) && (
                     <div className="grid gap-6 xl:grid-cols-[360px_minmax(0,1fr)]">
                       <div className="space-y-6">
                     <div className="rounded-xl border border-indigo-100/60 bg-indigo-50/30 p-5">
@@ -887,7 +979,7 @@ export default function ManageCandidatesTab() {
                   </div>
                 )}
 
-                  {modalSection === 'interview' && (candidateDetail.status === 'hired' || candidateDetail.status === 'interview') && (
+                  {modalSection === 'interview' && (candidateDetail.status === 'approved' || candidateDetail.status === 'interview') && (
                     <div className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm max-h-[60vh] overflow-y-auto">
                       <div className="mb-6">
                         <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Lịch phỏng vấn</p>
@@ -992,11 +1084,34 @@ export default function ManageCandidatesTab() {
                             {scheduleLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <CalendarClock className="h-4 w-4" />}
                             {candidateDetail.interview_at ? 'Cập nhật lịch phỏng vấn' : 'Lưu lịch phỏng vấn'}
                           </button>
+
+                          {candidateDetail.status === 'interview' ? (
+                            <div className="grid gap-3 sm:grid-cols-2">
+                              <button
+                                type="button"
+                                onClick={() => handleStatusUpdate(candidateDetail.id, 'hired')}
+                                disabled={actionLoading === candidateDetail.id}
+                                className="inline-flex items-center justify-center gap-2 rounded-lg bg-violet-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-violet-700 disabled:cursor-not-allowed disabled:opacity-60"
+                              >
+                                {actionLoading === candidateDetail.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle className="h-4 w-4" />}
+                                Trúng tuyển
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleStatusUpdate(candidateDetail.id, 'rejected')}
+                                disabled={actionLoading === candidateDetail.id}
+                                className="inline-flex items-center justify-center gap-2 rounded-lg bg-red-50 px-5 py-3 text-sm font-semibold text-red-600 transition hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-60"
+                              >
+                                <XCircle className="h-4 w-4" />
+                                Từ chối sau phỏng vấn
+                              </button>
+                            </div>
+                          ) : null}
                         </div>
                     </div>
                   )}
 
-                  {modalSection === 'approved' && candidateDetail.status === 'hired' && (
+                  {modalSection === 'approved' && candidateDetail.status === 'approved' && (
                     <div className="rounded-lg border border-emerald-100 bg-emerald-50 p-8 shadow-sm max-h-[60vh] overflow-y-auto">
                       <div className="flex items-center justify-center mb-6">
                         <CheckCircle className="w-16 h-16 text-emerald-600" />
@@ -1025,6 +1140,55 @@ export default function ManageCandidatesTab() {
                             <p className="text-xs uppercase tracking-[0.18em] text-emerald-600 font-semibold">Vị trí ứng tuyển</p>
                             <p className="mt-2 text-lg font-bold text-emerald-900">{candidateDetail.job_title}</p>
                           </div>
+                        </div>
+                    </div>
+                  )}
+
+                  {modalSection === 'hired' && candidateDetail.status === 'hired' && (
+                    <div className="rounded-lg border border-violet-100 bg-violet-50 p-8 shadow-sm max-h-[60vh] overflow-y-auto">
+                      <div className="flex items-center justify-center mb-6">
+                        <CheckCircle className="w-16 h-16 text-violet-600" />
+                      </div>
+                        <h3 className="text-center text-2xl font-bold text-violet-900 mb-2">Ứng viên đã trúng tuyển</h3>
+                        <p className="text-center text-violet-700 mb-6">
+                          Ứng viên {candidateDetail.candidate_name} đã được chấp nhận tuyển dụng vào ngày{' '}
+                          {formatDateTime(candidateDetail.updated_at || candidateDetail.created_at)}
+                        </p>
+                        <div className="flex flex-col gap-3">
+                          <div className="bg-white rounded-lg p-4 border border-violet-200">
+                            <p className="text-xs uppercase tracking-[0.18em] text-violet-600 font-semibold">Tên ứng viên</p>
+                            <p className="mt-2 text-lg font-bold text-violet-900">{candidateDetail.candidate_name}</p>
+                          </div>
+                          <div className="bg-white rounded-lg p-4 border border-violet-200">
+                            <p className="text-xs uppercase tracking-[0.18em] text-violet-600 font-semibold">Email</p>
+                            <p className="mt-2 text-lg font-bold text-violet-900">{candidateDetail.candidate_email}</p>
+                          </div>
+                          {candidateDetail.candidate_phone && (
+                            <div className="bg-white rounded-lg p-4 border border-violet-200">
+                              <p className="text-xs uppercase tracking-[0.18em] text-violet-600 font-semibold">Số điện thoại</p>
+                              <p className="mt-2 text-lg font-bold text-violet-900">{candidateDetail.candidate_phone}</p>
+                            </div>
+                          )}
+                          <div className="bg-white rounded-lg p-4 border border-violet-200">
+                            <p className="text-xs uppercase tracking-[0.18em] text-violet-600 font-semibold">Vị trí trúng tuyển</p>
+                            <p className="mt-2 text-lg font-bold text-violet-900">{candidateDetail.job_title}</p>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => navigate(getEmployerDashboardPath('onboarding'), { state: getEmployerDashboardState('onboarding') })}
+                            className="mt-2 inline-flex items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-emerald-600 to-teal-600 px-5 py-3 text-sm font-semibold text-white transition hover:from-emerald-700 hover:to-teal-700"
+                          >
+                            <CheckCircle className="h-4 w-4" />
+                            Chuyển sang Onboarding
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleStatusUpdate(candidateDetail.id, 'rejected')}
+                            className="mt-1 inline-flex items-center justify-center gap-2 rounded-lg border border-red-200 bg-red-50 px-5 py-3 text-sm font-semibold text-red-600 transition hover:bg-red-100"
+                          >
+                            <XCircle className="h-4 w-4" />
+                            Không trúng tuyển (Thu hồi)
+                          </button>
                         </div>
                     </div>
                   )}

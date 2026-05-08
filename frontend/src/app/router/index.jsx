@@ -113,6 +113,7 @@ const router = createBrowserRouter([
   { path: '/employer/ai-tests', element: <EmployerRoute><EmployerDashboardTabRedirect tab="ai-tests" /></EmployerRoute> },
   { path: '/employer/ai-tests/:id/edit', element: <EmployerRoute><EmployerPageLayout activeKey="ai-tests"><AITestEditPage /></EmployerPageLayout></EmployerRoute> },
   { path: '/employer/ai-tests/:id/scores', element: <EmployerRoute><EmployerPageLayout activeKey="ai-tests"><ScoreManagementPage /></EmployerPageLayout></EmployerRoute> },
+  { path: '/seeker/ai-tests/:testKind/:id', element: <ProtectedRoute><CandidateTestUI /></ProtectedRoute> },
   { path: '/seeker/ai-tests/:id', element: <ProtectedRoute><CandidateTestUI /></ProtectedRoute> },
   { path: '/candidate-test/:id', element: <ProtectedRoute><CandidateTestUI /></ProtectedRoute> },
   { path: '/test/:id', element: <ProtectedRoute><CandidateTestUI /></ProtectedRoute> },

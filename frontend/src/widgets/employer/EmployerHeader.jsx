@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { BarChart3, Briefcase, ClipboardCheck, LayoutDashboard, FileText, Users, Building2, Plus, Bell, LogOut, ChevronDown, Shield, Menu, X, Video, BrainCircuit } from 'lucide-react';
+import { Briefcase, Building2, Plus, Bell, LogOut, ChevronDown, Shield, Menu, X } from 'lucide-react';
 import { useAuth } from '@features/auth/AuthContext';
 import { useNotifications } from '@features/notifications/NotificationContext';
 import { getRouteByRole } from '@shared/utils/roleRedirect';
@@ -10,6 +10,7 @@ import {
   getEmployerDashboardTab,
 } from '@shared/utils/employerDashboardRoutes';
 import UserAvatar from '@shared/ui/UserAvatar';
+import { employerNavItems } from '@widgets/employer/employerNavigation';
 
 export default function EmployerHeader() {
   const [dropdownOpen, setDropdownOpen] = useState(false);
@@ -21,17 +22,11 @@ export default function EmployerHeader() {
   const dropdownRef = useRef(null);
   const timeoutRef = useRef(null);
 
-  const navLinks = [
-    { name: 'Bảng điều khiển', tab: 'dashboard', icon: LayoutDashboard },
-    { name: 'Nhóm Tuyển dụng', tab: 'jobs', icon: FileText },
-    { name: 'Nhóm Ứng viên', tab: 'candidates', icon: Users },
-    { name: 'Thông báo', tab: 'notifications', icon: Bell },
-    { name: 'Phân tích & Thống kê', tab: 'analytics', icon: BarChart3 },
-    { name: 'Bài Test AI', tab: 'ai-tests', icon: BrainCircuit },
-    { name: 'Hồ sơ công ty', tab: 'company', icon: Building2 },
-    { name: 'Hồ sơ & Onboarding', tab: 'onboarding', icon: ClipboardCheck },
-    { name: 'Phòng Meet', tab: 'meeting-rooms', icon: Video },
-  ];
+  const navLinks = employerNavItems.map((item) => ({
+    name: item.label,
+    tab: item.key,
+    icon: item.icon,
+  }));
 
   useEffect(() => {
     const handleClickOutside = (e) => {
@@ -74,15 +69,31 @@ export default function EmployerHeader() {
             </span>
           </Link>
 
+          {/* Nav Links */}
+          <nav className="hidden lg:flex items-center gap-1">
+            {navLinks.filter(l => ['dashboard', 'jobs', 'candidates', 'analytics'].includes(l.tab)).map((link) => (
+              <button
+                key={link.tab}
+                onClick={() => navigate(getEmployerDashboardPath(link.tab), { state: getEmployerDashboardState(link.tab) })}
+                className={`px-3.5 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                  isHeaderLinkActive(link)
+                    ? 'text-indigo-700 bg-indigo-50/70 font-semibold'
+                    : 'text-gray-500 hover:text-indigo-700 hover:bg-indigo-50/40'
+                }`}
+              >
+                {link.name}
+              </button>
+            ))}
+          </nav>
+
           <div className="hidden md:flex items-center gap-2">
             <button
               onClick={() => navigate('/employer/post-job')}
-              className="flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-indigo-200/60 transition-all duration-300 hover:shadow-xl hover:shadow-indigo-300/60 hover:from-indigo-700 hover:to-violet-700 hover:-translate-y-0.5"
+              className="flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-indigo-200/60 transition-all duration-300 hover:shadow-xl hover:from-indigo-700 hover:to-violet-700 hover:-translate-y-0.5"
             >
               <Plus className="w-4 h-4" />
-              Đăng tin mới
+              Đăng tin
             </button>
-
             {/* Notification Bell */}
             <button
               onClick={() => navigate(getEmployerDashboardPath('notifications'), { state: getEmployerDashboardState('notifications') })}

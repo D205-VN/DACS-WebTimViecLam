@@ -1,35 +1,10 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import {
-  BarChart3,
-  BrainCircuit,
-  Building2,
-  ClipboardCheck,
-  FileText,
-  LayoutDashboard,
-  Plus,
-  Users,
-  Bell,
-  Video,
-  Sparkles,
-} from 'lucide-react';
+import { Sparkles } from 'lucide-react';
 import { useAuth } from '@features/auth/AuthContext';
 import API_BASE_URL from '@shared/api/baseUrl';
 import { cachedJsonFetch } from '@shared/api/requestCache';
-import { getEmployerDashboardPath, getEmployerDashboardState } from '@shared/utils/employerDashboardRoutes';
 import EmployerHeader from '@widgets/employer/EmployerHeader';
-
-const sidebarItems = [
-  { key: 'dashboard', label: 'Bảng điều khiển', icon: LayoutDashboard },
-  { key: 'jobs', label: 'Nhóm Tuyển dụng', icon: FileText },
-  { key: 'candidates', label: 'Nhóm Ứng viên', icon: Users },
-  { key: 'notifications', label: 'Thông báo', icon: Bell },
-  { key: 'analytics', label: 'Phân tích & Thống kê', icon: BarChart3 },
-  { key: 'ai-tests', label: 'Bài Test AI', icon: BrainCircuit },
-  { key: 'company', label: 'Hồ sơ công ty', icon: Building2 },
-  { key: 'onboarding', label: 'Hồ sơ & Onboarding', icon: ClipboardCheck },
-  { key: 'meeting-rooms', label: 'Phòng Meet', icon: Video },
-];
+import EmployerSidebar from '@widgets/employer/EmployerSidebar';
 
 function getGreeting() {
   const hour = new Date().getHours();
@@ -39,7 +14,6 @@ function getGreeting() {
 }
 
 export default function EmployerPageLayout({ activeKey, children }) {
-  const navigate = useNavigate();
   const { user, token } = useAuth();
   const [stats, setStats] = useState(null);
 
@@ -53,10 +27,6 @@ export default function EmployerPageLayout({ activeKey, children }) {
   }, [token]);
 
   const displayStats = stats || { pendingJobs: 0, newCandidates: 0 };
-
-  const handleNavigate = (item) => {
-    navigate(getEmployerDashboardPath(item.key), { state: getEmployerDashboardState(item.key) });
-  };
 
   return (
     <div className="aw-page">
@@ -88,37 +58,7 @@ export default function EmployerPageLayout({ activeKey, children }) {
         </div>
 
         <div className="flex flex-col gap-5 lg:flex-row">
-          <aside className="w-full lg:w-64 shrink-0">
-            <div className="sticky top-[72px] rounded-2xl border border-indigo-100/60 bg-white/90 backdrop-blur-sm p-4 shadow-sm">
-              <h3 className="font-bold text-gray-400 mb-4 px-2 uppercase text-[11px] tracking-wider">Hệ thống</h3>
-              <div className="space-y-1">
-                {sidebarItems.map((item) => (
-                  <button
-                    key={item.key}
-                    onClick={() => handleNavigate(item)}
-                    className={`flex w-full items-center gap-3 rounded-xl p-3 text-left text-sm font-medium transition-all duration-300 ${
-                      activeKey === item.key
-                        ? 'bg-gradient-to-r from-indigo-50 to-violet-50 font-semibold text-indigo-700 shadow-sm shadow-indigo-100/50'
-                        : 'text-gray-600 hover:bg-indigo-50/40 hover:text-indigo-700'
-                    }`}
-                  >
-                    <item.icon className={`w-[18px] h-[18px] transition-colors duration-300 ${activeKey === item.key ? 'text-indigo-600' : ''}`} />
-                    {item.label}
-                  </button>
-                ))}
-              </div>
-
-              <hr className="my-4 border-indigo-50" />
-
-              <button
-                onClick={() => navigate('/employer/post-job')}
-                className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 p-3 text-sm font-semibold text-white shadow-lg shadow-indigo-200/60 transition-all duration-300 hover:shadow-xl hover:shadow-indigo-300/60 hover:from-indigo-700 hover:to-violet-700 hover:-translate-y-0.5"
-              >
-                <Plus className="w-4 h-4" />
-                Đăng tin mới
-              </button>
-            </div>
-          </aside>
+          <EmployerSidebar activeKey={activeKey} />
 
           <main className="flex-1 min-w-0">{children}</main>
         </div>

@@ -7,6 +7,103 @@ const { ensureVerificationSchema } = require('../verification/verification.model
 const { ensureJobAnalyticsSchema } = require('../jobs/job.model');
 const { ensureMeetingRoomSchema } = require('../meeting-rooms/meeting-room.model');
 const { isEmailConfigured, sendInterviewInvitationEmail } = require('../auth/email.service');
+const nodemailer = require('nodemailer');
+
+function getMailTransporter() {
+  return nodemailer.createTransport({
+    service: 'gmail',
+    auth: { user: process.env.SMTP_EMAIL, pass: process.env.SMTP_PASSWORD },
+  });
+}
+
+async function sendHiredEmail(to, { candidateName, jobTitle, companyName }) {
+  if (!isEmailConfigured()) return;
+  const safe = (v) => String(v || '').replace(/[&<>"']/g, (c) => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+  await getMailTransporter().sendMail({
+    from: `"AptertekWork.vn" <${process.env.SMTP_EMAIL}>`,
+    to,
+    subject: `[AptertekWork.vn] Chúc mừng! Bạn đã trúng tuyển vị trí ${jobTitle || ''}`,
+    html: `
+      <div style="font-family:'Segoe UI',sans-serif;max-width:560px;margin:0 auto;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08);">
+        <div style="background:linear-gradient(135deg,#059669,#0d9488);padding:28px 24px;text-align:center;">
+          <h1 style="margin:0;font-size:24px;font-weight:800;color:#fff;">🎉 Chúc mừng trúng tuyển!</h1>
+        </div>
+        <div style="padding:32px 24px;">
+          <p style="margin:0 0 16px;color:#374151;font-size:15px;line-height:1.7;">Xin chào <strong>${safe(candidateName)}</strong>,</p>
+          <p style="margin:0 0 20px;color:#374151;font-size:15px;line-height:1.7;">
+            Chúng tôi vui mừng thông báo bạn đã <strong style="color:#059669;">TRÚNG TUYỂN</strong> vị trí
+            <strong>${safe(jobTitle)}</strong> tại <strong>${safe(companyName)}</strong>.
+          </p>
+          <div style="background:#ecfdf5;border:1px solid #6ee7b7;border-radius:12px;padding:18px;margin-bottom:20px;">
+            <p style="margin:0;color:#065f46;font-size:14px;">📋 Vui lòng đăng nhập vào <strong>AptertekWork</strong> để xem chi tiết và hoàn thiện hồ sơ nhận việc.</p>
+          </div>
+          <p style="margin:0;color:#6b7280;font-size:13px;">Chúc bạn có một hành trình sự nghiệp thật thành công!</p>
+        </div>
+        <div style="background:#f9fafb;padding:16px 24px;text-align:center;border-top:1px solid #e5e7eb;">
+          <p style="margin:0;color:#9ca3af;font-size:11px;">© 2026 AptertekWork.vn — Email tự động, vui lòng không trả lời.</p>
+        </div>
+      </div>`,
+  });
+}
+
+async function sendApprovedEmail(to, { candidateName, jobTitle, companyName }) {
+  if (!isEmailConfigured()) return;
+  const safe = (v) => String(v || '').replace(/[&<>"']/g, (c) => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+  await getMailTransporter().sendMail({
+    from: `"AptertekWork.vn" <${process.env.SMTP_EMAIL}>`,
+    to,
+    subject: `[AptertekWork.vn] Hồ sơ của bạn đã qua vòng sàng lọc - ${jobTitle || ''}`,
+    html: `
+      <div style="font-family:'Segoe UI',sans-serif;max-width:560px;margin:0 auto;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08);">
+        <div style="background:linear-gradient(135deg,#4f46e5,#7c3aed);padding:28px 24px;text-align:center;">
+          <h1 style="margin:0;font-size:24px;font-weight:800;color:#fff;">📋 Hồ sơ đã được duyệt!</h1>
+        </div>
+        <div style="padding:32px 24px;">
+          <p style="margin:0 0 16px;color:#374151;font-size:15px;line-height:1.7;">Xin chào <strong>${safe(candidateName)}</strong>,</p>
+          <p style="margin:0 0 20px;color:#374151;font-size:15px;line-height:1.7;">
+            Hồ sơ ứng tuyển vị trí <strong>${safe(jobTitle)}</strong> tại <strong>${safe(companyName)}</strong> của bạn đã <strong style="color:#4f46e5;">QUA VÒNG SÀNG LỌC</strong>.
+          </p>
+          <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:12px;padding:18px;margin-bottom:20px;">
+            <p style="margin:0;color:#1e40af;font-size:14px;">⏳ Nhà tuyển dụng sẽ liên hệ bạn để sắp xếp lịch phỏng vấn trong thời gian sớm nhất. Hãy chú ý email và điện thoại của bạn!</p>
+          </div>
+          <p style="margin:0;color:#6b7280;font-size:13px;">Chúc bạn thành công trong vòng phỏng vấn sắp tới!</p>
+        </div>
+        <div style="background:#f9fafb;padding:16px 24px;text-align:center;border-top:1px solid #e5e7eb;">
+          <p style="margin:0;color:#9ca3af;font-size:11px;">© 2026 AptertekWork.vn — Email tự động, vui lòng không trả lời.</p>
+        </div>
+      </div>`,
+  });
+}
+
+async function sendRejectedEmail(to, { candidateName, jobTitle, companyName }) {
+  if (!isEmailConfigured()) return;
+  const safe = (v) => String(v || '').replace(/[&<>"']/g, (c) => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+  await getMailTransporter().sendMail({
+    from: `"AptertekWork.vn" <${process.env.SMTP_EMAIL}>`,
+    to,
+    subject: `[AptertekWork.vn] Kết quả ứng tuyển vị trí ${jobTitle || ''}`,
+    html: `
+      <div style="font-family:'Segoe UI',sans-serif;max-width:560px;margin:0 auto;background:#fff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.08);">
+        <div style="background:linear-gradient(135deg,#1e3a5f,#0f2744);padding:28px 24px;text-align:center;">
+          <h1 style="margin:0;font-size:22px;font-weight:800;"><span style="color:#fff;">Aptertek</span><span style="color:#34d399;">Work</span><span style="color:#93c5fd;">.vn</span></h1>
+        </div>
+        <div style="padding:32px 24px;">
+          <p style="margin:0 0 16px;color:#374151;font-size:15px;line-height:1.7;">Xin chào <strong>${safe(candidateName)}</strong>,</p>
+          <p style="margin:0 0 20px;color:#374151;font-size:15px;line-height:1.7;">
+            Cảm ơn bạn đã quan tâm đến vị trí <strong>${safe(jobTitle)}</strong> tại <strong>${safe(companyName)}</strong>.
+            Sau khi xem xét kỹ lưỡng, chúng tôi rất tiếc phải thông báo rằng hồ sơ của bạn chưa phù hợp với yêu cầu tuyển dụng lần này.
+          </p>
+          <div style="background:#fef2f2;border:1px solid #fca5a5;border-radius:12px;padding:18px;margin-bottom:20px;">
+            <p style="margin:0;color:#991b1b;font-size:14px;">💪 Đừng nản lòng! Hãy tiếp tục tìm kiếm cơ hội phù hợp hơn trên <strong>AptertekWork</strong>.</p>
+          </div>
+          <p style="margin:0;color:#6b7280;font-size:13px;">Chúc bạn sớm tìm được công việc như ý!</p>
+        </div>
+        <div style="background:#f9fafb;padding:16px 24px;text-align:center;border-top:1px solid #e5e7eb;">
+          <p style="margin:0;color:#9ca3af;font-size:11px;">© 2026 AptertekWork.vn — Email tự động, vui lòng không trả lời.</p>
+        </div>
+      </div>`,
+  });
+}
 const {
   ensureEmployerJobSchema,
   ensureEmployerProfileSchema,
@@ -172,7 +269,7 @@ async function ensureEmployerJobSchemaForRequest(req, res, next) {
 }
 
 function normalizeApplicationStatus(status) {
-  const allowed = ['pending', 'interview', 'hired', 'rejected'];
+  const allowed = ['pending', 'approved', 'interview', 'hired', 'rejected'];
   return allowed.includes(status) ? status : 'pending';
 }
 
@@ -644,7 +741,11 @@ async function getCandidates(req, res) {
               aj.interview_link, aj.created_at, aj.updated_at,
               mr.id AS meeting_room_id,
               mr.meeting_link AS meeting_room_link,
-              COALESCE(NULLIF(TRIM(aj.status), ''), 'pending') as status,
+              CASE
+                WHEN COALESCE(NULLIF(TRIM(aj.status), ''), 'pending') = 'hired'
+                 AND aj.interview_at IS NULL THEN 'approved'
+                ELSE COALESCE(NULLIF(TRIM(aj.status), ''), 'pending')
+              END as status,
               u.full_name as candidate_name, u.email as candidate_email, u.phone as candidate_phone, u.avatar_url,
               j.job_title as job_title, j.company_address, j.company_name,
               COALESCE(NULLIF(TRIM(j.status), ''), 'approved') as job_status,
@@ -675,19 +776,28 @@ async function getCandidateStats(req, res) {
   try {
     const userId = req.user.id;
     const result = await pool.query(
-      `SELECT
+      `WITH application_statuses AS (
+         SELECT CASE
+                  WHEN COALESCE(NULLIF(TRIM(aj.status), ''), 'pending') = 'hired'
+                   AND aj.interview_at IS NULL THEN 'approved'
+                  ELSE COALESCE(NULLIF(TRIM(aj.status), ''), 'pending')
+                END AS status
+         FROM applied_jobs aj
+         JOIN jobs j ON aj.job_id = j.id
+         WHERE j.employer_id = $1
+       )
+       SELECT
           COUNT(*)::int AS total,
-          COUNT(*) FILTER (WHERE COALESCE(NULLIF(TRIM(aj.status), ''), 'pending') = 'pending')::int AS pending,
-          COUNT(*) FILTER (WHERE COALESCE(NULLIF(TRIM(aj.status), ''), 'pending') = 'interview')::int AS interview,
-          COUNT(*) FILTER (WHERE COALESCE(NULLIF(TRIM(aj.status), ''), 'pending') = 'hired')::int AS hired,
-          COUNT(*) FILTER (WHERE COALESCE(NULLIF(TRIM(aj.status), ''), 'pending') = 'rejected')::int AS rejected
-       FROM applied_jobs aj
-       JOIN jobs j ON aj.job_id = j.id
-       WHERE j.employer_id = $1`,
+          COUNT(*) FILTER (WHERE status = 'pending')::int AS pending,
+          COUNT(*) FILTER (WHERE status = 'approved')::int AS approved,
+          COUNT(*) FILTER (WHERE status = 'interview')::int AS interview,
+          COUNT(*) FILTER (WHERE status = 'hired')::int AS hired,
+          COUNT(*) FILTER (WHERE status = 'rejected')::int AS rejected
+       FROM application_statuses`,
       [userId]
     );
 
-    res.json({ data: result.rows[0] || { total: 0, pending: 0, interview: 0, hired: 0, rejected: 0 } });
+    res.json({ data: result.rows[0] || { total: 0, pending: 0, approved: 0, interview: 0, hired: 0, rejected: 0 } });
   } catch (err) {
     console.error('Get candidate stats error:', err);
     res.status(500).json({ error: 'Lỗi khi tải thống kê ứng viên' });
@@ -706,7 +816,11 @@ async function getCandidateById(req, res) {
               aj.interview_link, aj.created_at, aj.updated_at,
               mr.id AS meeting_room_id,
               mr.meeting_link AS meeting_room_link,
-              COALESCE(NULLIF(TRIM(aj.status), ''), 'pending') as status,
+              CASE
+                WHEN COALESCE(NULLIF(TRIM(aj.status), ''), 'pending') = 'hired'
+                 AND aj.interview_at IS NULL THEN 'approved'
+                ELSE COALESCE(NULLIF(TRIM(aj.status), ''), 'pending')
+              END as status,
               u.full_name as candidate_name, u.email as candidate_email, u.phone as candidate_phone, u.avatar_url,
               j.job_title as job_title,
               j.company_address,
@@ -1146,12 +1260,16 @@ async function getAnalyticsV2(req, res) {
       ),
       pool.query(
         `SELECT
-            COALESCE(NULLIF(TRIM(aj.status), ''), 'pending') AS status,
+            CASE
+              WHEN COALESCE(NULLIF(TRIM(aj.status), ''), 'pending') = 'hired'
+               AND aj.interview_at IS NULL THEN 'approved'
+              ELSE COALESCE(NULLIF(TRIM(aj.status), ''), 'pending')
+            END AS status,
             COUNT(*)::int AS count
          FROM applied_jobs aj
          JOIN jobs j ON aj.job_id = j.id
          WHERE j.employer_id = $1
-         GROUP BY COALESCE(NULLIF(TRIM(aj.status), ''), 'pending')
+         GROUP BY 1
          ORDER BY count DESC, status ASC`,
         [userId]
       ),
@@ -1556,16 +1674,16 @@ async function deleteJob(req, res) {
 
 /**
  * PATCH /api/employer/applications/:id/status
- * Cập nhật trạng thái hồ sơ ứng tuyển (Duyệt, Phỏng vấn, Từ chối...)
+ * Cập nhật trạng thái hồ sơ ứng tuyển (Duyệt hồ sơ, Phỏng vấn, Trúng tuyển, Từ chối...)
  */
 async function updateApplicationStatus(req, res) {
   try {
     const userId = req.user.id;
     const applicationId = req.params.id;
-    const { status } = req.body; // pending, interview, hired, rejected
+    const { status } = req.body; // pending, approved, interview, hired, rejected
     const normalizedStatus = normalizeApplicationStatus(status);
 
-    if (!['pending', 'interview', 'hired', 'rejected'].includes(normalizedStatus)) {
+    if (!['pending', 'approved', 'interview', 'hired', 'rejected'].includes(normalizedStatus)) {
       return res.status(400).json({ error: 'Trạng thái hồ sơ không hợp lệ' });
     }
 
@@ -1597,6 +1715,11 @@ async function updateApplicationStatus(req, res) {
 
     if (normalizedStatus !== ownership.current_status && normalizedStatus !== 'pending') {
       const statusCopy = {
+        approved: {
+          type: 'seeker_application_approved',
+          title: 'Hồ sơ đã qua vòng sàng lọc',
+          message: `Nhà tuyển dụng đã duyệt hồ sơ của bạn cho vị trí ${ownership.job_title || 'ứng tuyển'}. Bạn có thể chọn hình thức phỏng vấn nếu được yêu cầu.`,
+        },
         interview: {
           type: 'seeker_application_interview',
           title: 'Hồ sơ được chuyển sang vòng phỏng vấn',
@@ -1604,8 +1727,8 @@ async function updateApplicationStatus(req, res) {
         },
         hired: {
           type: 'seeker_application_hired',
-          title: 'Hồ sơ đã được duyệt',
-          message: `Nhà tuyển dụng đã duyệt hồ sơ của bạn cho vị trí ${ownership.job_title || 'ứng tuyển'}.`,
+          title: 'Bạn đã trúng tuyển',
+          message: `Nhà tuyển dụng đã chấp nhận tuyển dụng bạn cho vị trí ${ownership.job_title || 'ứng tuyển'}. Vui lòng hoàn thiện hồ sơ nhận việc.`,
         },
         rejected: {
           type: 'seeker_application_rejected',
@@ -1620,11 +1743,30 @@ async function updateApplicationStatus(req, res) {
           type: statusCopy.type,
           title: statusCopy.title,
           message: statusCopy.message,
-          to: '/seeker/applied-jobs',
+          to: normalizedStatus === 'hired' ? `/seeker/onboarding/${applicationId}` : '/seeker/applied-jobs',
           meta: { application_id: applicationId, company_name: ownership.company_name || null },
         }).catch((notificationError) => {
           console.error('Create seeker application status notification error:', notificationError);
         });
+      }
+    }
+
+    // Gửi email thông báo khi duyệt hồ sơ, trúng tuyển hoặc không trúng tuyển
+    if (normalizedStatus === 'approved' || normalizedStatus === 'hired' || normalizedStatus === 'rejected') {
+      const candidateResult = await pool.query(
+        `SELECT u.email, u.full_name FROM applied_jobs aj JOIN users u ON aj.user_id = u.id WHERE aj.id = $1`,
+        [applicationId]
+      ).catch(() => ({ rows: [] }));
+      const candidate = candidateResult.rows[0];
+      if (candidate?.email) {
+        const emailFn = normalizedStatus === 'hired' ? sendHiredEmail
+          : normalizedStatus === 'approved' ? sendApprovedEmail
+          : sendRejectedEmail;
+        emailFn(candidate.email, {
+          candidateName: candidate.full_name,
+          jobTitle: ownership.job_title,
+          companyName: ownership.company_name,
+        }).catch((emailErr) => console.error('Send hired/rejected email error:', emailErr));
       }
     }
 

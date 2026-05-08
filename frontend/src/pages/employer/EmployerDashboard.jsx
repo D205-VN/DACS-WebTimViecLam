@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { LayoutDashboard, FileText, Users, Building2, Plus, ClipboardCheck, BrainCircuit, Bell, BarChart3, Video, Sparkles } from 'lucide-react';
+import { Sparkles, Briefcase } from 'lucide-react';
 import { useAuth } from '@features/auth/AuthContext';
 import API_BASE_URL from '@shared/api/baseUrl';
 import EmployerHeader from '@widgets/employer/EmployerHeader';
+import EmployerSidebar from '@widgets/employer/EmployerSidebar';
 import ManageJobsTab from '@widgets/employer/ManageJobsTab';
 import ManageCandidatesTab from '@widgets/employer/ManageCandidatesTab';
 import CompanyProfileTab from '@widgets/employer/CompanyProfileTab';
@@ -65,18 +66,6 @@ export default function EmployerDashboard() {
     newCandidates: 0,
   };
 
-  const sidebarItems = [
-    { key: 'dashboard', label: 'Bảng điều khiển', icon: LayoutDashboard },
-    { key: 'jobs', label: 'Nhóm Tuyển dụng', icon: FileText },
-    { key: 'candidates', label: 'Nhóm Ứng viên', icon: Users },
-    { key: 'notifications', label: 'Thông báo', icon: Bell },
-    { key: 'analytics', label: 'Phân tích & Thống kê', icon: BarChart3 },
-    { key: 'ai-tests', label: 'Bài Test AI', icon: BrainCircuit },
-    { key: 'company', label: 'Hồ sơ công ty', icon: Building2 },
-    { key: 'onboarding', label: 'Hồ sơ & Onboarding', icon: ClipboardCheck },
-    { key: 'meeting-rooms', label: 'Phòng Meet', icon: Video },
-  ];
-
   const handleTabChange = (tab) => {
     setActiveTab(tab);
     navigate(getEmployerDashboardPath(tab), { state: getEmployerDashboardState(tab) });
@@ -120,38 +109,7 @@ export default function EmployerDashboard() {
         </div>
 
         <div className="flex flex-col gap-5 lg:flex-row">
-          {/* Sidebar */}
-          <div className="w-full lg:w-64 shrink-0">
-            <div className="sticky top-[72px] rounded-2xl border border-indigo-100/60 bg-white/90 backdrop-blur-sm p-4 shadow-sm">
-              <h3 className="font-bold text-gray-400 mb-4 px-2 uppercase text-[11px] tracking-wider">Hệ thống</h3>
-              <div className="space-y-1">
-                {sidebarItems.map((item) => (
-                  <button
-                    key={item.key}
-                    onClick={() => handleTabChange(item.key)}
-                    className={`flex w-full items-center gap-3 rounded-xl p-3 text-left text-sm font-medium transition-all duration-300 ${
-                      activeTab === item.key
-                        ? 'bg-gradient-to-r from-indigo-50 to-violet-50 font-semibold text-indigo-700 shadow-sm shadow-indigo-100/50'
-                        : 'text-gray-600 hover:bg-indigo-50/40 hover:text-indigo-700'
-                    }`}
-                  >
-                    <item.icon className={`w-[18px] h-[18px] transition-colors duration-300 ${activeTab === item.key ? 'text-indigo-600' : ''}`} />
-                    {item.label}
-                  </button>
-                ))}
-              </div>
-
-              <hr className="my-4 border-indigo-50" />
-
-              <button
-                onClick={() => navigate('/employer/post-job')}
-                className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 p-3 text-sm font-semibold text-white shadow-lg shadow-indigo-200/60 transition-all duration-300 hover:shadow-xl hover:shadow-indigo-300/60 hover:from-indigo-700 hover:to-violet-700 hover:-translate-y-0.5"
-              >
-                <Plus className="w-4 h-4" />
-                Đăng tin mới
-              </button>
-            </div>
-          </div>
+          <EmployerSidebar activeKey={activeTab} onSelect={handleTabChange} />
 
           {/* Main Content */}
           <div className="flex-1 min-w-0">
@@ -179,13 +137,72 @@ export default function EmployerDashboard() {
       {/* Footer */}
       <footer className="mt-12 bg-gradient-to-b from-slate-900 to-slate-950 text-slate-300">
         <div className="h-1 bg-gradient-to-r from-indigo-500 via-violet-500 to-pink-500"></div>
-        <div className="mx-auto max-w-[1440px] px-4 py-6 sm:px-6 lg:px-8">
-          <div className="flex flex-col items-center justify-between gap-3 sm:flex-row">
-            <p className="text-xs text-slate-500">© 2026 AptertekWork - Bản quyền thuộc về D205-VN</p>
-            <div className="flex gap-5">
-              <a href="#" className="text-xs text-slate-400 transition-colors hover:text-white">Điều khoản</a>
-              <a href="#" className="text-xs text-slate-400 transition-colors hover:text-white">Chính sách</a>
-              <a href="#" className="text-xs text-slate-400 transition-colors hover:text-white">Trợ giúp</a>
+        <div className="mx-auto max-w-[1440px] px-4 py-10 sm:px-6 lg:px-8">
+          <div className="grid gap-8 border-b border-slate-800/60 pb-8 lg:grid-cols-[1.35fr_repeat(3,minmax(0,1fr))]">
+            {/* Brand */}
+            <div>
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-600 to-violet-600 shadow-lg shadow-indigo-500/20">
+                  <Briefcase className="h-5 w-5 text-white" />
+                </div>
+                <div>
+                  <p className="text-lg font-extrabold tracking-tight">
+                    <span className="bg-gradient-to-r from-indigo-300 to-violet-300 bg-clip-text text-transparent">Aptertek</span>
+                    <span className="bg-gradient-to-r from-emerald-400 to-teal-400 bg-clip-text text-transparent">Work</span>
+                  </p>
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Employer Portal</p>
+                </div>
+              </div>
+              <p className="mt-4 max-w-md text-sm leading-7 text-slate-400">
+                Nền tảng quản lý tuyển dụng thông minh — đăng tin, sàng lọc ứng viên, phỏng vấn online và phân tích hiệu quả tuyển dụng.
+              </p>
+            </div>
+
+            {/* Công cụ NTD */}
+            <div>
+              <h4 className="text-xs font-bold uppercase tracking-[0.16em] text-white">Công cụ NTD</h4>
+              <div className="mt-4 space-y-3">
+                <button onClick={() => handleTabChange('jobs')} className="group flex items-center gap-2 text-sm text-slate-400 transition-all duration-200 hover:text-white">Quản lý tin tuyển dụng</button>
+                <button onClick={() => handleTabChange('candidates')} className="group flex items-center gap-2 text-sm text-slate-400 transition-all duration-200 hover:text-white">Quản lý ứng viên</button>
+                <button onClick={() => handleTabChange('ai-tests')} className="group flex items-center gap-2 text-sm text-slate-400 transition-all duration-200 hover:text-white">Bài Test AI</button>
+                <button onClick={() => navigate('/employer/post-job')} className="group flex items-center gap-2 text-sm text-slate-400 transition-all duration-200 hover:text-white">Đăng tin tuyển dụng</button>
+              </div>
+            </div>
+
+            {/* Quản lý */}
+            <div>
+              <h4 className="text-xs font-bold uppercase tracking-[0.16em] text-white">Quản lý</h4>
+              <div className="mt-4 space-y-3">
+                <button onClick={() => handleTabChange('analytics')} className="group flex items-center gap-2 text-sm text-slate-400 transition-all duration-200 hover:text-white">Phân tích & Thống kê</button>
+                <button onClick={() => handleTabChange('company')} className="group flex items-center gap-2 text-sm text-slate-400 transition-all duration-200 hover:text-white">Hồ sơ công ty</button>
+                <button onClick={() => handleTabChange('onboarding')} className="group flex items-center gap-2 text-sm text-slate-400 transition-all duration-200 hover:text-white">Onboarding</button>
+                <button onClick={() => handleTabChange('meeting-rooms')} className="group flex items-center gap-2 text-sm text-slate-400 transition-all duration-200 hover:text-white">Phòng phỏng vấn</button>
+              </div>
+            </div>
+
+            {/* Hỗ trợ */}
+            <div>
+              <h4 className="text-xs font-bold uppercase tracking-[0.16em] text-white">Hỗ trợ & Liên hệ</h4>
+              <div className="mt-4 space-y-3">
+                <a href="mailto:support@aptertekwork.vn" className="flex items-center gap-2 text-sm text-slate-400 transition-all duration-200 hover:text-white">
+                  📧 support@aptertekwork.vn
+                </a>
+                <a href="tel:19006868" className="flex items-center gap-2 text-sm text-slate-400 transition-all duration-200 hover:text-white">
+                  📞 1900 6868
+                </a>
+                <div className="flex items-start gap-2 text-sm text-slate-400">
+                  📍 Tầng 12, Lagimark, Bình Thạnh, TP.HCM
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-4 pt-5 text-xs text-slate-500 sm:flex-row sm:items-center sm:justify-between">
+            <p>© {new Date().getFullYear()} AptertekWork. Bản quyền thuộc về D205-VN.</p>
+            <div className="flex items-center gap-4">
+              <a href="#" className="transition-all duration-200 hover:text-white">Điều khoản</a>
+              <a href="#" className="transition-all duration-200 hover:text-white">Chính sách</a>
+              <a href="#" className="transition-all duration-200 hover:text-white">Trợ giúp</a>
             </div>
           </div>
         </div>

@@ -6,8 +6,9 @@ import { cachedJsonFetch, readCachedJson } from '@shared/api/requestCache';
 
 const STATUS_META = {
   pending: { label: 'Chờ xử lý', color: 'bg-amber-500' },
+  approved: { label: 'Đã duyệt hồ sơ', color: 'bg-emerald-500' },
   interview: { label: 'Phỏng vấn', color: 'bg-blue-500' },
-  hired: { label: 'Duyệt hồ sơ', color: 'bg-emerald-500' },
+  hired: { label: 'Trúng tuyển', color: 'bg-violet-500' },
   rejected: { label: 'Từ chối', color: 'bg-gradient-to-r from-rose-500 to-pink-500' },
 };
 

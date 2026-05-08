@@ -262,8 +262,10 @@ function getNotificationTypeMeta(type) {
       return { icon: Bell, iconClass: 'bg-red-50 text-red-500' };
     case 'seeker_application_interview':
       return { icon: Bell, iconClass: 'bg-blue-50 text-blue-500' };
-    case 'seeker_application_hired':
+    case 'seeker_application_approved':
       return { icon: Send, iconClass: 'bg-emerald-50 text-emerald-500' };
+    case 'seeker_application_hired':
+      return { icon: Send, iconClass: 'bg-violet-50 text-violet-500' };
     case 'seeker_application_rejected':
       return { icon: Bell, iconClass: 'bg-red-50 text-red-500' };
     case 'seeker_job_alert_digest':

@@ -434,7 +434,11 @@ exports.getAppliedJobs = async (req, res) => {
       `SELECT j.id, j.job_title as title, j.company_name, j.job_address as location, j.salary,
               j.company_address,
               aj.id as application_id,
-              COALESCE(NULLIF(TRIM(aj.status), ''), 'pending') as status,
+              CASE
+                WHEN COALESCE(NULLIF(TRIM(aj.status), ''), 'pending') = 'hired'
+                 AND aj.interview_at IS NULL THEN 'approved'
+                ELSE COALESCE(NULLIF(TRIM(aj.status), ''), 'pending')
+              END as status,
               aj.created_at as applied_at,
               aj.updated_at,
               aj.interview_at,
@@ -752,7 +756,7 @@ exports.updateInterviewPreference = async (req, res) => {
     }
 
     const application = ownership.rows[0];
-    if (!['hired', 'interview'].includes(application.status)) {
+    if (!['approved', 'interview', 'hired'].includes(application.status)) {
       return res.status(400).json({ error: 'Nhà tuyển dụng chưa duyệt hồ sơ này để chọn hình thức phỏng vấn' });
     }
 

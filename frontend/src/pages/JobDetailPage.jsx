@@ -4,6 +4,7 @@ import { MapPin, DollarSign, Clock, Bookmark, BookmarkCheck, Briefcase, ArrowLef
 import { useAuth } from '@features/auth/AuthContext';
 import { findProvinceByName, normalizeProvinceName, normalizeSearchText } from '@shared/geo/provinceCoordinates';
 import { getCompanyFilterRoute, getDefaultRouteByRole, getJobDetailRoute } from '@shared/utils/roleRedirect';
+import { getSeekerAiTestPath } from '@shared/utils/aiTestRoutes';
 import API_BASE_URL from '@shared/api/baseUrl';
 
 const API = `${API_BASE_URL}/api/jobs`;
@@ -452,7 +453,7 @@ export default function JobDetailPage() {
                   type="button"
                   onClick={() => {
                     if (!isAuthenticated) { navigate('/login'); return; }
-                    navigate(`/seeker/ai-tests/${job.ai_test.id}`);
+                    navigate(getSeekerAiTestPath(job.ai_test.id, job.ai_test.test_type));
                   }}
                   className="inline-flex items-center justify-center gap-2 rounded-lg border border-indigo-200 bg-indigo-50 px-4 py-3 text-sm font-semibold text-indigo-700 transition hover:bg-indigo-100"
                 >

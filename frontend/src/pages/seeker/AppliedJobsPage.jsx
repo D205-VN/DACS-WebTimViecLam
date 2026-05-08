@@ -20,14 +20,16 @@ import {
 import { useAuth } from '@features/auth/AuthContext';
 import ConversationModal from '@features/messages/ConversationModal';
 import { getBackLabelByRole, getDefaultRouteByRole, getJobDetailRoute } from '@shared/utils/roleRedirect';
+import { getSeekerAiTestPath } from '@shared/utils/aiTestRoutes';
 import API_BASE_URL from '@shared/api/baseUrl';
 
 const API = `${API_BASE_URL}/api/jobs`;
 
 const statusMap = {
   pending: { label: 'Đang chờ', color: 'bg-amber-50 text-amber-600 border-amber-200' },
+  approved: { label: 'Đã duyệt hồ sơ', color: 'bg-emerald-50 text-emerald-600 border-emerald-200' },
   interview: { label: 'Mời phỏng vấn', color: 'bg-blue-50 text-blue-600 border-blue-200' },
-  hired: { label: 'Đã được duyệt', color: 'bg-emerald-50 text-emerald-600 border-emerald-200' },
+  hired: { label: 'Trúng tuyển', color: 'bg-violet-50 text-violet-600 border-violet-200' },
   rejected: { label: 'Từ chối', color: 'bg-red-50 text-red-600 border-red-200' },
 };
 
@@ -147,6 +149,7 @@ export default function AppliedJobsPage() {
             const status = statusMap[job.status] || statusMap.pending;
             const selectedMode = job.interview_mode || job.candidate_interview_mode || '';
             const hasInterviewFlow = Boolean(
+              job.status === 'approved' ||
               job.status === 'interview' ||
               job.interview_at ||
               job.interview_mode ||
@@ -239,7 +242,7 @@ export default function AppliedJobsPage() {
                           </div>
 
                           <Link
-                            to={`/seeker/ai-tests/${aiTest.id}`}
+                            to={getSeekerAiTestPath(aiTest.id, aiTest.test_type)}
                             className="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg bg-violet-700 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-violet-800"
                           >
                             <BrainCircuit className="h-4 w-4" />

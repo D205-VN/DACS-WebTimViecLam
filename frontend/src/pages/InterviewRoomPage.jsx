@@ -412,9 +412,9 @@ export default function InterviewRoomPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#0a0e1a] via-[#0d1225] to-[#080c18] text-white relative">
+    <div className="min-h-screen overflow-x-hidden bg-gradient-to-br from-[#0a0e1a] via-[#0d1225] to-[#080c18] text-white relative">
       <div className="fixed inset-0 pointer-events-none z-0"><div className="absolute top-0 left-1/4 w-96 h-96 bg-indigo-500/[0.06] rounded-full blur-[120px]" /><div className="absolute bottom-0 right-1/3 w-80 h-80 bg-purple-500/[0.04] rounded-full blur-[100px]" /></div>
-      <div className={`relative z-10 flex min-h-screen flex-col ${joining ? 'mx-0 px-0 py-0' : 'mx-auto max-w-7xl px-4 py-6'}`}>
+      <div className={`relative z-10 flex min-h-screen flex-col overflow-x-hidden ${joining ? 'mx-0 px-0 py-0' : 'mx-auto max-w-7xl px-4 py-6'}`}>
         {/* Header - not in call */}
         {!joining && (
           <header className="flex flex-col gap-4 border-b border-white/[0.06] pb-5 lg:flex-row lg:items-center lg:justify-between">
@@ -437,37 +437,53 @@ export default function InterviewRoomPage() {
           </header>
         )}
 
-        {/* Header - in call */}
         {joining && (
-          <header className="flex flex-col gap-4 border-b border-white/[0.06] backdrop-blur-xl bg-white/[0.02] px-5 py-3 lg:flex-row lg:items-center lg:justify-between">
-            <div>
-              <h1 className="text-base font-bold text-white/95">{room.job_title || room.name}</h1>
-              <div className="mt-1 flex flex-wrap gap-3 text-xs text-slate-400">
-                <span className="inline-flex items-center gap-1.5">
-                  <CalendarClock className="h-3.5 w-3.5 text-indigo-400" />
-                  {formatDateTime(room.interview_at || room.start_time)}
-                </span>
-                <span>{room.company_name || 'AptertekWork'}</span>
-                {room.candidate_name ? <span>Ứng viên: {room.candidate_name}</span> : null}
-                <span className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-0.5 text-xs font-medium ${peerConnected ? 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/20' : 'bg-amber-500/15 text-amber-300 border border-amber-500/20'}`}>
-                  <span className={`h-1.5 w-1.5 rounded-full ${peerConnected ? 'bg-emerald-400' : 'bg-amber-400 animate-pulse'}`} />
-                  {peerConnected ? 'Đã kết nối' : 'Chờ đối phương...'}
-                </span>
+          <header className="border-b border-white/[0.06] backdrop-blur-xl bg-white/[0.02] px-5 py-3">
+            {/* Row 1: Room info */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-7 h-7 rounded-lg bg-indigo-500/20 border border-indigo-500/25 flex items-center justify-center flex-shrink-0">
+                  <Video className="h-3.5 w-3.5 text-indigo-400" />
+                </div>
+                <div className="min-w-0">
+                  <h1 className="text-sm font-bold text-white/95 truncate">{room.job_title || room.name}</h1>
+                  <div className="flex items-center gap-2 text-xs text-slate-400 mt-0.5">
+                    <CalendarClock className="h-3 w-3 text-indigo-400 flex-shrink-0" />
+                    <span className="truncate">{formatDateTime(room.interview_at || room.start_time)}</span>
+                    {room.company_name && <><span className="text-slate-600">•</span><span className="truncate">{room.company_name}</span></>}
+                    {room.candidate_name && <><span className="text-slate-600">•</span><span className="truncate text-slate-300">UV: {room.candidate_name}</span></>}
+                  </div>
+                </div>
               </div>
+              <span className={`ml-3 flex-shrink-0 inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-medium border ${
+                peerConnected
+                  ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/20'
+                  : 'bg-amber-500/15 text-amber-300 border-amber-500/20'
+              }`}>
+                <span className={`h-1.5 w-1.5 rounded-full ${peerConnected ? 'bg-emerald-400' : 'bg-amber-400 animate-pulse'}`} />
+                {peerConnected ? 'Đã kết nối' : 'Chờ đối phương...'}
+              </span>
             </div>
+            {/* Row 2: Host controls */}
             {role === 'host' && (
-              <div className="flex flex-wrap gap-2">
-                <button type="button" onClick={() => handleRecording('recording')} className="inline-flex items-center gap-2 rounded-xl bg-rose-500/15 border border-rose-500/25 px-3 py-1.5 text-xs font-semibold text-rose-300 hover:bg-rose-500/25 transition-all">
-                  <Mic className="h-3.5 w-3.5" /> Ghi hình
+              <div className="flex items-center gap-2 mt-2.5 pt-2.5 border-t border-white/[0.05]">
+                <button type="button" onClick={() => handleRecording('recording')} className="inline-flex items-center gap-1.5 rounded-lg bg-rose-500/15 border border-rose-500/25 px-2.5 py-1 text-xs font-semibold text-rose-300 hover:bg-rose-500/25 transition-all">
+                  <Mic className="h-3 w-3" /> Ghi hình
                 </button>
-                <button type="button" onClick={() => handleRecording('stored')} className="rounded-xl bg-white/[0.08] border border-white/[0.1] px-3 py-1.5 text-xs font-semibold text-slate-300 hover:bg-white/[0.12] transition-all">
+                <button type="button" onClick={() => handleRecording('stored')} className="inline-flex items-center gap-1.5 rounded-lg bg-white/[0.06] border border-white/[0.1] px-2.5 py-1 text-xs font-semibold text-slate-300 hover:bg-white/[0.1] transition-all">
                   Dừng ghi
                 </button>
-                <span className={`rounded-xl border px-3 py-1.5 text-xs font-medium ${recordingStatus === 'recording' ? 'border-rose-500/30 bg-rose-500/10 text-rose-300' : 'border-white/[0.08] bg-white/[0.04] text-slate-500'}`}>
-                  {recordingStatus === 'recording' ? '● Đang ghi' : 'Sẵn sàng'}
+                <span className={`inline-flex items-center gap-1 rounded-lg border px-2.5 py-1 text-xs font-medium ${
+                  recordingStatus === 'recording'
+                    ? 'border-rose-500/30 bg-rose-500/10 text-rose-300'
+                    : 'border-white/[0.08] bg-white/[0.04] text-slate-500'
+                }`}>
+                  {recordingStatus === 'recording' && <span className="h-1.5 w-1.5 rounded-full bg-rose-400 animate-pulse" />}
+                  {recordingStatus === 'recording' ? 'Đang ghi' : 'Sẵn sàng'}
                 </span>
-                <button type="button" onClick={handleCompleteInterview} className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 px-3 py-1.5 text-xs font-semibold text-white hover:shadow-lg hover:shadow-emerald-500/20 transition-all">
-                  <CheckCircle2 className="h-3.5 w-3.5" /> Hoàn tất lượt
+                <div className="flex-1" />
+                <button type="button" onClick={handleCompleteInterview} className="inline-flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-emerald-500 to-teal-500 px-3 py-1 text-xs font-semibold text-white hover:shadow-lg hover:shadow-emerald-500/20 transition-all">
+                  <CheckCircle2 className="h-3 w-3" /> Hoàn tất lượt
                 </button>
               </div>
             )}
@@ -520,11 +536,25 @@ export default function InterviewRoomPage() {
                 <div className="relative h-full w-full max-h-[calc(100vh-140px)] overflow-hidden rounded-2xl bg-[#0d1225] border border-white/[0.06]">
                   <video ref={remoteVideoRef} autoPlay playsInline className="h-full w-full object-cover" style={{ transform: 'scaleX(-1)' }} />
                   {!peerConnected && (
-                    <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 bg-[#0d1225]/95">
-                      <Loader2 className="h-12 w-12 animate-spin text-indigo-400" />
-                      <p className="text-sm text-slate-400 font-medium">Đang chờ đối phương tham gia...</p>
+                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-5 bg-[#0d1225]/95">
+                    {/* Animated pulse rings */}
+                    <div className="relative flex items-center justify-center">
+                      <div className="absolute h-20 w-20 rounded-full bg-indigo-500/10 animate-ping" />
+                      <div className="absolute h-14 w-14 rounded-full bg-indigo-500/15 animate-ping" style={{ animationDelay: '0.3s' }} />
+                      <div className="h-12 w-12 rounded-full bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center">
+                        <Loader2 className="h-6 w-6 animate-spin text-indigo-400" />
+                      </div>
                     </div>
-                  )}
+                    <div className="text-center">
+                      <p className="text-base font-semibold text-white/80">Đang chờ đối phương tham gia</p>
+                      <p className="mt-1 text-xs text-slate-500">Micro và camera của bạn đang bật — đối phương sẽ kết nối tự động</p>
+                    </div>
+                    <div className="flex items-center gap-2 rounded-xl border border-amber-500/20 bg-amber-500/10 px-4 py-2">
+                      <span className="h-1.5 w-1.5 rounded-full bg-amber-400 animate-pulse" />
+                      <span className="text-xs text-amber-300 font-medium">Giữ tab này mở để kết nối ngay khi đối phương vào</span>
+                    </div>
+                  </div>
+                )}
                 </div>
                 <div className="absolute bottom-6 right-6 h-36 w-48 overflow-hidden rounded-2xl border border-white/[0.1] bg-[#0d1225] shadow-2xl">
                   <video ref={localVideoRef} autoPlay playsInline muted className="h-full w-full object-cover" style={{ transform: 'scaleX(-1)' }} />
@@ -533,6 +563,7 @@ export default function InterviewRoomPage() {
                       <VideoOff className="h-6 w-6 text-slate-600" />
                     </div>
                   )}
+                  <div className="absolute bottom-1.5 left-2 text-[10px] text-white/50 font-medium">Bạn</div>
                 </div>
               </div>
 

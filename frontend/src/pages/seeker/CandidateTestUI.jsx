@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { Mic, Square, Send, AlertTriangle, Clock } from 'lucide-react';
+import { useLocation, useParams, useNavigate } from 'react-router-dom';
+import { AlertTriangle, Bot, CheckSquare, Clock, Mic, Send, Square, Video } from 'lucide-react';
 import HeyGenLiveAvatar from '@shared/ui/HeyGenLiveAvatar';
 import { aiTestApi } from '@shared/api/aiTestApi';
+import { getAiTestKind, getSeekerAiTestPath } from '@shared/utils/aiTestRoutes';
 
 const formatTime = (seconds) => {
   const m = Math.floor(seconds / 60);
@@ -37,9 +38,46 @@ function isAvatarLive3DType(type) {
     || normalized.includes('live2d');
 }
 
+function getTestTypeMeta(type) {
+  if (isAvatarLive3DType(type)) {
+    return {
+      label: 'Avatar Live3D',
+      shortLabel: 'Avatar',
+      icon: Bot,
+      accent: 'from-violet-500 to-fuchsia-500',
+      iconBg: 'from-violet-500 to-fuchsia-600',
+      badge: 'border-violet-200 bg-violet-50 text-violet-700',
+      darkBadge: 'border-violet-400/25 bg-violet-500/10 text-violet-200',
+    };
+  }
+
+  if (type === 'video_ai') {
+    return {
+      label: 'VideoAI + Tự luận',
+      shortLabel: 'VideoAI',
+      icon: Video,
+      accent: 'from-blue-500 to-cyan-500',
+      iconBg: 'from-blue-500 to-cyan-600',
+      badge: 'border-blue-200 bg-blue-50 text-blue-700',
+      darkBadge: 'border-cyan-400/25 bg-cyan-500/10 text-cyan-200',
+    };
+  }
+
+  return {
+    label: 'Trắc nghiệm (MCQ)',
+    shortLabel: 'Trắc nghiệm',
+    icon: CheckSquare,
+    accent: 'from-emerald-500 to-teal-500',
+    iconBg: 'from-emerald-500 to-teal-600',
+    badge: 'border-emerald-200 bg-emerald-50 text-emerald-700',
+    darkBadge: 'border-emerald-400/25 bg-emerald-500/10 text-emerald-200',
+  };
+}
+
 const CandidateTestUI = () => {
-  const { id } = useParams();
+  const { id, testKind } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   
   const [test, setTest] = useState(null);
   const [currentQIdx, setCurrentQIdx] = useState(0);
@@ -95,15 +133,20 @@ const CandidateTestUI = () => {
     let active = true;
 
     aiTestApi.getTest(id)
-      .then((data) => {
-        if (!active) return null;
+      .then(async (data) => {
+        if (!active) return;
+
+        const expectedKind = getAiTestKind(data.test_type);
+        const canonicalPath = getSeekerAiTestPath(id, data.test_type);
+        if (testKind !== expectedKind || location.pathname !== canonicalPath) {
+          navigate(canonicalPath, { replace: true });
+          return;
+        }
 
         setTest(data);
         setTimeLeft(data.duration * 60);
-        return aiTestApi.startSubmission({ test_id: id });
-      })
-      .then((data) => {
-        if (active && data) setSubmissionId(data.id);
+        const submission = await aiTestApi.startSubmission({ test_id: id });
+        if (active && submission) setSubmissionId(submission.id);
       })
       .catch((err) => console.error(err));
 
@@ -118,7 +161,7 @@ const CandidateTestUI = () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       document.removeEventListener('contextmenu', preventAction);
     };
-  }, [id]);
+  }, [id, location.pathname, navigate, testKind]);
 
   useEffect(() => {
     if (timeLeft > 0) {
@@ -272,7 +315,409 @@ const CandidateTestUI = () => {
   const currentQ = test.questions[currentQIdx];
   const currentOptions = parseQuestionOptions(currentQ?.options);
   const usesAvatarLive3D = isAvatarLive3DType(test.test_type);
+  const typeMeta = getTestTypeMeta(test.test_type);
+  const TypeIcon = typeMeta.icon;
   const progressPercent = Math.round(((currentQIdx + 1) / test.questions.length) * 100);
+  const isVideoAiTest = test.test_type === 'video_ai';
+  const isMultipleChoiceTest = currentQ?.type === 'mcq' && !usesAvatarLive3D && !isVideoAiTest;
+
+  if (isMultipleChoiceTest) {
+    return (
+      <div className="h-screen w-full overflow-hidden bg-[#f3f6fb] text-slate-950 select-none font-sans">
+        <div className="flex h-full flex-col">
+          <header className="relative overflow-hidden border-b border-slate-200 bg-white px-8 py-5 shadow-sm">
+            <div className={`absolute left-0 right-0 top-0 h-1 bg-gradient-to-r ${typeMeta.accent}`} />
+            <div className="flex items-center justify-between gap-6">
+              <div className="flex min-w-0 items-center gap-4">
+                <div className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br ${typeMeta.iconBg} text-white shadow-lg shadow-emerald-200/70`}>
+                  <TypeIcon size={25} />
+                </div>
+                <div className="min-w-0">
+                  <div className="mb-1.5 flex flex-wrap items-center gap-2">
+                    <span className={`rounded-full border px-3 py-1 text-xs font-bold ${typeMeta.badge}`}>
+                      {typeMeta.label}
+                    </span>
+                    {suspiciousFlag && (
+                      <span className="inline-flex items-center gap-1 rounded-full border border-rose-200 bg-rose-50 px-3 py-1 text-xs font-bold text-rose-700">
+                        <AlertTriangle size={13} />
+                        Cảnh báo gian lận
+                      </span>
+                    )}
+                  </div>
+                  <h1 className="truncate text-2xl font-black tracking-tight text-slate-950">{test.title}</h1>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-4">
+                <div className="hidden min-w-[260px] sm:block">
+                  <div className="mb-2 flex items-center justify-between text-xs font-bold text-slate-500">
+                    <span>Câu {currentQIdx + 1} / {test.questions.length}</span>
+                    <span>{progressPercent}%</span>
+                  </div>
+                  <div className="h-2 overflow-hidden rounded-full bg-slate-100">
+                    <div
+                      className={`h-full rounded-full bg-gradient-to-r ${typeMeta.accent} transition-all duration-700`}
+                      style={{ width: `${progressPercent}%` }}
+                    />
+                  </div>
+                </div>
+                <div className={`flex items-center gap-2.5 rounded-2xl border px-5 py-3 shadow-sm ${timeLeft < 60 ? 'border-rose-200 bg-rose-50 text-rose-700 animate-pulse' : 'border-slate-200 bg-slate-50 text-slate-700'}`}>
+                  <Clock size={18} className={timeLeft < 60 ? 'text-rose-500' : 'text-emerald-600'} />
+                  <span className="font-mono text-2xl font-black tracking-wider">{formatTime(timeLeft)}</span>
+                </div>
+              </div>
+            </div>
+          </header>
+
+          <main className="grid min-h-0 flex-1 gap-5 p-6 lg:grid-cols-[minmax(0,0.95fr)_minmax(430px,0.78fr)]">
+            <section className="flex min-h-0 flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+              <div className="border-b border-slate-100 p-6">
+                <div className="mb-5 flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-xs font-black uppercase tracking-widest text-emerald-600">Câu hỏi {currentQIdx + 1}</p>
+                    <p className="mt-1 text-sm font-medium text-slate-500">Một lựa chọn đúng</p>
+                  </div>
+                  <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-bold text-slate-600">
+                    {typeMeta.shortLabel}
+                  </span>
+                </div>
+                <h2 className="text-3xl font-black leading-tight tracking-tight text-slate-950">
+                  {currentQ?.content}
+                </h2>
+              </div>
+
+              <div className="min-h-0 flex-1 overflow-y-auto p-6">
+                <div className="grid gap-4 sm:grid-cols-3">
+                  <div className="rounded-2xl border border-emerald-100 bg-emerald-50 p-4">
+                    <p className="text-xs font-bold uppercase tracking-wider text-emerald-700">Loại bài</p>
+                    <p className="mt-2 text-lg font-black text-emerald-950">Trắc nghiệm</p>
+                  </div>
+                  <div className="rounded-2xl border border-blue-100 bg-blue-50 p-4">
+                    <p className="text-xs font-bold uppercase tracking-wider text-blue-700">Chấm điểm</p>
+                    <p className="mt-2 text-lg font-black text-blue-950">Tự động</p>
+                  </div>
+                  <div className="rounded-2xl border border-violet-100 bg-violet-50 p-4">
+                    <p className="text-xs font-bold uppercase tracking-wider text-violet-700">Tiến độ</p>
+                    <p className="mt-2 text-lg font-black text-violet-950">{currentQIdx + 1}/{test.questions.length}</p>
+                  </div>
+                </div>
+
+                <div className="mt-6 rounded-2xl border border-slate-200 bg-slate-50 p-5">
+                  <div className="mb-3 flex items-center justify-between">
+                    <p className="text-sm font-bold text-slate-700">Tiến độ câu hỏi</p>
+                    <p className="text-xs font-semibold text-slate-500">{progressPercent}% hoàn thành</p>
+                  </div>
+                  <div className="grid grid-cols-10 gap-2">
+                    {test.questions.map((question, index) => {
+                      const isCurrent = index === currentQIdx;
+                      const isDone = index < currentQIdx;
+                      return (
+                        <div
+                          key={question.id || index}
+                          className={`flex aspect-square items-center justify-center rounded-xl text-xs font-black transition-all ${
+                            isCurrent
+                              ? 'bg-emerald-600 text-white shadow-md shadow-emerald-200'
+                              : isDone
+                                ? 'bg-emerald-100 text-emerald-700'
+                                : 'bg-white text-slate-400 ring-1 ring-slate-200'
+                          }`}
+                        >
+                          {index + 1}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <section className="flex min-h-0 flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+              <div className="flex items-center justify-between border-b border-slate-100 p-6">
+                <div className="flex items-center gap-3">
+                  <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-slate-950 text-white">
+                    <Send size={18} />
+                  </span>
+                  <div>
+                    <h3 className="text-lg font-black text-slate-950">Chọn đáp án</h3>
+                    <p className="text-sm font-medium text-slate-500">A, B, C hoặc D</p>
+                  </div>
+                </div>
+                <span className={`rounded-full border px-3 py-1 text-xs font-bold ${textAnswer.trim() ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : 'border-slate-200 bg-slate-50 text-slate-500'}`}>
+                  {textAnswer.trim() ? `Đã chọn ${textAnswer}` : 'Chưa chọn'}
+                </span>
+              </div>
+
+              <div className="min-h-0 flex-1 space-y-4 overflow-y-auto p-6">
+                {MCQ_KEYS.map((key) => {
+                  if (!currentOptions[key]) return null;
+                  const isSelected = textAnswer === key;
+                  return (
+                    <button
+                      key={key}
+                      type="button"
+                      onClick={() => setTextAnswer(key)}
+                      className={`group relative w-full overflow-hidden rounded-2xl border p-5 text-left transition-all duration-300 ${
+                        isSelected
+                          ? 'border-emerald-300 bg-emerald-50 shadow-lg shadow-emerald-100'
+                          : 'border-slate-200 bg-white hover:border-emerald-200 hover:bg-emerald-50/40'
+                      }`}
+                    >
+                      <div className={`absolute left-0 top-0 h-full w-1 transition-colors ${isSelected ? 'bg-emerald-500' : 'bg-transparent group-hover:bg-emerald-200'}`} />
+                      <div className="flex items-start gap-4">
+                        <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border text-base font-black transition-all ${
+                          isSelected ? 'border-emerald-500 bg-emerald-600 text-white' : 'border-slate-200 bg-slate-50 text-slate-500 group-hover:border-emerald-200 group-hover:text-emerald-700'
+                        }`}>
+                          {key}
+                        </div>
+                        <p className={`pt-2 text-base font-semibold leading-relaxed ${isSelected ? 'text-emerald-950' : 'text-slate-700'}`}>
+                          {currentOptions[key]}
+                        </p>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div className="flex items-center justify-end border-t border-slate-100 bg-slate-50 p-5">
+                <button
+                  type="button"
+                  onClick={handleSubmitAnswer}
+                  disabled={!textAnswer.trim()}
+                  className="inline-flex min-w-44 items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 px-7 py-3.5 text-sm font-black text-white shadow-lg shadow-emerald-200 transition-all hover:-translate-y-0.5 hover:from-emerald-700 hover:to-teal-700 disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:translate-y-0"
+                >
+                  {currentQIdx < test?.questions.length - 1 ? 'Câu tiếp theo' : 'Nộp bài'}
+                  <Send size={17} />
+                </button>
+              </div>
+            </section>
+          </main>
+        </div>
+      </div>
+    );
+  }
+
+  if (isVideoAiTest) {
+    return (
+      <div className="h-screen w-full overflow-hidden bg-[#edf7ff] text-slate-950 select-none font-sans">
+        <div className="flex h-full flex-col">
+          <header className="relative overflow-hidden border-b border-sky-100 bg-white px-8 py-5 shadow-sm">
+            <div className={`absolute left-0 right-0 top-0 h-1 bg-gradient-to-r ${typeMeta.accent}`} />
+            <div className="flex items-center justify-between gap-6">
+              <div className="flex min-w-0 items-center gap-4">
+                <div className={`flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br ${typeMeta.iconBg} text-white shadow-lg shadow-sky-200`}>
+                  <TypeIcon size={25} />
+                </div>
+                <div className="min-w-0">
+                  <div className="mb-1.5 flex flex-wrap items-center gap-2">
+                    <span className={`rounded-full border px-3 py-1 text-xs font-bold ${typeMeta.badge}`}>
+                      {typeMeta.label}
+                    </span>
+                    <span className="rounded-full border border-sky-100 bg-sky-50 px-3 py-1 text-xs font-bold text-sky-700">
+                      Câu {currentQIdx + 1} / {test.questions.length}
+                    </span>
+                    {suspiciousFlag && (
+                      <span className="inline-flex items-center gap-1 rounded-full border border-rose-200 bg-rose-50 px-3 py-1 text-xs font-bold text-rose-700">
+                        <AlertTriangle size={13} />
+                        Cảnh báo gian lận
+                      </span>
+                    )}
+                  </div>
+                  <h1 className="truncate text-2xl font-black tracking-tight text-slate-950">{test.title}</h1>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-4">
+                <div className="hidden min-w-[280px] sm:block">
+                  <div className="mb-2 flex items-center justify-between text-xs font-bold text-slate-500">
+                    <span>Tiến độ</span>
+                    <span>{progressPercent}%</span>
+                  </div>
+                  <div className="h-2 overflow-hidden rounded-full bg-slate-100">
+                    <div
+                      className={`h-full rounded-full bg-gradient-to-r ${typeMeta.accent} transition-all duration-700`}
+                      style={{ width: `${progressPercent}%` }}
+                    />
+                  </div>
+                </div>
+                <div className={`flex items-center gap-2.5 rounded-2xl border px-5 py-3 shadow-sm ${timeLeft < 60 ? 'border-rose-200 bg-rose-50 text-rose-700 animate-pulse' : 'border-sky-100 bg-sky-50 text-slate-700'}`}>
+                  <Clock size={18} className={timeLeft < 60 ? 'text-rose-500' : 'text-sky-600'} />
+                  <span className="font-mono text-2xl font-black tracking-wider">{formatTime(timeLeft)}</span>
+                </div>
+              </div>
+            </div>
+          </header>
+
+          <main className="grid min-h-0 flex-1 gap-5 p-6 lg:grid-cols-[minmax(0,1fr)_minmax(430px,0.58fr)]">
+            <section className="flex min-h-0 flex-col overflow-hidden rounded-3xl border border-sky-100 bg-white shadow-sm">
+              <div className="flex items-center justify-between gap-4 border-b border-sky-50 p-5">
+                <div>
+                  <p className="text-xs font-black uppercase tracking-widest text-sky-600">Video tình huống</p>
+                  <p className="mt-1 text-sm font-semibold text-slate-500">Xem nội dung trước khi trả lời tự luận</p>
+                </div>
+                <span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-bold text-slate-600">
+                  Tự luận
+                </span>
+              </div>
+
+              <div className="min-h-0 flex-1 p-5">
+                <div className="relative h-full min-h-[360px] overflow-hidden rounded-3xl bg-slate-950 shadow-2xl shadow-sky-950/15">
+                  {currentQ?.video_url?.match(/\.(jpeg|jpg|gif|png|webp)$/i) ? (
+                    <img
+                      src={currentQ.video_url}
+                      alt="Nội dung câu hỏi"
+                      className="absolute inset-0 h-full w-full object-cover"
+                    />
+                  ) : currentQ?.video_url?.includes('youtube.com/embed') ? (
+                    <iframe
+                      src={currentQ.video_url}
+                      className="absolute inset-0 h-full w-full border-0"
+                      allow="autoplay; encrypted-media; picture-in-picture"
+                      allowFullScreen
+                    ></iframe>
+                  ) : (
+                    <video
+                      src={currentQ?.video_url || 'https://www.w3schools.com/html/mov_bbb.mp4'}
+                      controls
+                      autoPlay
+                      loop
+                      muted
+                      playsInline
+                      className="absolute inset-0 h-full w-full object-cover"
+                    />
+                  )}
+
+                  <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-slate-950 via-slate-950/80 to-transparent p-6 pt-24">
+                    <div className="max-w-4xl rounded-2xl border border-white/10 bg-white/10 p-5 shadow-2xl backdrop-blur-xl">
+                      <div className="mb-3 flex items-center justify-between gap-3">
+                        <span className="font-mono text-xs font-black uppercase tracking-widest text-sky-200">
+                          Câu hỏi {currentQIdx + 1}
+                        </span>
+                        <span className="rounded-full border border-white/10 bg-white/10 px-3 py-1 text-xs font-bold text-white/75">
+                          VideoAI
+                        </span>
+                      </div>
+                      <h2 className="text-2xl font-black leading-snug tracking-tight text-white">
+                        {currentQ?.content}
+                      </h2>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </section>
+
+            <section className="flex min-h-0 flex-col overflow-hidden rounded-3xl border border-sky-100 bg-white shadow-sm">
+              <div className="flex items-center justify-between border-b border-sky-50 p-5">
+                <div className="flex items-center gap-3">
+                  <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-slate-950 text-white">
+                    <Send size={18} />
+                  </span>
+                  <div>
+                    <h3 className="text-lg font-black text-slate-950">Câu trả lời</h3>
+                    <p className="text-sm font-medium text-slate-500">Tự luận bằng văn bản hoặc giọng nói</p>
+                  </div>
+                </div>
+                <span className={`rounded-full border px-3 py-1 text-xs font-bold ${textAnswer.trim() ? 'border-sky-200 bg-sky-50 text-sky-700' : 'border-slate-200 bg-slate-50 text-slate-500'}`}>
+                  {textAnswer.trim() ? 'Đã trả lời' : 'Chưa trả lời'}
+                </span>
+              </div>
+
+              <div className="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto p-5">
+                <textarea
+                  className="min-h-[300px] flex-1 resize-none rounded-2xl border border-sky-100 bg-sky-50/50 p-5 text-base font-medium leading-relaxed text-slate-800 placeholder:text-slate-400 outline-none transition focus:border-sky-300 focus:bg-white focus:ring-4 focus:ring-sky-100"
+                  placeholder={isRecording ? 'Đang nghe giọng nói, nội dung sẽ hiện ở đây...' : 'Nhập câu trả lời của bạn...'}
+                  value={textAnswer}
+                  onChange={(e) => setTextAnswer(e.target.value)}
+                  onCopy={(e) => e.preventDefault()}
+                  onPaste={(e) => e.preventDefault()}
+                  onCut={(e) => e.preventDefault()}
+                />
+
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-5">
+                  <div className="mb-4 flex items-center justify-between gap-3">
+                    <h4 className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-slate-500">
+                      <Mic size={14} className="text-sky-600" />
+                      Ghi âm câu trả lời
+                    </h4>
+                    {speechNotice ? <span className="text-xs font-bold text-sky-700">{speechNotice}</span> : null}
+                  </div>
+
+                  <div className="flex items-center gap-4">
+                    {!isRecording ? (
+                      <button
+                        type="button"
+                        onClick={startRecording}
+                        className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-sky-500 to-blue-600 text-white shadow-lg shadow-sky-200 transition hover:-translate-y-0.5 hover:shadow-sky-300"
+                      >
+                        <Mic size={28} />
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={stopRecording}
+                        className="flex h-16 w-16 shrink-0 animate-pulse items-center justify-center rounded-2xl bg-gradient-to-br from-rose-500 to-pink-600 text-white shadow-lg shadow-rose-200"
+                      >
+                        <Square size={25} fill="currentColor" />
+                      </button>
+                    )}
+
+                    <div className="min-w-0 flex-1">
+                      <p className="text-base font-black text-slate-900">
+                        {isRecording ? 'Đang ghi âm' : 'Trả lời bằng giọng nói'}
+                      </p>
+                      <p className="mt-1 text-sm font-medium leading-relaxed text-slate-500">
+                        {isRecording
+                          ? 'Bấm nút dừng khi bạn nói xong.'
+                          : 'Bấm micro để nói, hệ thống sẽ tự điền nội dung vào ô trả lời.'}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="rounded-2xl border border-sky-100 bg-gradient-to-br from-sky-50 to-cyan-50 p-5">
+                  <div className="mb-3 flex items-center justify-between text-xs font-bold text-slate-500">
+                    <span>Tiến độ câu hỏi</span>
+                    <span>{currentQIdx + 1}/{test.questions.length}</span>
+                  </div>
+                  <div className="grid grid-cols-10 gap-2">
+                    {test.questions.map((question, index) => {
+                      const isCurrent = index === currentQIdx;
+                      const isDone = index < currentQIdx;
+                      return (
+                        <div
+                          key={question.id || index}
+                          className={`flex aspect-square items-center justify-center rounded-xl text-xs font-black transition-all ${
+                            isCurrent
+                              ? 'bg-sky-600 text-white shadow-md shadow-sky-200'
+                              : isDone
+                                ? 'bg-sky-100 text-sky-700'
+                                : 'bg-white text-slate-400 ring-1 ring-slate-200'
+                          }`}
+                        >
+                          {index + 1}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end border-t border-sky-50 bg-slate-50 p-5">
+                <button
+                  type="button"
+                  onClick={handleSubmitAnswer}
+                  disabled={isRecording || !textAnswer.trim()}
+                  className="inline-flex min-w-44 items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-sky-600 to-blue-600 px-7 py-3.5 text-sm font-black text-white shadow-lg shadow-sky-200 transition-all hover:-translate-y-0.5 hover:from-sky-700 hover:to-blue-700 disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:translate-y-0"
+                >
+                  {currentQIdx < test?.questions.length - 1 ? 'Câu tiếp theo' : 'Nộp bài'}
+                  <Send size={17} />
+                </button>
+              </div>
+            </section>
+          </main>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="h-screen w-full bg-gradient-to-br from-[#0a0e1a] via-[#0d1225] to-[#080c18] text-white flex flex-col select-none overflow-hidden font-sans">
@@ -285,15 +730,20 @@ const CandidateTestUI = () => {
       {/* Test Header */}
       <div className="relative z-10 px-8 py-4 flex justify-between items-center backdrop-blur-xl bg-white/[0.03] border-b border-white/[0.06]">
         <div className="flex items-center gap-5">
-          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-500/20">
-            <Mic className="text-white" size={22} />
+          <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${typeMeta.iconBg} flex items-center justify-center shadow-lg shadow-indigo-500/20`}>
+            <TypeIcon className="text-white" size={22} />
           </div>
           <div className="min-w-[280px]">
-            <h1 className="text-lg font-bold text-white/95 tracking-tight">{test.title}</h1>
+            <div className="flex flex-wrap items-center gap-2">
+              <h1 className="text-lg font-bold text-white/95 tracking-tight">{test.title}</h1>
+              <span className={`rounded-lg border px-2.5 py-1 text-[11px] font-bold ${typeMeta.darkBadge}`}>
+                {typeMeta.label}
+              </span>
+            </div>
             <div className="mt-2.5 flex items-center gap-3">
               <div className="h-1 w-44 overflow-hidden rounded-full bg-white/[0.08]">
                 <div
-                  className="h-full rounded-full bg-gradient-to-r from-indigo-400 to-purple-400 transition-all duration-700 ease-out"
+                  className={`h-full rounded-full bg-gradient-to-r ${typeMeta.accent} transition-all duration-700 ease-out`}
                   style={{ width: `${progressPercent}%` }}
                 />
               </div>
