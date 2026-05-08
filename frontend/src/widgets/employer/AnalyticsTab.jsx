@@ -2,12 +2,13 @@ import React, { useEffect, useState } from 'react';
 import { BarChart3, TrendingUp, Users, Briefcase, Loader2, AlertCircle, Eye, Lightbulb, PieChart } from 'lucide-react';
 import { useAuth } from '@features/auth/AuthContext';
 import API_BASE_URL from '@shared/api/baseUrl';
+import { cachedJsonFetch, readCachedJson } from '@shared/api/requestCache';
 
 const STATUS_META = {
   pending: { label: 'Chờ xử lý', color: 'bg-amber-500' },
   interview: { label: 'Phỏng vấn', color: 'bg-blue-500' },
   hired: { label: 'Duyệt hồ sơ', color: 'bg-emerald-500' },
-  rejected: { label: 'Từ chối', color: 'bg-red-500' },
+  rejected: { label: 'Từ chối', color: 'bg-gradient-to-r from-rose-500 to-pink-500' },
 };
 
 function formatStatus(status) {
@@ -58,19 +59,28 @@ function getInsightTone(severity) {
 export default function AnalyticsTab() {
   const { token } = useAuth();
   const [data, setData] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(() => {
+    if (!token) return false;
+    return !readCachedJson(`${API_BASE_URL}/api/employer/analytics`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+  });
   const [error, setError] = useState('');
 
   useEffect(() => {
     const fetchAnalytics = async () => {
       try {
-        const res = await fetch(`${API_BASE_URL}/api/employer/analytics`, {
+        const cached = readCachedJson(`${API_BASE_URL}/api/employer/analytics`, {
           headers: { Authorization: `Bearer ${token}` },
         });
-        const json = await res.json();
-        if (!res.ok) {
-          throw new Error(json.error || 'Không thể tải thống kê');
+        if (cached) {
+          setData(cached);
+          setLoading(false);
         }
+
+        const json = await cachedJsonFetch(`${API_BASE_URL}/api/employer/analytics`, {
+          headers: { Authorization: `Bearer ${token}` },
+        }, { ttlMs: 60 * 1000 });
         setData(json);
       } catch (err) {
         console.error('Fetch analytics error:', err);
@@ -86,8 +96,8 @@ export default function AnalyticsTab() {
 
   if (loading) {
     return (
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-20 flex flex-col items-center justify-center">
-        <Loader2 className="w-10 h-10 text-navy-700 animate-spin mb-4" />
+      <div className="rounded-2xl border border-indigo-100/60 bg-white/90 backdrop-blur-sm shadow-sm p-20 flex flex-col items-center justify-center">
+        <Loader2 className="w-10 h-10 text-indigo-700 animate-spin mb-4" />
         <p className="text-gray-500 font-medium">Đang tải thống kê...</p>
       </div>
     );
@@ -95,7 +105,7 @@ export default function AnalyticsTab() {
 
   if (error) {
     return (
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-10">
+      <div className="rounded-2xl border border-indigo-100/60 bg-white/90 backdrop-blur-sm shadow-sm p-10">
         <div className="p-4 bg-red-50 text-red-700 rounded-xl border border-red-100 flex items-center gap-2">
           <AlertCircle className="w-5 h-5" />
           {error}
@@ -211,11 +221,12 @@ export default function AnalyticsTab() {
     <div className="space-y-6">
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {stats.map((stat) => (
-          <div key={stat.label} className="bg-white p-5 rounded-xl border border-gray-100 shadow-sm">
-            <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${stat.bg} ${stat.color} mb-4`}>
+          <div key={stat.label} className="group relative overflow-hidden rounded-2xl border border-indigo-100/60 bg-white/90 backdrop-blur-sm p-5 shadow-sm hover:shadow-xl hover:shadow-indigo-50 hover:-translate-y-0.5 transition-all duration-500">
+            <div className={`absolute -top-8 -right-8 w-24 h-24 rounded-full ${stat.bg} opacity-20 group-hover:opacity-30 blur-2xl transition-opacity duration-500`}></div>
+            <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${stat.bg} ${stat.color} mb-4 shadow-md`}>
               <stat.icon className="w-5 h-5" />
             </div>
-            <h4 className="text-2xl font-bold text-gray-800 mb-1">{stat.value}</h4>
+            <h4 className="text-3xl font-extrabold text-gray-800 mb-1">{stat.value}</h4>
             <p className="text-sm text-gray-500 font-medium">{stat.label}</p>
             <p className="text-xs text-gray-400 mt-2">{stat.helper}</p>
           </div>
@@ -223,15 +234,19 @@ export default function AnalyticsTab() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm h-80 flex flex-col">
-          <h3 className="font-bold text-gray-800 mb-6">Ứng tuyển trong 7 ngày gần nhất</h3>
+        <div className="relative overflow-hidden rounded-2xl border border-indigo-100/60 bg-white/90 backdrop-blur-sm p-6 shadow-sm h-80 flex flex-col">
+          <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-indigo-500 to-violet-500 rounded-t-2xl"></div>
+          <h3 className="font-bold text-gray-800 mb-6 flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-gradient-to-r from-indigo-500 to-violet-500"></span>
+            Ứng tuyển trong 7 ngày gần nhất
+          </h3>
           <div className="flex-1 flex flex-col min-h-0">
             {/* Bar area */}
-            <div className="flex-1 border-l border-gray-200 relative flex items-end justify-between px-2 gap-3">
+            <div className="flex-1 border-l border-indigo-100/60 relative flex items-end justify-between px-2 gap-3">
               {weekly.map((item) => (
                 <div key={item.label} className="flex-1 flex justify-center min-w-0 h-full items-end">
                   <div
-                    className="w-full bg-navy-200 hover:bg-navy-400 transition-colors rounded-t-md relative group cursor-pointer"
+                    className="w-full bg-indigo-200 hover:bg-indigo-400 transition-colors rounded-t-md relative group cursor-pointer"
                     style={{ height: `${Math.max((item.count / maxWeeklyCount) * 100, item.count > 0 ? 12 : 4)}%` }}
                   >
                     <span className="absolute -top-8 left-1/2 -translate-x-1/2 bg-gray-800 text-white text-xs py-1 px-2 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10">
@@ -245,7 +260,7 @@ export default function AnalyticsTab() {
               )}
             </div>
             {/* Labels */}
-            <div className="flex justify-between px-2 gap-3 border-t border-gray-200 pt-2 shrink-0">
+            <div className="flex justify-between px-2 gap-3 border-t border-indigo-100/60 pt-2 shrink-0">
               {weekly.map((item) => (
                 <div key={item.label} className="flex-1 text-center">
                   <span className="text-[10px] text-gray-400">{item.label}</span>
@@ -256,12 +271,16 @@ export default function AnalyticsTab() {
           </div>
         </div>
 
-        <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm h-80 flex flex-col">
-          <h3 className="font-bold text-gray-800 mb-6">Phân bổ trạng thái ứng viên</h3>
+        <div className="relative flex h-80 flex-col overflow-hidden rounded-2xl border border-indigo-100/60 bg-white/90 p-6 shadow-sm backdrop-blur-sm">
+          <div className="absolute left-0 right-0 top-0 h-1 rounded-t-2xl bg-gradient-to-r from-violet-500 to-purple-500"></div>
+          <h3 className="font-bold text-gray-800 mb-6 flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-gradient-to-r from-violet-500 to-purple-500"></span>
+            Phân bổ trạng thái ứng viên
+          </h3>
           <div className="flex-1 flex flex-col justify-center gap-4">
             {statuses.length ? statuses.map((status) => {
               const width = summary.totalCandidates > 0 ? (status.count / summary.totalCandidates) * 100 : 0;
-              const color = STATUS_META[status.status]?.color || 'bg-gray-500';
+              const color = STATUS_META[status.status]?.color || 'bg-indigo-50/500';
 
               return (
                 <div key={status.status}>
@@ -282,7 +301,7 @@ export default function AnalyticsTab() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm min-h-80">
+        <div className="relative overflow-hidden rounded-2xl border border-indigo-100/60 bg-white/90 backdrop-blur-sm p-6 shadow-sm min-h-80">
           <div className="flex items-center justify-between mb-6">
             <h3 className="font-bold text-gray-800">Nguồn ứng viên</h3>
             <PieChart className="w-5 h-5 text-gray-400" />
@@ -308,7 +327,7 @@ export default function AnalyticsTab() {
           </div>
         </div>
 
-        <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm min-h-80">
+        <div className="relative overflow-hidden rounded-2xl border border-indigo-100/60 bg-white/90 backdrop-blur-sm p-6 shadow-sm min-h-80">
           <div className="flex items-center justify-between mb-6">
             <h3 className="font-bold text-gray-800">AI insights cho mô tả tuyển dụng</h3>
             <Lightbulb className="w-5 h-5 text-amber-500" />
@@ -316,7 +335,7 @@ export default function AnalyticsTab() {
 
           <div className="space-y-3">
             {aiInsights.length ? aiInsights.map((insight, index) => (
-              <div key={`${insight.job_id}-${insight.type}-${index}`} className={`rounded-xl border p-4 ${getInsightTone(insight.severity)}`}>
+              <div key={`${insight.job_id}-${insight.type}-${index}`} className={`rounded-lg border p-4 ${getInsightTone(insight.severity)}`}>
                 <p className="text-xs font-bold uppercase tracking-[0.16em] opacity-80">{insight.title}</p>
                 <h4 className="mt-2 text-sm font-bold">{insight.message}</h4>
                 <p className="mt-2 text-sm leading-6 opacity-90">{insight.recommendation}</p>
@@ -330,7 +349,8 @@ export default function AnalyticsTab() {
         </div>
       </div>
 
-      <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm">
+      <div className="relative overflow-hidden rounded-2xl border border-indigo-100/60 bg-white/90 backdrop-blur-sm p-6 shadow-sm">
+        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-cyan-500 via-teal-500 to-emerald-500 rounded-t-2xl"></div>
         <div className="flex items-start justify-between gap-4 mb-5">
           <div>
             <h3 className="font-bold text-gray-800">Phân tích thị trường lao động</h3>
@@ -343,8 +363,8 @@ export default function AnalyticsTab() {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
           {marketStats.map((stat) => (
-            <div key={stat.label} className="rounded-xl border border-gray-100 bg-gray-50/70 p-5">
-              <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${stat.bg} ${stat.color} mb-4`}>
+            <div key={stat.label} className="rounded-2xl border border-indigo-100/60 bg-gradient-to-br from-indigo-50/40 to-violet-50/30 p-5">
+              <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${stat.bg} ${stat.color} mb-4 shadow-sm`}>
                 <stat.icon className="w-5 h-5" />
               </div>
               <h4 className="text-xl font-bold text-gray-800 mb-1 break-words">{stat.value}</h4>
@@ -355,7 +375,8 @@ export default function AnalyticsTab() {
         </div>
       </div>
 
-      <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm">
+      <div className="relative overflow-hidden rounded-2xl border border-indigo-100/60 bg-white/90 backdrop-blur-sm p-6 shadow-sm">
+        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-amber-500 via-orange-500 to-rose-500 rounded-t-2xl"></div>
         <div className="flex items-center justify-between mb-5">
           <h3 className="font-bold text-gray-800">Tin tuyển dụng thu hút nhất</h3>
           <span className="text-xs text-gray-400">Top 5 theo số hồ sơ nhận được</span>
@@ -363,13 +384,13 @@ export default function AnalyticsTab() {
 
         <div className="space-y-4">
           {topJobs.length ? topJobs.map((job, index) => (
-            <div key={job.id} className="flex items-center justify-between gap-4 p-4 rounded-xl border border-gray-100 bg-gray-50/60">
+            <div key={job.id} className="flex items-center justify-between gap-4 p-4 rounded-xl border border-indigo-100/40 bg-gradient-to-r from-indigo-50/30 to-violet-50/20 hover:shadow-sm transition-all duration-300">
               <div className="min-w-0">
                 <p className="text-xs font-bold text-gray-400 mb-1">TOP {index + 1}</p>
                 <h4 className="font-semibold text-gray-800 truncate">{job.title}</h4>
               </div>
               <div className="text-right shrink-0">
-                <p className="text-lg font-bold text-navy-700">{job.applicant_count}</p>
+                <p className="text-lg font-bold text-indigo-700">{job.applicant_count}</p>
                 <p className="text-xs text-gray-500">{job.view_count || 0} view | {job.conversion_rate || 0}%</p>
               </div>
             </div>
@@ -380,7 +401,7 @@ export default function AnalyticsTab() {
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-        <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm">
+        <div className="rounded-2xl border border-indigo-100/60 bg-white/90 backdrop-blur-sm p-6 shadow-sm">
           <div className="flex items-center justify-between mb-5">
             <h3 className="font-bold text-gray-800">Role đang có nhu cầu cao</h3>
             <span className="text-xs text-gray-400">Top 6 theo số lượng tin</span>
@@ -388,7 +409,7 @@ export default function AnalyticsTab() {
 
           <div className="space-y-4">
             {market.topRoles.length ? market.topRoles.map((role, index) => (
-              <div key={`${role.role}-${index}`} className="flex items-start justify-between gap-4 p-4 rounded-xl border border-gray-100 bg-gray-50/60">
+              <div key={`${role.role}-${index}`} className="flex items-start justify-between gap-4 p-4 rounded-xl border border-indigo-100/40 bg-gradient-to-r from-indigo-50/30 to-violet-50/20 hover:shadow-sm transition-all duration-300">
                 <div className="min-w-0">
                   <p className="text-xs font-bold text-gray-400 mb-1">TOP {index + 1}</p>
                   <h4 className="font-semibold text-gray-800 break-words">{role.role}</h4>
@@ -397,7 +418,7 @@ export default function AnalyticsTab() {
                   </p>
                 </div>
                 <div className="text-right shrink-0">
-                  <p className="text-lg font-bold text-navy-700">{role.demand_count}</p>
+                  <p className="text-lg font-bold text-indigo-700">{role.demand_count}</p>
                   <p className="text-xs text-gray-500">tin tuyển</p>
                 </div>
               </div>
@@ -407,7 +428,7 @@ export default function AnalyticsTab() {
           </div>
         </div>
 
-        <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm">
+        <div className="rounded-2xl border border-indigo-100/60 bg-white/90 backdrop-blur-sm p-6 shadow-sm">
           <div className="flex items-center justify-between mb-5">
             <h3 className="font-bold text-gray-800">Ngành đang sôi động</h3>
             <span className="text-xs text-gray-400">Top 6 theo nhu cầu tuyển dụng</span>
@@ -415,7 +436,7 @@ export default function AnalyticsTab() {
 
           <div className="space-y-4">
             {market.topIndustries.length ? market.topIndustries.map((industry, index) => (
-              <div key={`${industry.industry}-${index}`} className="flex items-center justify-between gap-4 p-4 rounded-xl border border-gray-100 bg-gray-50/60">
+              <div key={`${industry.industry}-${index}`} className="flex items-center justify-between gap-4 p-4 rounded-xl border border-indigo-100/40 bg-gradient-to-r from-indigo-50/30 to-violet-50/20 hover:shadow-sm transition-all duration-300">
                 <div className="min-w-0">
                   <p className="text-xs font-bold text-gray-400 mb-1">TOP {index + 1}</p>
                   <h4 className="font-semibold text-gray-800 break-words">{industry.industry}</h4>
@@ -432,7 +453,8 @@ export default function AnalyticsTab() {
         </div>
       </div>
 
-      <div className="bg-white p-6 rounded-xl border border-gray-100 shadow-sm">
+      <div className="relative overflow-hidden rounded-2xl border border-indigo-100/60 bg-white/90 backdrop-blur-sm p-6 shadow-sm">
+        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-indigo-500 via-violet-500 to-purple-500 rounded-t-2xl"></div>
         <div className="flex items-center justify-between gap-4 mb-5">
           <div>
             <h3 className="font-bold text-gray-800">Kỹ năng nổi bật trên thị trường</h3>
@@ -444,9 +466,9 @@ export default function AnalyticsTab() {
         {market.hotSkills.length ? (
           <div className="flex flex-wrap gap-3">
             {market.hotSkills.map((skill) => (
-              <div key={skill.skill} className="inline-flex items-center gap-2 rounded-full border border-gray-200 bg-gray-50 px-4 py-2.5">
+              <div key={skill.skill} className="inline-flex items-center gap-2 rounded-full border border-indigo-100/60 bg-indigo-50/50 px-4 py-2.5">
                 <span className="text-sm font-semibold text-gray-700">{skill.skill}</span>
-                <span className="rounded-full bg-navy-100 px-2 py-0.5 text-xs font-bold text-navy-700">
+                <span className="rounded-full bg-indigo-100 px-2 py-0.5 text-xs font-bold text-indigo-700">
                   {skill.demand_count}
                 </span>
               </div>

@@ -14,7 +14,7 @@ async function migrateAITests() {
         duration INTEGER DEFAULT 60, -- duration in minutes
         start_time TIMESTAMP,
         end_time TIMESTAMP,
-        test_type VARCHAR(50) DEFAULT 'normal', -- normal, video_ai, avatar_live2d
+        test_type VARCHAR(50) DEFAULT 'normal', -- normal, video_ai, avatar_live3d
         creator_id INTEGER,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
       );

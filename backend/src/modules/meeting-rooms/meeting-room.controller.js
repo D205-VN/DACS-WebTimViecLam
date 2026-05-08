@@ -1,4 +1,5 @@
 const pool = require('../../infrastructure/database/postgres');
+const { getIO } = require('../../core/realtime/socket');
 const { ensureMeetingRoomSchema } = require('./meeting-room.model');
 
 const ACTIVE_QUEUE_STATUSES = ['waiting', 'in_interview'];
@@ -218,6 +219,17 @@ async function admitFirstWaitingRoom(client, { employerId, jobId, interviewDate 
     );
 
     return next.rows[0] || null;
+}
+
+function emitInterviewCompleted(roomId, completedScheduleId) {
+    try {
+        getIO().to(`interview_${roomId}`).emit('webrtc:interview-completed', {
+            roomId,
+            completedScheduleId: completedScheduleId || null,
+        });
+    } catch (error) {
+        console.warn('Skip interview completion socket event:', error.message);
+    }
 }
 
 // 1. Lấy danh sách phòng
@@ -657,18 +669,21 @@ exports.completeCurrentInterview = async (req, res) => {
 
         await client.query(
             `UPDATE meeting_rooms
-             SET queue_status = $1,
-                 ended_at = CASE WHEN $1::text = 'completed' THEN COALESCE(ended_at, NOW()) ELSE ended_at END,
+             SET queue_status = $1::varchar,
+                 ended_at = CASE WHEN $1::varchar = 'completed' THEN COALESCE(ended_at, NOW()) ELSE ended_at END,
                  updated_at = NOW()
              WHERE id = $2`,
             [roomStatus, room.id]
         );
 
         await client.query('COMMIT');
+        const completedScheduleId = completed.rows[0]?.id || null;
+        emitInterviewCompleted(room.id, completedScheduleId);
+
         res.json({
             data: {
                 completed_room_id: room.id,
-                completed_schedule_id: completed.rows[0]?.id || null,
+                completed_schedule_id: completedScheduleId,
                 room_status: roomStatus,
                 next_candidate: nextCandidate
                     ? {

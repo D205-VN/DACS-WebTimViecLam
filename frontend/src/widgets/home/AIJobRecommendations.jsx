@@ -1,15 +1,25 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, createElement } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  Sparkles, MapPin, DollarSign, Briefcase, ChevronRight,
-  RefreshCw, AlertCircle, FileText, Loader2, Zap,
-  TrendingUp, Target, CheckCircle2
+  AlertCircle,
+  Briefcase,
+  CheckCircle2,
+  ChevronRight,
+  DollarSign,
+  FileText,
+  Loader2,
+  MapPin,
+  RefreshCw,
+  Sparkles,
+  Target,
+  TrendingUp,
+  Zap,
 } from 'lucide-react';
 import { useAuth } from '@features/auth/AuthContext';
 import { getJobDetailRoute } from '@shared/utils/roleRedirect';
 import API_BASE_URL from '@shared/api/baseUrl';
 
-function CircularScore({ score, size = 56 }) {
+function CircularScore({ score, size = 52 }) {
   const strokeWidth = 4;
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
@@ -25,15 +35,20 @@ function CircularScore({ score, size = 56 }) {
     score >= 45 ? 'rgba(245, 158, 11, 0.1)' :
     'rgba(107, 114, 128, 0.1)';
 
+  const glowColor =
+    score >= 70 ? '0 0 8px rgba(16, 185, 129, 0.3)' :
+    score >= 45 ? '0 0 8px rgba(245, 158, 11, 0.3)' :
+    '0 0 8px rgba(107, 114, 128, 0.2)';
+
   return (
-    <div className="relative flex items-center justify-center shrink-0" style={{ width: size, height: size }}>
-      <svg width={size} height={size} className="transform -rotate-90">
+    <div className="relative flex shrink-0 items-center justify-center" style={{ width: size, height: size }}>
+      <svg width={size} height={size} className="-rotate-90" style={{ filter: `drop-shadow(${glowColor})` }}>
         <circle
           cx={size / 2}
           cy={size / 2}
           r={radius}
           fill={bgColor}
-          stroke="rgba(255,255,255,0.1)"
+          stroke="#e5e7eb"
           strokeWidth={strokeWidth}
         />
         <circle
@@ -51,7 +66,7 @@ function CircularScore({ score, size = 56 }) {
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">
         <span className="text-sm font-bold" style={{ color }}>{score}</span>
-        <span className="text-[8px] text-gray-400 -mt-0.5">điểm</span>
+        <span className="-mt-0.5 text-[8px] text-gray-400">điểm</span>
       </div>
     </div>
   );
@@ -59,21 +74,70 @@ function CircularScore({ score, size = 56 }) {
 
 function SkeletonCard() {
   return (
-    <div className="bg-white/5 rounded-2xl border border-white/10 p-4 animate-pulse">
+    <div className="animate-pulse rounded-xl border border-indigo-50 bg-white p-4">
       <div className="flex gap-3">
-        <div className="w-14 h-14 rounded-xl bg-white/10 shrink-0" />
+        <div className="h-12 w-12 shrink-0 rounded-xl bg-indigo-50" />
         <div className="flex-1 space-y-2">
-          <div className="h-4 w-3/4 rounded bg-white/10" />
-          <div className="h-3 w-1/2 rounded bg-white/10" />
-          <div className="flex gap-2 mt-3">
-            <div className="h-5 w-20 rounded-full bg-white/10" />
-            <div className="h-5 w-24 rounded-full bg-white/10" />
+          <div className="h-4 w-3/4 rounded bg-indigo-50" />
+          <div className="h-3 w-1/2 rounded bg-indigo-50" />
+          <div className="mt-3 flex gap-2">
+            <div className="h-5 w-20 rounded bg-indigo-50" />
+            <div className="h-5 w-24 rounded bg-indigo-50" />
           </div>
         </div>
       </div>
     </div>
   );
 }
+
+function RecommendationPanel({ children }) {
+  return (
+    <section className="overflow-hidden rounded-xl border border-indigo-100/60 bg-white/90 p-4 backdrop-blur-sm shadow-sm">
+      {children}
+    </section>
+  );
+}
+
+function NoticePanel({ icon, title, description, action, tone = 'navy' }) {
+  const toneClass = {
+    amber: 'bg-gradient-to-r from-amber-50 to-yellow-50 text-amber-700 border-amber-200/60',
+    orange: 'bg-gradient-to-r from-orange-50 to-amber-50 text-orange-700 border-orange-200/60',
+    rose: 'bg-gradient-to-r from-rose-50 to-pink-50 text-rose-700 border-rose-200/60',
+    navy: 'bg-gradient-to-r from-indigo-50 to-violet-50 text-indigo-700 border-indigo-200/60',
+  }[tone];
+
+  return (
+    <RecommendationPanel>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+        <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border ${toneClass}`}>
+          {createElement(icon, { className: 'h-6 w-6' })}
+        </div>
+        <div className="min-w-0 flex-1">
+          <h2 className="text-base font-bold text-gray-900">{title}</h2>
+          <p className="mt-1 text-sm leading-6 text-gray-500">{description}</p>
+        </div>
+        {action}
+      </div>
+    </RecommendationPanel>
+  );
+}
+
+const skillColors = [
+  'bg-cyan-50 text-cyan-700',
+  'bg-violet-50 text-violet-700',
+  'bg-rose-50 text-rose-700',
+  'bg-amber-50 text-amber-700',
+  'bg-teal-50 text-teal-700',
+  'bg-indigo-50 text-indigo-700',
+  'bg-pink-50 text-pink-700',
+  'bg-emerald-50 text-emerald-700',
+];
+
+const reasonColors = [
+  'bg-gradient-to-r from-indigo-50 to-violet-50 text-indigo-700',
+  'bg-gradient-to-r from-violet-50 to-purple-50 text-violet-700',
+  'bg-gradient-to-r from-rose-50 to-pink-50 text-rose-700',
+];
 
 export default function AIJobRecommendations({ userCoordinates }) {
   const navigate = useNavigate();
@@ -126,148 +190,108 @@ export default function AIJobRecommendations({ userCoordinates }) {
     }
   }, [isAuthenticated, user?.role_code, fetchRecommendations]);
 
-  // Don't render for non-seekers or unauthenticated users
   if (!isAuthenticated || user?.role_code !== 'seeker') return null;
 
-  // Loading state
   if (loading) {
     return (
-      <section className="relative overflow-hidden bg-gradient-to-br from-slate-900 via-navy-900 to-indigo-950 rounded-3xl mx-4 sm:mx-6 lg:mx-8 mt-6 p-6 sm:p-8">
-        {/* Background decoration */}
-        <div className="absolute inset-0 overflow-hidden">
-          <div className="absolute -top-20 -right-20 w-60 h-60 bg-emerald-500/10 rounded-full blur-3xl" />
-          <div className="absolute -bottom-20 -left-20 w-60 h-60 bg-cyan-500/10 rounded-full blur-3xl" />
-        </div>
-
-        <div className="relative">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-400 to-cyan-400 shadow-lg shadow-emerald-500/20">
-              <Loader2 className="h-5 w-5 text-white animate-spin" />
-            </div>
-            <div>
-              <h2 className="text-lg font-bold text-white">AI đang phân tích CV của bạn...</h2>
-              <p className="text-sm text-slate-400">Đang so sánh kỹ năng với hàng ngàn tin tuyển dụng</p>
-            </div>
+      <RecommendationPanel>
+        <div className="mb-4 flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-100 to-violet-100 text-indigo-700">
+            <Loader2 className="h-5 w-5 animate-spin" />
           </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            <SkeletonCard />
-            <SkeletonCard />
-            <SkeletonCard />
+          <div>
+            <h2 className="text-base font-bold text-gray-900">AI đang phân tích CV của bạn</h2>
+            <p className="text-sm text-gray-500">Đang so sánh kỹ năng với tin tuyển dụng mới.</p>
           </div>
         </div>
-      </section>
+
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          <SkeletonCard />
+          <SkeletonCard />
+          <SkeletonCard />
+        </div>
+      </RecommendationPanel>
     );
   }
 
-  // No CV state
   if (cvStatus === 'no_cv') {
     return (
-      <section className="relative overflow-hidden bg-gradient-to-br from-slate-900 via-navy-900 to-indigo-950 rounded-3xl mx-4 sm:mx-6 lg:mx-8 mt-6 p-6 sm:p-8">
-        <div className="absolute inset-0 overflow-hidden">
-          <div className="absolute -top-20 -right-20 w-60 h-60 bg-amber-500/10 rounded-full blur-3xl" />
-        </div>
-        <div className="relative flex flex-col sm:flex-row items-start sm:items-center gap-4">
-          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-amber-500/20 border border-amber-500/30">
-            <FileText className="h-7 w-7 text-amber-400" />
-          </div>
-          <div className="flex-1">
-            <h2 className="text-lg font-bold text-white mb-1">Tạo CV để nhận gợi ý AI</h2>
-            <p className="text-sm text-slate-400 leading-relaxed">
-              Hệ thống AI sẽ phân tích kỹ năng, kinh nghiệm trong CV của bạn và tự động đề xuất các công việc phù hợp nhất.
-            </p>
-          </div>
+      <NoticePanel
+        icon={FileText}
+        tone="amber"
+        title="Tạo CV để nhận gợi ý AI"
+        description="AI sẽ dùng kỹ năng và kinh nghiệm trong CV để đề xuất việc làm phù hợp hơn."
+        action={(
           <button
             onClick={() => navigate('/seeker/cv-builder')}
-            className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-xl text-sm font-semibold hover:shadow-lg hover:shadow-amber-500/30 hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200 shrink-0"
+            className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 px-4 py-2.5 text-sm font-semibold text-white shadow-md shadow-indigo-200/50 transition-all duration-200 hover:shadow-lg hover:from-indigo-700 hover:to-violet-700"
           >
-            <Zap className="w-4 h-4" />
+            <Zap className="h-4 w-4" />
             Tạo CV ngay
           </button>
-        </div>
-      </section>
+        )}
+      />
     );
   }
 
-  // CV insufficient
   if (cvStatus === 'insufficient') {
     return (
-      <section className="relative overflow-hidden bg-gradient-to-br from-slate-900 via-navy-900 to-indigo-950 rounded-3xl mx-4 sm:mx-6 lg:mx-8 mt-6 p-6 sm:p-8">
-        <div className="absolute inset-0 overflow-hidden">
-          <div className="absolute -top-20 -right-20 w-60 h-60 bg-orange-500/10 rounded-full blur-3xl" />
-        </div>
-        <div className="relative flex flex-col sm:flex-row items-start sm:items-center gap-4">
-          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-orange-500/20 border border-orange-500/30">
-            <AlertCircle className="h-7 w-7 text-orange-400" />
-          </div>
-          <div className="flex-1">
-            <h2 className="text-lg font-bold text-white mb-1">Bổ sung kỹ năng trong CV</h2>
-            <p className="text-sm text-slate-400 leading-relaxed">
-              CV hiện tại chưa có đủ thông tin kỹ năng. Hãy thêm kỹ năng chuyên môn để AI gợi ý việc chính xác hơn.
-            </p>
-          </div>
+      <NoticePanel
+        icon={AlertCircle}
+        tone="orange"
+        title="Bổ sung kỹ năng trong CV"
+        description="CV hiện tại chưa có đủ dữ liệu kỹ năng để AI gợi ý chính xác."
+        action={(
           <button
             onClick={() => navigate('/seeker/my-cvs')}
-            className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-orange-500 to-rose-500 text-white rounded-xl text-sm font-semibold hover:shadow-lg hover:shadow-orange-500/30 hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200 shrink-0"
+            className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 px-4 py-2.5 text-sm font-semibold text-white shadow-md shadow-indigo-200/50 transition-all duration-200 hover:shadow-lg hover:from-indigo-700 hover:to-violet-700"
           >
-            <FileText className="w-4 h-4" />
+            <FileText className="h-4 w-4" />
             Chỉnh sửa CV
           </button>
-        </div>
-      </section>
+        )}
+      />
     );
   }
 
-  // Error state
   if (error) {
     return (
-      <section className="relative overflow-hidden bg-gradient-to-br from-slate-900 via-navy-900 to-indigo-950 rounded-3xl mx-4 sm:mx-6 lg:mx-8 mt-6 p-6 sm:p-8">
-        <div className="relative flex items-center gap-4">
-          <AlertCircle className="h-6 w-6 text-rose-400 shrink-0" />
-          <p className="text-sm text-slate-300 flex-1">{error}</p>
+      <NoticePanel
+        icon={AlertCircle}
+        tone="rose"
+        title="Không tải được gợi ý"
+        description={error}
+        action={(
           <button
             onClick={() => fetchRecommendations(true)}
-            className="flex items-center gap-1.5 text-sm text-cyan-400 hover:text-cyan-300 font-medium transition-colors shrink-0"
+            className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl border border-indigo-200 px-4 py-2.5 text-sm font-semibold text-indigo-700 transition-all duration-200 hover:bg-indigo-50"
           >
-            <RefreshCw className="w-4 h-4" />
+            <RefreshCw className="h-4 w-4" />
             Thử lại
           </button>
-        </div>
-      </section>
+        )}
+      />
     );
   }
 
-  // No recommendations
   if (!recommendations.length) return null;
 
   return (
-    <section id="ai-recommendations" className="relative overflow-hidden bg-gradient-to-br from-slate-900 via-navy-900 to-indigo-950 rounded-3xl mx-4 sm:mx-6 lg:mx-8 mt-6 p-6 sm:p-8">
-      {/* Background decoration */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-32 -right-32 w-80 h-80 bg-emerald-500/8 rounded-full blur-3xl" />
-        <div className="absolute -bottom-32 -left-32 w-80 h-80 bg-cyan-500/8 rounded-full blur-3xl" />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-gradient-radial from-indigo-500/5 to-transparent rounded-full" />
-        <div
-          className="absolute inset-0 opacity-[0.02]"
-          style={{ backgroundImage: 'radial-gradient(circle, white 1px, transparent 1px)', backgroundSize: '24px 24px' }}
-        />
-      </div>
-
-      <div className="relative">
-        {/* Header */}
-        <div className="flex items-start sm:items-center justify-between gap-4 mb-6">
+    <RecommendationPanel>
+      <div id="ai-recommendations">
+        <div className="mb-4 flex items-start justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-400 to-cyan-400 shadow-lg shadow-emerald-500/20">
-              <Sparkles className="h-5 w-5 text-white" />
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-100 to-teal-100 text-emerald-700">
+              <Sparkles className="h-5 w-5" />
             </div>
             <div>
-              <div className="flex items-center gap-2">
-                <h2 className="text-lg font-bold text-white">AI Gợi ý Việc làm</h2>
-                <span className="px-2 py-0.5 text-[10px] font-bold tracking-wider uppercase bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 rounded-full">
+              <div className="flex flex-wrap items-center gap-2">
+                <h2 className="text-base font-bold text-gray-900">AI gợi ý việc làm</h2>
+                <span className="rounded-lg bg-gradient-to-r from-emerald-500 to-teal-500 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white shadow-sm">
                   Smart Match
                 </span>
               </div>
-              <p className="text-sm text-slate-400 mt-0.5">
+              <p className="mt-0.5 text-sm text-gray-500">
                 Dựa trên {cvSkills.length > 0 ? `${cvSkills.length} kỹ năng` : 'CV'} của bạn
                 {userCoordinates ? ' và vị trí hiện tại' : ''}
               </p>
@@ -277,113 +301,107 @@ export default function AIJobRecommendations({ userCoordinates }) {
           <button
             onClick={() => fetchRecommendations(true)}
             disabled={refreshing}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-sm text-slate-300 hover:text-white bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl transition-all duration-200 disabled:opacity-50 shrink-0"
+            className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-indigo-200 px-3 py-2 text-sm font-medium text-gray-600 transition-all duration-200 hover:bg-indigo-50 hover:text-indigo-700 disabled:opacity-50"
           >
-            <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`h-3.5 w-3.5 ${refreshing ? 'animate-spin' : ''}`} />
             <span className="hidden sm:inline">{refreshing ? 'Đang tải...' : 'Làm mới'}</span>
           </button>
         </div>
 
-        {/* Skills preview */}
         {cvSkills.length > 0 && (
-          <div className="flex flex-wrap items-center gap-1.5 mb-5">
-            <span className="text-xs text-slate-500 mr-1">Kỹ năng CV:</span>
-            {cvSkills.slice(0, 8).map((skill) => (
+          <div className="mb-4 flex flex-wrap items-center gap-1.5">
+            <span className="mr-1 text-xs font-medium text-gray-500">Kỹ năng CV</span>
+            {cvSkills.slice(0, 8).map((skill, idx) => (
               <span
                 key={skill}
-                className="px-2 py-0.5 text-[11px] font-medium text-cyan-300 bg-cyan-500/10 border border-cyan-500/20 rounded-full"
+                className={`rounded-lg px-2 py-1 text-[11px] font-medium ${skillColors[idx % skillColors.length]}`}
               >
                 {skill}
               </span>
             ))}
             {cvSkills.length > 8 && (
-              <span className="text-[11px] text-slate-500">+{cvSkills.length - 8} khác</span>
+              <span className="text-[11px] text-gray-500">+{cvSkills.length - 8} khác</span>
             )}
           </div>
         )}
 
-        {/* Job cards grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {recommendations.map((job, index) => (
-            <button
-              key={job.id}
-              type="button"
-              onClick={() => navigate(getJobDetailRoute(user?.role_code, job.id))}
-              className="group relative bg-white/[0.04] hover:bg-white/[0.08] backdrop-blur-sm rounded-2xl border border-white/[0.08] hover:border-emerald-500/30 p-4 text-left transition-all duration-300 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-emerald-500/5"
-              style={{ animationDelay: `${index * 80}ms` }}
-            >
-              {/* Score badge + Job info */}
-              <div className="flex gap-3 mb-3">
-                <CircularScore score={job.match_score} />
-                <div className="flex-1 min-w-0">
-                  <h3 className="text-sm font-semibold text-white line-clamp-2 group-hover:text-emerald-300 transition-colors leading-snug">
-                    {job.title}
-                  </h3>
-                  <p className="text-xs text-slate-400 mt-1 truncate">{job.company_name || 'Đang cập nhật'}</p>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {recommendations.map((job, idx) => {
+            const cardBorders = ['border-l-emerald-400', 'border-l-indigo-400', 'border-l-violet-400', 'border-l-amber-400', 'border-l-rose-400', 'border-l-teal-400'];
+            return (
+              <button
+                key={job.id}
+                type="button"
+                onClick={() => navigate(getJobDetailRoute(user?.role_code, job.id))}
+                className={`group relative rounded-xl border border-indigo-50 border-l-[3px] ${cardBorders[idx % cardBorders.length]} bg-white p-4 text-left transition-all duration-200 hover:border-indigo-100 hover:bg-indigo-50/20 hover:shadow-md hover:shadow-indigo-100/30 hover:-translate-y-0.5`}
+              >
+                <div className="mb-3 flex gap-3">
+                  <CircularScore score={job.match_score} />
+                  <div className="min-w-0 flex-1">
+                    <h3 className="line-clamp-2 text-sm font-semibold leading-snug text-gray-900 transition-colors group-hover:text-indigo-700">
+                      {job.title}
+                    </h3>
+                    <p className="mt-1 truncate text-xs text-gray-500">{job.company_name || 'Đang cập nhật'}</p>
+                  </div>
                 </div>
-              </div>
 
-              {/* Meta */}
-              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mb-3">
-                {job.salary && (
-                  <span className="flex items-center gap-1 text-xs font-medium text-emerald-400">
-                    <DollarSign className="w-3 h-3" />
-                    <span className="truncate max-w-[100px]">{job.salary}</span>
-                  </span>
-                )}
-                {job.location && (
-                  <span className="flex items-center gap-1 text-xs text-slate-400">
-                    <MapPin className="w-3 h-3" />
-                    <span className="truncate max-w-[100px]">{job.location}</span>
-                  </span>
-                )}
-              </div>
+                <div className="mb-3 flex flex-wrap items-center gap-x-3 gap-y-1">
+                  {job.salary && (
+                    <span className="flex items-center gap-1 text-xs font-medium text-emerald-600">
+                      <DollarSign className="h-3 w-3" />
+                      <span className="max-w-[100px] truncate">{job.salary}</span>
+                    </span>
+                  )}
+                  {job.location && (
+                    <span className="flex items-center gap-1 text-xs text-gray-500">
+                      <MapPin className="h-3 w-3 text-violet-400" />
+                      <span className="max-w-[100px] truncate">{job.location}</span>
+                    </span>
+                  )}
+                </div>
 
-              {/* Match reasons */}
-              <div className="flex flex-wrap gap-1.5">
-                {job.match_reasons?.slice(0, 2).map((reason, idx) => (
-                  <span
-                    key={idx}
-                    className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-medium rounded-full bg-white/5 border border-white/10 text-slate-300"
-                  >
-                    <span>{reason.icon}</span>
-                    <span className="truncate max-w-[130px]">{reason.text}</span>
-                  </span>
-                ))}
-              </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {job.match_reasons?.slice(0, 2).map((reason, ridx) => (
+                    <span
+                      key={ridx}
+                      className={`inline-flex max-w-full items-center rounded-lg px-2 py-1 text-[10px] font-medium ${reasonColors[ridx % reasonColors.length]}`}
+                    >
+                      <span className="truncate max-w-[130px]">{reason.text}</span>
+                    </span>
+                  ))}
+                </div>
 
-              {/* Hover arrow */}
-              <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                <ChevronRight className="w-4 h-4 text-emerald-400" />
-              </div>
-            </button>
-          ))}
+                <div className="absolute right-4 top-4 opacity-0 transition-all duration-200 group-hover:opacity-100">
+                  <ChevronRight className="h-4 w-4 text-indigo-600" />
+                </div>
+              </button>
+            );
+          })}
         </div>
 
-        {/* Score legend */}
-        <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 mt-6 pt-5 border-t border-white/5">
-          <div className="flex items-center gap-2 text-xs text-slate-500">
-            <Target className="w-3.5 h-3.5 text-slate-500" />
-            <span>Thuật toán AI phân tích:</span>
+        <div className="mt-4 flex flex-wrap items-center justify-center gap-x-5 gap-y-2 border-t border-indigo-50 pt-4">
+          <div className="flex items-center gap-2 text-xs text-gray-500">
+            <Target className="h-3.5 w-3.5 text-indigo-500" />
+            <span>AI phân tích</span>
           </div>
-          <div className="flex items-center gap-1.5 text-[11px] text-slate-400">
-            <CheckCircle2 className="w-3 h-3 text-emerald-500" />
+          <div className="flex items-center gap-1.5 text-[11px] text-gray-500">
+            <CheckCircle2 className="h-3 w-3 text-emerald-500" />
             Kỹ năng 40%
           </div>
-          <div className="flex items-center gap-1.5 text-[11px] text-slate-400">
-            <Briefcase className="w-3 h-3 text-amber-500" />
+          <div className="flex items-center gap-1.5 text-[11px] text-gray-500">
+            <Briefcase className="h-3 w-3 text-amber-500" />
             Chức danh 25%
           </div>
-          <div className="flex items-center gap-1.5 text-[11px] text-slate-400">
-            <TrendingUp className="w-3 h-3 text-cyan-500" />
+          <div className="flex items-center gap-1.5 text-[11px] text-gray-500">
+            <TrendingUp className="h-3 w-3 text-violet-500" />
             Ngành nghề 15%
           </div>
-          <div className="flex items-center gap-1.5 text-[11px] text-slate-400">
-            <MapPin className="w-3 h-3 text-rose-500" />
+          <div className="flex items-center gap-1.5 text-[11px] text-gray-500">
+            <MapPin className="h-3 w-3 text-rose-500" />
             Địa điểm 20%
           </div>
         </div>
       </div>
-    </section>
+    </RecommendationPanel>
   );
 }

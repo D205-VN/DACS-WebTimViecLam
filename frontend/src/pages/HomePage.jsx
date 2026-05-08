@@ -65,20 +65,12 @@ export default function HomePage() {
   };
 
   return (
-    <>
-      {/* Hero Section */}
+    <div className="aw-page">
       <HeroSection onSearch={handleSearch} />
 
-      {/* AI Job Recommendations — only visible to logged-in seekers */}
-      <div className="max-w-7xl mx-auto">
-        <AIJobRecommendations userCoordinates={searchParams.userCoordinates} />
-      </div>
-
-      {/* Main Content: Filters + Job Feed + Sidebar */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="flex flex-col lg:flex-row gap-6">
-          {/* Left Sidebar - Filters */}
-          <div className="hidden lg:block w-64 shrink-0">
+      <main className="mx-auto grid max-w-[1440px] grid-cols-1 gap-4 px-4 py-4 sm:px-6 lg:grid-cols-[260px_minmax(0,1fr)] lg:px-8 xl:grid-cols-[260px_minmax(0,1fr)_320px]">
+        <div className="hidden lg:block">
+          <div className="sticky top-16">
             <FilterSidebar
               key={[
                 searchParams.salaryRange,
@@ -94,18 +86,19 @@ export default function HomePage() {
               onApply={handleApplyFilters}
             />
           </div>
+        </div>
 
-          {/* Center - Job List */}
-          <div id="job-feed" className="flex-1 min-w-0">
-            <JobList searchParams={searchParams} />
-          </div>
+        <div id="job-feed" className="min-w-0 space-y-4">
+          <AIJobRecommendations userCoordinates={searchParams.userCoordinates} />
+          <JobList searchParams={searchParams} />
+        </div>
 
-          {/* Right Sidebar - Widgets */}
-          <div className="hidden xl:block w-72 shrink-0">
+        <div className="hidden xl:block">
+          <div className="sticky top-16">
             <RightSidebar searchParams={searchParams} />
           </div>
         </div>
       </main>
-    </>
+    </div>
   );
 }

@@ -4,6 +4,492 @@ const { GoogleGenerativeAI } = require('@google/generative-ai');
 // Initialize Gemini for scoring mock
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || 'mock-api-key');
 
+const MCQ_KEYS = ['A', 'B', 'C', 'D'];
+const ALLOWED_QUESTION_TYPES = new Set(['mcq', 'essay']);
+const ALLOWED_DIFFICULTIES = new Set(['easy', 'medium', 'hard']);
+const LIVEAVATAR_API_URL = (process.env.LIVEAVATAR_API_URL || 'https://api.liveavatar.com').replace(/\/+$/, '');
+
+function parseBooleanEnv(value, fallback = false) {
+  if (value === undefined || value === null || value === '') return fallback;
+  return ['1', 'true', 'yes', 'y', 'on'].includes(String(value).trim().toLowerCase());
+}
+
+function pickLiveAvatarToken(data) {
+  return data?.sessionToken
+    || data?.session_token
+    || data?.token
+    || data?.access_token
+    || data?.data?.sessionToken
+    || data?.data?.session_token
+    || data?.data?.token
+    || data?.data?.access_token
+    || null;
+}
+
+function buildLiveAvatarPayload(body = {}) {
+  const mode = String(body.mode || process.env.LIVEAVATAR_MODE || 'LITE').trim().toUpperCase();
+  const avatarId = body.avatar_id || process.env.LIVEAVATAR_AVATAR_ID;
+  const voiceId = body.voice_id || process.env.LIVEAVATAR_VOICE_ID;
+  const contextId = body.context_id || process.env.LIVEAVATAR_CONTEXT_ID;
+  const language = body.language || process.env.LIVEAVATAR_LANGUAGE || 'vi';
+  const videoEncoding = body.video_encoding || process.env.LIVEAVATAR_VIDEO_ENCODING || 'VP8';
+  const videoQuality = body.video_quality || process.env.LIVEAVATAR_VIDEO_QUALITY || 'medium';
+  const disableGreeting = body.disable_greeting !== undefined
+    ? Boolean(body.disable_greeting)
+    : parseBooleanEnv(process.env.LIVEAVATAR_DISABLE_GREETING, true);
+  const isSandbox = body.is_sandbox !== undefined
+    ? Boolean(body.is_sandbox)
+    : parseBooleanEnv(process.env.LIVEAVATAR_IS_SANDBOX, true);
+
+  const payload = {
+    mode,
+    avatar_id: avatarId,
+    is_sandbox: isSandbox,
+    video_settings: {
+      encoding: videoEncoding,
+      quality: videoQuality,
+    },
+  };
+
+  if (voiceId || contextId || language || disableGreeting) {
+    payload.avatar_persona = {
+      language,
+      disable_greeting: disableGreeting,
+    };
+    if (voiceId) payload.avatar_persona.voice_id = voiceId;
+    if (contextId) payload.avatar_persona.context_id = contextId;
+  }
+
+  return payload;
+}
+
+function compactText(value = '') {
+  return String(value || '')
+    .replace(/<style[\s\S]*?<\/style>/gi, ' ')
+    .replace(/<script[\s\S]*?<\/script>/gi, ' ')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function normalizePhraseKey(value = '') {
+  return compactText(value)
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/node\.?\s*js/g, 'nodejs')
+    .replace(/[^a-z0-9]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function removeRepeatedWords(value = '') {
+  const words = compactText(value).split(/\s+/).filter(Boolean);
+  const cleaned = [];
+  words.forEach((word) => {
+    if (normalizePhraseKey(word) !== normalizePhraseKey(cleaned[cleaned.length - 1] || '')) {
+      cleaned.push(word);
+    }
+  });
+  return cleaned.join(' ');
+}
+
+function samePhrase(left, right) {
+  const leftKey = normalizePhraseKey(left);
+  const rightKey = normalizePhraseKey(right);
+  return Boolean(leftKey && rightKey && leftKey === rightKey);
+}
+
+function clampInteger(value, fallback, min, max) {
+  const parsed = Number.parseInt(value, 10);
+  if (!Number.isFinite(parsed)) return fallback;
+  return Math.min(max, Math.max(min, parsed));
+}
+
+function clampRatio(value, fallback = 0.7) {
+  const parsed = Number.parseFloat(value);
+  if (!Number.isFinite(parsed)) return fallback;
+  return Math.min(1, Math.max(0, parsed));
+}
+
+function normalizeQuestionType(value, fallback = 'mcq') {
+  const normalized = compactText(value).toLowerCase();
+  if (['multiple_choice', 'multiple-choice', 'multiple choice', 'choice', 'quiz', 'trac nghiem', 'trắc nghiệm'].includes(normalized)) {
+    return 'mcq';
+  }
+  if (['short_answer', 'short-answer', 'short answer', 'written', 'text', 'voice', 'tu_luan', 'tu luan', 'tự luận'].includes(normalized)) {
+    return 'essay';
+  }
+  return ALLOWED_QUESTION_TYPES.has(normalized) ? normalized : fallback;
+}
+
+function normalizeDifficulty(value) {
+  const normalized = compactText(value).toLowerCase();
+  return ALLOWED_DIFFICULTIES.has(normalized) ? normalized : 'medium';
+}
+
+function parseOptionsInput(options) {
+  if (!options) return {};
+  if (typeof options === 'string') {
+    try {
+      return parseOptionsInput(JSON.parse(options));
+    } catch {
+      return {};
+    }
+  }
+
+  if (Array.isArray(options)) {
+    return options.slice(0, 4).reduce((acc, option, index) => {
+      const key = MCQ_KEYS[index];
+      const value = typeof option === 'object' && option !== null
+        ? option.text || option.content || option.value || option.answer || option.label
+        : option;
+      acc[key] = compactText(value);
+      return acc;
+    }, {});
+  }
+
+  if (typeof options === 'object') {
+    return MCQ_KEYS.reduce((acc, key) => {
+      const raw = options[key] ?? options[key.toLowerCase()];
+      const value = typeof raw === 'object' && raw !== null
+        ? raw.text || raw.content || raw.value || raw.answer || raw.label
+        : raw;
+      acc[key] = compactText(value);
+      return acc;
+    }, {});
+  }
+
+  return {};
+}
+
+function normalizeCorrectAnswer(value, options) {
+  const raw = compactText(value);
+  if (!raw) return null;
+
+  const directKey = raw.toUpperCase().match(/^[A-D](?=\.|\)|:|\s|$)/)?.[0];
+  if (directKey && options[directKey]) return directKey;
+
+  const mentionedKey = raw.toUpperCase().match(/(?:ĐÁP ÁN|PHƯƠNG ÁN|OPTION|ANSWER)\s*([A-D])(?=\.|\)|:|\s|$)/)?.[1];
+  if (mentionedKey && options[mentionedKey]) return mentionedKey;
+
+  const normalizedRaw = raw.toLowerCase();
+  const matchedKey = MCQ_KEYS.find((key) => options[key] && options[key].toLowerCase() === normalizedRaw);
+  if (matchedKey) return matchedKey;
+
+  return null;
+}
+
+function normalizeKeywords(value, fallbackKeywords = []) {
+  if (Array.isArray(value)) {
+    return value.map(compactText).filter(Boolean).join(', ');
+  }
+  const normalized = compactText(value);
+  if (normalized) return normalized;
+  return fallbackKeywords.map(compactText).filter(Boolean).slice(0, 5).join(', ');
+}
+
+function getQuestionFingerprint(content) {
+  return compactText(content)
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/node\.?\s*js/g, 'nodejs')
+    .replace(/\b(mock|cau|question|trac nghiem|tu luan|essay|mcq)\b/g, ' ')
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function isDuplicateQuestion(question, usedFingerprints) {
+  const fingerprint = getQuestionFingerprint(question?.content);
+  return Boolean(fingerprint && usedFingerprints.has(fingerprint));
+}
+
+function markQuestionAsUsed(question, usedFingerprints) {
+  const fingerprint = getQuestionFingerprint(question?.content);
+  if (fingerprint) usedFingerprints.add(fingerprint);
+}
+
+function normalizeQuestionPayload(input = {}, { expectedType = null, fallbackKeywords = [] } = {}) {
+  const type = normalizeQuestionType(input.type, expectedType || 'mcq');
+  const normalized = {
+    content: compactText(input.content || input.question || input.prompt || input.text),
+    type,
+    difficulty: normalizeDifficulty(input.difficulty),
+    correct_answer: null,
+    expected_answer: compactText(input.expected_answer || input.expectedAnswer || input.model_answer || input.explanation),
+    keywords: normalizeKeywords(input.keywords, fallbackKeywords),
+    video_url: compactText(input.video_url || input.videoUrl),
+    options: null,
+  };
+
+  if (!normalized.content) return null;
+
+  if (type === 'mcq') {
+    const options = parseOptionsInput(input.options || input.answers || input.choices);
+    const nonEmptyKeys = MCQ_KEYS.filter((key) => options[key]);
+    const correctAnswer = normalizeCorrectAnswer(
+      input.correct_answer || input.correctAnswer || input.answer || input.correct,
+      options
+    );
+
+    if (nonEmptyKeys.length < 2 || !correctAnswer) return null;
+    normalized.correct_answer = correctAnswer;
+    normalized.options = MCQ_KEYS.reduce((acc, key) => {
+      if (options[key]) acc[key] = options[key];
+      return acc;
+    }, {});
+  }
+
+  if (type === 'essay') {
+    normalized.correct_answer = null;
+    normalized.options = null;
+  }
+
+  return normalized;
+}
+
+function extractSkillPhrases(text, subject) {
+  const uniqueParts = [subject, text]
+    .map(removeRepeatedWords)
+    .filter(Boolean)
+    .filter((part, index, parts) => parts.findIndex((candidate) => samePhrase(candidate, part)) === index);
+  const source = removeRepeatedWords(uniqueParts.join(' '));
+  const sourceLower = source.toLowerCase();
+  const knownTerms = [
+    'React', 'Node.js', 'Nodejs', 'Express', 'JavaScript', 'TypeScript', 'PostgreSQL', 'MongoDB',
+    'REST API', 'Docker', 'AWS', 'Azure', 'Git', 'HTML/CSS', 'Tailwind',
+    'Marketing', 'SEO', 'Sales', 'CRM', 'Chăm sóc khách hàng', 'Tư vấn bán hàng',
+    'Phân tích dữ liệu', 'Quản lý dự án', 'Giao tiếp', 'Làm việc nhóm',
+  ];
+
+  const skills = knownTerms.filter((term) => sourceLower.includes(term.toLowerCase()));
+  const fallbackWords = source
+    .split(/[,\n.;:()\-]+|\s{2,}/)
+    .map(compactText)
+    .filter((word) => word.length >= 4 && word.length <= 40)
+    .map(removeRepeatedWords)
+    .slice(0, 8);
+
+  return [...skills, ...fallbackWords]
+    .filter(Boolean)
+    .filter((skill, index, allSkills) => allSkills.findIndex((candidate) => samePhrase(candidate, skill)) === index)
+    .slice(0, 8);
+}
+
+function hashString(value = '') {
+  let hash = 2166136261;
+  for (let index = 0; index < value.length; index++) {
+    hash ^= value.charCodeAt(index);
+    hash = Math.imul(hash, 16777619);
+  }
+  return hash >>> 0;
+}
+
+function shuffleMcqOptions(question, seed = '') {
+  if (question?.type !== 'mcq' || !question.options || !question.correct_answer) return question;
+
+  const entries = MCQ_KEYS
+    .filter((key) => question.options[key])
+    .map((key) => [key, question.options[key]]);
+  if (entries.length < 2) return question;
+
+  const sortedEntries = [...entries].sort((left, right) => {
+    const leftHash = hashString(`${seed}:${question.content}:${left[0]}:${left[1]}`);
+    const rightHash = hashString(`${seed}:${question.content}:${right[0]}:${right[1]}`);
+    return leftHash - rightHash;
+  });
+
+  const shuffledOptions = {};
+  let shuffledCorrectAnswer = question.correct_answer;
+  sortedEntries.forEach(([oldKey, text], index) => {
+    const newKey = MCQ_KEYS[index];
+    shuffledOptions[newKey] = text;
+    if (oldKey === question.correct_answer) shuffledCorrectAnswer = newKey;
+  });
+
+  return {
+    ...question,
+    options: shuffledOptions,
+    correct_answer: shuffledCorrectAnswer,
+  };
+}
+
+function buildFallbackQuestion(type, index, context) {
+  const subject = removeRepeatedWords(context.targetSubject) || 'vị trí tuyển dụng';
+  const skills = context.skills?.length ? context.skills : [subject];
+  const rawSkill = removeRepeatedWords(skills[index % skills.length]);
+  const aspect = [
+    'xác định yêu cầu',
+    'xử lý tình huống',
+    'đo lường kết quả',
+    'kiểm soát rủi ro',
+    'phối hợp với các bên',
+    'tối ưu quy trình',
+    'ra quyết định dựa trên dữ liệu',
+    'đảm bảo chất lượng',
+    'ưu tiên công việc',
+    'cải tiến sau triển khai',
+  ][index % 10];
+  const scenario = [
+    'khi deadline gấp',
+    'khi dữ liệu đầu vào chưa rõ',
+    'khi khách hàng thay đổi yêu cầu',
+    'khi kết quả ban đầu không đạt kỳ vọng',
+    'khi cần bàn giao cho đội khác',
+    'khi phải cân bằng chất lượng và tốc độ',
+  ][Math.floor(index / 2) % 6];
+  const skill = samePhrase(rawSkill, subject) ? aspect : rawSkill;
+  const scope = samePhrase(rawSkill, subject) ? subject : `${skill} trong ${subject}`;
+  const skillAction = samePhrase(rawSkill, subject) ? `khía cạnh ${aspect}` : skill;
+
+  if (type === 'mcq') {
+    const templates = [
+      {
+        content: `Khi đánh giá năng lực ${scope}, tiêu chí nào phản ánh đúng nhất khả năng làm việc thực tế của ứng viên?`,
+        options: {
+          A: `Ứng viên giải thích được quy trình, rủi ro và cách đo kết quả khi áp dụng ${skillAction}`,
+          B: `Ứng viên chỉ nêu khái niệm chung về ${skillAction} nhưng không có ví dụ`,
+          C: 'Ứng viên chọn giải pháp theo cảm tính, không dựa trên yêu cầu',
+          D: 'Ứng viên bỏ qua phản hồi của khách hàng hoặc người dùng',
+        },
+        expected_answer: `Đáp án A đúng vì đánh giá được cả hiểu biết, cách triển khai và kết quả thực tế của ${scope}.`,
+      },
+      {
+        content: `Trong một nhiệm vụ liên quan đến ${subject}, bước nào nên được ưu tiên trước khi triển khai ${skillAction}?`,
+        options: {
+          A: 'Làm rõ mục tiêu, phạm vi, dữ liệu đầu vào và tiêu chí nghiệm thu',
+          B: 'Triển khai ngay để tiết kiệm thời gian phân tích',
+          C: 'Chỉ tập trung vào công cụ mà bỏ qua bối cảnh kinh doanh',
+          D: 'Chờ đến cuối dự án mới kiểm tra rủi ro',
+        },
+        expected_answer: 'Đáp án A đúng vì bước làm rõ yêu cầu giúp giảm sai lệch và tăng khả năng đo lường kết quả.',
+      },
+      {
+        content: `Tình huống nào cho thấy ứng viên có tư duy giải quyết vấn đề tốt với ${scope}?`,
+        options: {
+          A: 'Xác định nguyên nhân gốc, đề xuất nhiều phương án và chọn phương án dựa trên dữ liệu',
+          B: 'Chỉ làm theo một cách quen thuộc dù điều kiện đã thay đổi',
+          C: 'Đổ lỗi cho yếu tố bên ngoài mà không kiểm chứng giả thuyết',
+          D: 'Bỏ qua tài liệu và không trao đổi với bên liên quan',
+        },
+        expected_answer: 'Đáp án A đúng vì thể hiện tư duy phân tích, so sánh phương án và ra quyết định có cơ sở.',
+      },
+      {
+        content: `Trong bối cảnh ${scenario}, cách tiếp cận nào phù hợp nhất để áp dụng ${skillAction} cho ${subject}?`,
+        options: {
+          A: `Phân tích mục tiêu, giới hạn nguồn lực, rủi ro và chọn giải pháp ${skillAction} có thể kiểm chứng`,
+          B: 'Ưu tiên làm nhanh mà không cần tiêu chí đánh giá',
+          C: 'Chỉ hỏi lại yêu cầu mà không đề xuất hướng xử lý',
+          D: 'Đẩy toàn bộ quyết định sang bên liên quan khác',
+        },
+        expected_answer: `Đáp án A đúng vì kết hợp phân tích bối cảnh, kiểm soát rủi ro và khả năng xác minh khi dùng ${scope}.`,
+      },
+      {
+        content: `Nếu cần đánh giá khía cạnh ${aspect} trong công việc ${subject}, câu trả lời nào thể hiện năng lực ${scope} tốt nhất?`,
+        options: {
+          A: 'Nêu được mục tiêu, hành động cụ thể, chỉ số đo lường và bài học sau khi thực hiện',
+          B: 'Chỉ mô tả công việc đã làm mà không có kết quả',
+          C: 'Dùng nhiều thuật ngữ nhưng không gắn với tình huống thực tế',
+          D: 'Tránh nói về khó khăn hoặc sai sót từng gặp',
+        },
+        expected_answer: 'Đáp án A đúng vì câu trả lời có đủ mục tiêu, hành động, kết quả và khả năng tự cải thiện.',
+      },
+      {
+        content: `Khi triển khai ${skillAction} cho ${subject}, dấu hiệu nào cho thấy ứng viên hiểu đúng yêu cầu chuyên môn?`,
+        options: {
+          A: 'Biết tách vấn đề thành các bước kiểm chứng được và giải thích vì sao chọn từng bước',
+          B: 'Chỉ chọn công cụ phổ biến nhất mà không so sánh phương án',
+          C: 'Tập trung vào cảm nhận cá nhân thay vì tiêu chí công việc',
+          D: 'Không đề cập cách xử lý lỗi hoặc ngoại lệ',
+        },
+        expected_answer: 'Đáp án A đúng vì thể hiện tư duy hệ thống và khả năng giải thích quyết định chuyên môn.',
+      },
+      {
+        content: `Trong quá trình làm ${subject}, yếu tố nào quan trọng nhất để tránh sai lệch khi sử dụng ${skillAction}?`,
+        options: {
+          A: 'Xác nhận giả định, kiểm tra dữ liệu đầu vào và cập nhật phản hồi theo từng vòng',
+          B: 'Giữ nguyên kế hoạch ban đầu bất kể thông tin mới',
+          C: 'Chỉ báo cáo khi công việc đã hoàn tất',
+          D: 'Bỏ qua các trường hợp biên để tập trung vào phần dễ',
+        },
+        expected_answer: 'Đáp án A đúng vì giúp giảm sai lệch và phát hiện vấn đề sớm trong quá trình thực hiện.',
+      },
+    ];
+    const picked = templates[index % templates.length];
+    return {
+      content: picked.content,
+      type: 'mcq',
+      difficulty: index % 3 === 2 ? 'hard' : 'medium',
+      options: picked.options,
+      correct_answer: 'A',
+      expected_answer: picked.expected_answer,
+      keywords: normalizeKeywords(null, [skill, subject, 'giải quyết vấn đề']),
+      video_url: null,
+    };
+  }
+
+  const essayTemplates = [
+    `Hãy mô tả một tình huống thực tế bạn đã sử dụng ${skillAction} trong công việc liên quan đến ${subject}. Bạn phân tích vấn đề, chọn giải pháp và đo kết quả như thế nào?`,
+    `Nếu được giao một nhiệm vụ khó trong mảng ${subject} có liên quan đến ${skillAction}, bạn sẽ lập kế hoạch xử lý, phối hợp với các bên và kiểm soát rủi ro ra sao?`,
+    `Hãy nêu một ví dụ cho thấy bạn đã cải thiện hiệu quả công việc bằng ${skillAction}. Kết quả đạt được là gì và bạn rút ra bài học nào?`,
+    `Trong tình huống ${scenario}, bạn sẽ dùng ${skillAction} như thế nào để xử lý khía cạnh ${aspect} cho ${subject}? Hãy nêu các bước và tiêu chí đánh giá.`,
+    `Hãy phân tích một sai lầm thường gặp khi áp dụng ${skillAction} trong ${subject}. Bạn sẽ phát hiện, sửa và ngăn lỗi lặp lại ra sao?`,
+    `Nếu phải hướng dẫn một nhân sự mới thực hiện phần việc liên quan đến ${skillAction}, bạn sẽ thiết kế quy trình kiểm tra chất lượng cho ${subject} như thế nào?`,
+    `Hãy trình bày cách bạn ưu tiên công việc khi cùng lúc có nhiều yêu cầu liên quan đến ${skillAction} trong ${subject}. Bạn dùng dữ liệu nào để quyết định?`,
+    `Khi kết quả triển khai ${skillAction} chưa đạt kỳ vọng, bạn sẽ phân tích nguyên nhân và đề xuất cải tiến cho ${subject} theo trình tự nào?`,
+  ];
+
+  return {
+    content: essayTemplates[index % essayTemplates.length],
+    type: 'essay',
+    difficulty: index % 2 === 0 ? 'medium' : 'hard',
+    options: null,
+    correct_answer: null,
+    expected_answer: `Ứng viên nên trả lời theo cấu trúc bối cảnh, nhiệm vụ, hành động, kết quả; có ví dụ cụ thể bám sát ${scope}.`,
+    keywords: normalizeKeywords(null, [skill, subject, 'STAR', 'kết quả']),
+    video_url: null,
+  };
+}
+
+function buildUniqueFallbackQuestion(type, index, context, usedFingerprints) {
+  for (let attempt = 0; attempt < 80; attempt++) {
+    const question = buildFallbackQuestion(type, index + attempt, context);
+    if (!isDuplicateQuestion(question, usedFingerprints)) return question;
+  }
+
+  const question = buildFallbackQuestion(type, index, context);
+  question.content = `${question.content} Trọng tâm đánh giá bổ sung: ${index + 1}.`;
+  return question;
+}
+
+function parseGeneratedQuestionList(responseText) {
+  const cleaned = compactText(responseText)
+    .replace(/^```json/i, '')
+    .replace(/^```/i, '')
+    .replace(/```$/i, '')
+    .trim();
+
+  const candidates = [
+    cleaned,
+    cleaned.match(/\[[\s\S]*\]/)?.[0],
+    cleaned.match(/\{[\s\S]*\}/)?.[0],
+  ].filter(Boolean);
+
+  for (const candidate of candidates) {
+    try {
+      const parsed = JSON.parse(candidate);
+      if (Array.isArray(parsed)) return parsed;
+      if (Array.isArray(parsed.questions)) return parsed.questions;
+    } catch {
+      // Try the next candidate.
+    }
+  }
+
+  return [];
+}
+
 const aiTestController = {
   // ==================== TEST MANAGEMENT ====================
   createTest: async (req, res) => {
@@ -140,11 +626,26 @@ const aiTestController = {
   // ==================== QUESTION BANK ====================
   createQuestion: async (req, res) => {
     try {
-      const { content, type, difficulty, correct_answer, expected_answer, keywords, video_url, options } = req.body;
+      const normalizedQuestion = normalizeQuestionPayload(req.body);
+      if (!normalizedQuestion) {
+        return res.status(400).json({
+          error: 'Câu hỏi không hợp lệ. MCQ cần nội dung, ít nhất 2 đáp án và đáp án đúng phải trỏ tới đáp án có nội dung.',
+        });
+      }
+
       const newQuestion = await pool.query(
         `INSERT INTO ai_questions (content, type, difficulty, correct_answer, expected_answer, keywords, video_url, options)
          VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *`,
-        [content, type, difficulty, correct_answer, expected_answer, keywords, video_url, options ? JSON.stringify(options) : null]
+        [
+          normalizedQuestion.content,
+          normalizedQuestion.type,
+          normalizedQuestion.difficulty,
+          normalizedQuestion.correct_answer,
+          normalizedQuestion.expected_answer || null,
+          normalizedQuestion.keywords || null,
+          normalizedQuestion.video_url || null,
+          normalizedQuestion.options ? JSON.stringify(normalizedQuestion.options) : null,
+        ]
       );
       res.status(201).json(newQuestion.rows[0]);
     } catch (err) {
@@ -458,7 +959,9 @@ const aiTestController = {
   generateQuestions: async (req, res) => {
     try {
       const { testId } = req.params;
-      const { job_id, topic, count = 10, mcq_ratio = 0.7 } = req.body;
+      const { job_id, topic } = req.body;
+      const requestedCount = clampInteger(req.body.count, 10, 1, 30);
+      const requestedMcqRatio = clampRatio(req.body.mcq_ratio, 0.7);
 
       // 1. Get test info
       const testRes = await pool.query('SELECT * FROM ai_tests WHERE id = $1', [testId]);
@@ -467,10 +970,12 @@ const aiTestController = {
       // 2. Determine generation context (Topic vs Job JD)
       let contextInfo = '';
       let targetSubject = '';
+      let rawContextText = '';
 
-      if (topic) {
-        targetSubject = topic;
-        contextInfo = `Chủ đề bài test: ${topic}`;
+      if (compactText(topic)) {
+        targetSubject = compactText(topic);
+        rawContextText = targetSubject;
+        contextInfo = `Chủ đề bài test: ${targetSubject}`;
       } else {
         const resolvedJobId = job_id || testRes.rows[0].job_id;
         if (!resolvedJobId) return res.status(400).json({ error: 'Cần nhập chủ đề hoặc chọn tin tuyển dụng' });
@@ -483,14 +988,23 @@ const aiTestController = {
 
         const job = jobRes.rows[0];
         targetSubject = job.job_title || 'vị trí này';
+        rawContextText = `${job.job_title || ''} ${job.job_description || ''} ${job.job_requirements || ''}`;
         contextInfo = `
 Vị trí: ${job.job_title || 'Không rõ'}
 Mô tả công việc: ${job.job_description || 'Không có'}
 Yêu cầu: ${job.job_requirements || 'Không có'}`;
       }
 
-      const mcqCount = Math.round(count * mcq_ratio);
-      const essayCount = count - mcqCount;
+      const mcqCount = Math.round(requestedCount * requestedMcqRatio);
+      const essayCount = requestedCount - mcqCount;
+      const desiredTypes = [
+        ...Array.from({ length: mcqCount }, () => 'mcq'),
+        ...Array.from({ length: essayCount }, () => 'essay'),
+      ];
+      const generationContext = {
+        targetSubject,
+        skills: extractSkillPhrases(rawContextText, targetSubject),
+      };
 
       // 3. Build Hybrid prompt
       const prompt = `Bạn là chuyên gia ra đề thi tuyển dụng cấp cao. Hãy tạo bộ câu hỏi phỏng vấn chất lượng cao tập trung TUYỆT ĐỐI vào kiến thức chuyên môn dựa trên thông tin sau:
@@ -499,7 +1013,14 @@ Yêu cầu: ${job.job_requirements || 'Không có'}`;
 ${contextInfo}
 
 === YÊU CẦU ===
-Tạo CHÍNH XÁC ${mcqCount} câu trắc nghiệm (MCQ) và ${essayCount} câu tự luận (essay). Nội dung CẦN phải kiểm tra trực tiếp kỹ năng và kiến thức liên quan đến chủ đề/vị trí trên. Đừng hỏi chung chung. Từng câu hỏi phải có độ sâu về chuyên môn.
+Tạo CHÍNH XÁC ${mcqCount} câu trắc nghiệm (MCQ) và ${essayCount} câu tự luận (essay).
+Nội dung CẦN kiểm tra trực tiếp kỹ năng và kiến thức liên quan đến chủ đề/vị trí trên. Đừng hỏi chung chung.
+MCQ phải có đúng 4 lựa chọn A, B, C, D; correct_answer chỉ được là một trong A/B/C/D và phải trỏ tới đáp án đúng thật sự.
+Vị trí đáp án đúng phải được phân bổ ngẫu nhiên giữa A/B/C/D, không được luôn là A.
+Essay không được có options hoặc correct_answer; expected_answer phải mô tả các ý chính cần có để chấm điểm.
+Không dùng câu hỏi dạng "bạn nghĩ gì", "hãy giới thiệu bản thân", hoặc câu hỏi kỹ năng mềm nếu JD/chủ đề yêu cầu kiến thức chuyên môn.
+Tất cả câu hỏi phải khác nhau rõ rệt: không lặp content, không chỉ thay vài từ, mỗi câu phải kiểm tra một kỹ năng/tình huống/khía cạnh khác nhau.
+Không lặp cùng một cấu trúc mở đầu quá 2 lần trong toàn bộ đề.
 
 === FORMAT TRẢ VỀ ===
 TRẢ VỀ DUY NHẤT MỘT MẢNG JSON HỢP LỆ. KHÔNG CÓ MARKDOWN HAY BẤT KỲ TEXT NÀO KHÁC.
@@ -522,79 +1043,161 @@ TRẢ VỀ DUY NHẤT MỘT MẢNG JSON HỢP LỆ. KHÔNG CÓ MARKDOWN HAY BẤ
           const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
           const result = await model.generateContent(prompt);
           let responseText = result.response.text();
-
-          // Remove markdown formatting if any
-          responseText = responseText.replace(/```json/g, '').replace(/```/g, '').trim();
-
-          // Extract JSON from response
-          const jsonMatch = responseText.match(/\[[\s\S]*\]/);
-          if (jsonMatch) {
-            generatedQuestions = JSON.parse(jsonMatch[0]);
-          } else {
-             console.log("No JSON match found in Gemini response: ", responseText);
-          }
+          generatedQuestions = parseGeneratedQuestionList(responseText);
+          if (!generatedQuestions.length) console.log('No valid JSON question list found in Gemini response');
         } catch (aiErr) {
           console.error('Gemini generation failed:', aiErr.message);
         }
       }
 
-      // Fallback: generate mock questions if AI fails
-      if (generatedQuestions.length === 0) {
-        const fallbackSubject = targetSubject || 'nhân sự';
-        for (let i = 0; i < mcqCount; i++) {
-          generatedQuestions.push({
-            content: `[Mock Câu ${i + 1}] Kiến thức hoặc kỹ năng nào sau đây là yêu cầu quan trọng nhất đối với chuyên môn ${fallbackSubject}?`,
-            type: 'mcq',
-            difficulty: i % 2 === 0 ? 'medium' : 'hard',
-            options: {
-              A: `Kỹ năng chuyên môn sâu cấp độ ${i + 1}`,
-              B: `Kỹ năng giao tiếp và làm việc nhóm trong mảng ${fallbackSubject}`,
-              C: 'Quản lý thời gian và tiến độ công việc',
-              D: 'Tất cả các phương án trên đều đúng'
-            },
-            correct_answer: 'D',
-            expected_answer: 'Ứng viên cần toàn diện các kỹ năng trên',
-            keywords: fallbackSubject
-          });
-        }
-        for (let i = 0; i < essayCount; i++) {
-          generatedQuestions.push({
-            content: `[Mock Tự luận ${i + 1}] Dựa trên chuyên môn về ${fallbackSubject}, bạn sẽ áp dụng kỹ năng của mình như thế nào để xử lý các vấn đề phát sinh trong dự án thực tế?`,
-            type: 'essay',
-            difficulty: 'hard',
-            options: null,
-            correct_answer: null,
-            expected_answer: 'Ứng viên nên trình bày phương pháp giải quyết vấn đề, kèm ví dụ cụ thể bám sát các yêu cầu',
-            keywords: 'giải quyết vấn đề, thực tế'
-          });
-        }
-      }
+      const normalizedGenerated = [];
+      const usedIndexes = new Set();
+      const usedFingerprints = new Set();
+      desiredTypes.forEach((desiredType, index) => {
+        const sourceIndex = generatedQuestions.findIndex((question, questionIndex) => (
+          !usedIndexes.has(questionIndex)
+          && normalizeQuestionType(question?.type, desiredType) === desiredType
+          && (() => {
+            const normalizedQuestion = normalizeQuestionPayload(question, {
+              expectedType: desiredType,
+              fallbackKeywords: generationContext.skills,
+            });
+            return normalizedQuestion && !isDuplicateQuestion(normalizedQuestion, usedFingerprints);
+          })()
+        ));
+        const fallbackIndex = sourceIndex === -1
+          ? generatedQuestions.findIndex((question, questionIndex) => {
+              if (usedIndexes.has(questionIndex)) return false;
+              const normalizedQuestion = normalizeQuestionPayload(question, {
+                expectedType: desiredType,
+                fallbackKeywords: generationContext.skills,
+              });
+              return normalizedQuestion?.type === desiredType && !isDuplicateQuestion(normalizedQuestion, usedFingerprints);
+            })
+          : sourceIndex;
+
+        if (fallbackIndex !== -1) usedIndexes.add(fallbackIndex);
+
+        const normalizedQuestion = fallbackIndex !== -1
+          ? normalizeQuestionPayload(generatedQuestions[fallbackIndex], {
+              expectedType: desiredType,
+              fallbackKeywords: generationContext.skills,
+            })
+          : null;
+
+        const selectedQuestion = normalizedQuestion?.type === desiredType && !isDuplicateQuestion(normalizedQuestion, usedFingerprints)
+          ? normalizedQuestion
+          : buildUniqueFallbackQuestion(desiredType, index, generationContext, usedFingerprints);
+        const finalQuestion = shuffleMcqOptions(selectedQuestion, `${testId}:${index}:${targetSubject}`);
+
+        normalizedGenerated.push(finalQuestion);
+        markQuestionAsUsed(finalQuestion, usedFingerprints);
+      });
+
+      generatedQuestions = normalizedGenerated;
 
       // 4. Save to database
       const savedQuestions = [];
-      for (let idx = 0; idx < generatedQuestions.length; idx++) {
-        const q = generatedQuestions[idx];
-        const qRes = await pool.query(
-          `INSERT INTO ai_questions (content, type, difficulty, correct_answer, expected_answer, keywords, options)
-           VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
-          [q.content, q.type || 'mcq', q.difficulty || 'medium', q.correct_answer || null,
-           q.expected_answer || null, q.keywords || null, q.options ? JSON.stringify(q.options) : null]
+      const client = await pool.connect();
+      try {
+        await client.query('BEGIN');
+        const orderResult = await client.query(
+          'SELECT COALESCE(MAX(order_index) + 1, 0)::int AS next_order FROM ai_test_questions WHERE test_id = $1',
+          [testId]
         );
-        const savedQ = qRes.rows[0];
+        const startOrder = orderResult.rows[0]?.next_order || 0;
 
-        // Link to test
-        const currentCount = await pool.query('SELECT COUNT(*) FROM ai_test_questions WHERE test_id = $1', [testId]);
-        await pool.query(
-          `INSERT INTO ai_test_questions (test_id, question_id, order_index) VALUES ($1, $2, $3)`,
-          [testId, savedQ.id, parseInt(currentCount.rows[0].count) + idx]
-        );
-        savedQuestions.push(savedQ);
+        for (let idx = 0; idx < generatedQuestions.length; idx++) {
+          const q = generatedQuestions[idx];
+          const qRes = await client.query(
+            `INSERT INTO ai_questions (content, type, difficulty, correct_answer, expected_answer, keywords, options)
+             VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
+            [
+              q.content,
+              q.type,
+              q.difficulty,
+              q.correct_answer,
+              q.expected_answer || null,
+              q.keywords || null,
+              q.options ? JSON.stringify(q.options) : null,
+            ]
+          );
+          const savedQ = qRes.rows[0];
+
+          await client.query(
+            `INSERT INTO ai_test_questions (test_id, question_id, order_index) VALUES ($1, $2, $3)`,
+            [testId, savedQ.id, startOrder + idx]
+          );
+          savedQuestions.push(savedQ);
+        }
+
+        await client.query('COMMIT');
+      } catch (transactionError) {
+        await client.query('ROLLBACK');
+        throw transactionError;
+      } finally {
+        client.release();
       }
 
       res.json({ message: `Đã tạo ${savedQuestions.length} câu hỏi`, questions: savedQuestions });
     } catch (err) {
       console.error(err);
       res.status(500).json({ error: 'Server Error' });
+    }
+  },
+
+  // ==================== LIVEAVATAR SESSION TOKEN ====================
+  createLiveAvatarSessionToken: async (req, res) => {
+    try {
+      if (!process.env.LIVEAVATAR_API_KEY) {
+        return res.status(503).json({
+          error: 'LiveAvatar chưa được cấu hình. Thiếu LIVEAVATAR_API_KEY trong backend/.env.',
+          code: 'LIVEAVATAR_NOT_CONFIGURED'
+        });
+      }
+
+      const payload = buildLiveAvatarPayload(req.body);
+      if (!payload.avatar_id) {
+        return res.status(503).json({
+          error: 'LiveAvatar chưa được cấu hình. Thiếu LIVEAVATAR_AVATAR_ID trong backend/.env.',
+          code: 'LIVEAVATAR_AVATAR_MISSING'
+        });
+      }
+
+      const response = await fetch(`${LIVEAVATAR_API_URL}/v1/sessions/token`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-API-KEY': process.env.LIVEAVATAR_API_KEY,
+        },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || (data.code && data.code !== 1000)) {
+        return res.status(response.ok ? 502 : response.status).json({
+          error: data.message || 'Không thể tạo LiveAvatar session token.',
+          code: data.code || 'LIVEAVATAR_TOKEN_FAILED',
+        });
+      }
+
+      const sessionToken = pickLiveAvatarToken(data);
+      if (!sessionToken) {
+        return res.status(502).json({
+          error: 'LiveAvatar không trả về session token hợp lệ.',
+          code: 'LIVEAVATAR_TOKEN_MISSING'
+        });
+      }
+
+      res.json({
+        sessionToken,
+        apiUrl: LIVEAVATAR_API_URL,
+        mode: payload.mode,
+        isSandbox: payload.is_sandbox,
+      });
+    } catch (err) {
+      console.error('LiveAvatar token error:', err);
+      res.status(500).json({ error: 'Không thể kết nối LiveAvatar.' });
     }
   },
 

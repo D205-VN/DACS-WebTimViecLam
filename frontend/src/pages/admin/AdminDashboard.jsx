@@ -288,9 +288,9 @@ export default function AdminDashboard() {
           <button
             type="button"
             onClick={() => setActiveTab('overview')}
-            className="flex items-center gap-3 rounded-2xl transition-transform duration-200 hover:scale-[1.01]"
+            className="flex items-center gap-3 rounded-lg transition-transform duration-200 "
           >
-            <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-500 shadow-lg shadow-blue-500/20">
+            <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-gradient-to-br from-blue-600 to-indigo-500 shadow-lg shadow-blue-500/20">
               <Shield className="h-5 w-5 text-white" />
             </div>
             <div className="text-left">
@@ -302,7 +302,7 @@ export default function AdminDashboard() {
           </button>
 
           <div className="hidden flex-1 items-center justify-center lg:flex">
-            <div className="flex w-full max-w-xl items-center rounded-2xl border border-white/10 bg-white/5 px-4 py-3 shadow-[0_10px_30px_rgba(0,0,0,0.25)]">
+            <div className="flex w-full max-w-xl items-center rounded-lg border border-white/10 bg-white/5 px-4 py-3 shadow-[0_10px_30px_rgba(0,0,0,0.25)]">
               <Search className="mr-3 h-4 w-4 text-gray-500" />
               <input
                 type="text"
@@ -317,7 +317,7 @@ export default function AdminDashboard() {
           <div className="flex items-center gap-3">
             <button
               onClick={handleOpenNotifications}
-              className="relative hidden rounded-2xl border border-white/10 bg-white/5 p-3 text-gray-400 transition-colors hover:border-blue-500/20 hover:text-white md:flex"
+              className="relative hidden rounded-lg border border-white/10 bg-white/5 p-3 text-gray-400 transition-colors hover:border-blue-500/20 hover:text-white md:flex"
               title="Mở thông báo quản trị"
             >
               <Bell className="h-5 w-5" />
@@ -328,7 +328,7 @@ export default function AdminDashboard() {
               )}
             </button>
 
-            <div className="hidden items-center gap-3 rounded-2xl border border-white/10 bg-white/5 px-3 py-2 sm:flex">
+            <div className="hidden items-center gap-3 rounded-lg border border-white/10 bg-white/5 px-3 py-2 sm:flex">
               <UserAvatar
                 src={user?.avatar_url}
                 alt={user?.full_name}
@@ -348,7 +348,7 @@ export default function AdminDashboard() {
 
             <button
               onClick={handleLogout}
-              className="inline-flex items-center gap-2 rounded-2xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm font-semibold text-red-300 transition-all hover:border-red-500/30 hover:bg-red-500/15 hover:text-white"
+              className="inline-flex items-center gap-2 rounded-lg border border-red-500/20 bg-gradient-to-r from-rose-500 to-pink-500/10 px-4 py-3 text-sm font-semibold text-red-300 transition-all hover:border-red-500/30 hover:bg-gradient-to-r from-rose-500 to-pink-500/15 hover:text-white"
             >
               <LogOut className="h-4 w-4" />
               <span className="hidden sm:inline">Đăng xuất</span>
@@ -357,7 +357,7 @@ export default function AdminDashboard() {
         </div>
 
         <div className="mx-auto max-w-[1440px] px-4 pb-4 sm:px-6 lg:px-8 lg:hidden">
-          <div className="flex items-center rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
+          <div className="flex items-center rounded-lg border border-white/10 bg-white/5 px-4 py-3">
             <Search className="mr-3 h-4 w-4 text-gray-500" />
             <input
               type="text"
@@ -371,7 +371,7 @@ export default function AdminDashboard() {
       </header>
 
       <div className="mx-auto max-w-[1440px] px-4 py-8 sm:px-6 lg:px-8">
-        <section className="relative overflow-hidden rounded-[28px] border border-blue-500/20 bg-gradient-to-br from-gray-900 via-slate-900 to-[#0c1527] p-6 shadow-[0_24px_80px_rgba(0,0,0,0.35)] sm:p-8">
+        <section className="relative overflow-hidden rounded-lg border border-blue-500/20 bg-gradient-to-br from-gray-900 via-slate-900 to-[#0c1527] p-6 shadow-[0_24px_80px_rgba(0,0,0,0.35)] sm:p-8">
           <div className="absolute -right-20 top-0 h-64 w-64 rounded-full bg-blue-500/15 blur-3xl" />
           <div className="absolute -left-16 bottom-0 h-52 w-52 rounded-full bg-indigo-500/15 blur-3xl" />
 
@@ -396,7 +396,7 @@ export default function AdminDashboard() {
                 ].map((item) => (
                   <div
                     key={item.label}
-                    className={`rounded-2xl border px-4 py-3 text-sm ${item.tone}`}
+                    className={`rounded-lg border px-4 py-3 text-sm ${item.tone}`}
                   >
                     <p className="text-[11px] uppercase tracking-[0.2em] text-gray-400">{item.label}</p>
                     <p className="mt-1 text-lg font-semibold text-white">{item.value.toLocaleString()}</p>
@@ -408,7 +408,7 @@ export default function AdminDashboard() {
             <div className="grid gap-3 sm:min-w-[320px] sm:grid-cols-2">
               <button
                 onClick={() => setActiveTab('jobs')}
-                className="rounded-2xl border border-amber-500/20 bg-amber-500/10 p-4 text-left transition-transform duration-200 hover:-translate-y-0.5"
+                className="rounded-lg border border-amber-500/20 bg-amber-500/10 p-4 text-left transition-transform duration-200 "
               >
                 <p className="text-xs uppercase tracking-[0.2em] text-amber-300">Hàng chờ</p>
                 <p className="mt-2 text-3xl font-bold text-white">{stats.pendingJobs.toLocaleString()}</p>
@@ -417,7 +417,7 @@ export default function AdminDashboard() {
 
               <button
                 onClick={() => setActiveTab('users')}
-                className="rounded-2xl border border-blue-500/20 bg-blue-500/10 p-4 text-left transition-transform duration-200 hover:-translate-y-0.5"
+                className="rounded-lg border border-blue-500/20 bg-blue-500/10 p-4 text-left transition-transform duration-200 "
               >
                 <p className="text-xs uppercase tracking-[0.2em] text-blue-300">Người dùng</p>
                 <p className="mt-2 text-3xl font-bold text-white">{stats.users.toLocaleString()}</p>
@@ -430,7 +430,7 @@ export default function AdminDashboard() {
         <div className="mt-8 flex flex-col gap-8 lg:flex-row">
           <aside className="w-full shrink-0 lg:w-72">
             <div className="sticky top-28 space-y-4">
-              <div className="rounded-3xl border border-white/10 bg-gray-900/90 p-4 shadow-[0_20px_40px_rgba(0,0,0,0.25)]">
+              <div className="rounded-lg border border-white/10 bg-gray-900/90 p-4 shadow-[0_20px_40px_rgba(0,0,0,0.25)]">
                 <p className="mb-4 px-2 text-[11px] font-semibold uppercase tracking-[0.24em] text-gray-500">
                   Điều hướng
                 </p>
@@ -449,7 +449,7 @@ export default function AdminDashboard() {
                           }
                           setActiveTab(item.id);
                         }}
-                        className={`flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-sm font-medium transition-all duration-200 ${
+                        className={`flex w-full items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium transition-all duration-200 ${
                           isActive
                             ? 'bg-blue-500/10 text-blue-300 shadow-[inset_0_0_0_1px_rgba(59,130,246,0.18)]'
                             : 'text-gray-400 hover:bg-white/5 hover:text-gray-100'
@@ -463,7 +463,7 @@ export default function AdminDashboard() {
                 </div>
               </div>
 
-              <div className="overflow-hidden rounded-3xl border border-blue-500/15 bg-gradient-to-br from-blue-500/10 to-indigo-500/10 p-5">
+              <div className="overflow-hidden rounded-lg border border-blue-500/15 bg-gradient-to-br from-blue-500/10 to-indigo-500/10 p-5">
                 <p className="text-sm font-semibold text-white">Ưu tiên kiểm duyệt</p>
                 <p className="mt-2 text-sm leading-6 text-blue-100/75">
                   Hệ thống đang có {stats.pendingJobs.toLocaleString()} tin cần rà soát. Giữ nhịp duyệt
@@ -471,7 +471,7 @@ export default function AdminDashboard() {
                 </p>
                 <button
                   onClick={() => setActiveTab('jobs')}
-                  className="mt-4 inline-flex items-center rounded-xl bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-blue-500"
+                  className="mt-4 inline-flex items-center rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-blue-500"
                 >
                   Mở hàng chờ
                 </button>
@@ -484,7 +484,7 @@ export default function AdminDashboard() {
               {statCards.map((stat) => (
                 <div
                   key={stat.title}
-                  className={`group relative overflow-hidden rounded-3xl border ${stat.border} bg-gray-900/90 p-5 shadow-[0_20px_40px_rgba(0,0,0,0.25)] transition-transform duration-300 hover:-translate-y-1`}
+                  className={`group relative overflow-hidden rounded-lg border ${stat.border} bg-gray-900/90 p-5 shadow-[0_20px_40px_rgba(0,0,0,0.25)] transition-transform duration-300 `}
                 >
                   <div className="flex items-start justify-between">
                     <div>
@@ -492,7 +492,7 @@ export default function AdminDashboard() {
                       <h3 className="mt-2 text-3xl font-bold tracking-tight text-white">{stat.value}</h3>
                       <p className="mt-2 text-sm text-gray-500">{stat.helper}</p>
                     </div>
-                    <div className={`rounded-2xl p-3 ${stat.bg} ${stat.color}`}>
+                    <div className={`rounded-lg p-3 ${stat.bg} ${stat.color}`}>
                       <stat.icon className="h-6 w-6" />
                     </div>
                   </div>
@@ -506,7 +506,7 @@ export default function AdminDashboard() {
             </section>
 
             {loading ? (
-              <div className="rounded-3xl border border-white/10 bg-gray-900/90 p-12 text-center text-gray-400 shadow-[0_20px_40px_rgba(0,0,0,0.25)]">
+              <div className="rounded-lg border border-white/10 bg-gray-900/90 p-12 text-center text-gray-400 shadow-[0_20px_40px_rgba(0,0,0,0.25)]">
                 Đang tải dữ liệu quản trị...
               </div>
             ) : (
@@ -514,7 +514,7 @@ export default function AdminDashboard() {
                 {activeTab === 'overview' && (
                   <>
                     <section className="grid grid-cols-1 gap-6 xl:grid-cols-[1.65fr,1fr]">
-                      <div className="rounded-3xl border border-white/10 bg-gray-900/90 p-6 shadow-[0_20px_40px_rgba(0,0,0,0.25)]">
+                      <div className="rounded-lg border border-white/10 bg-gray-900/90 p-6 shadow-[0_20px_40px_rgba(0,0,0,0.25)]">
                         <div className="mb-6 flex items-center justify-between gap-4">
                           <div>
                             <h2 className="text-xl font-bold text-white">Người dùng đăng ký gần đây</h2>
@@ -524,7 +524,7 @@ export default function AdminDashboard() {
                           </div>
                           <button
                             onClick={() => setActiveTab('users')}
-                            className="rounded-xl border border-blue-500/20 bg-blue-500/10 px-4 py-2 text-sm font-semibold text-blue-300 transition-colors hover:bg-blue-500/15"
+                            className="rounded-lg border border-blue-500/20 bg-blue-500/10 px-4 py-2 text-sm font-semibold text-blue-300 transition-colors hover:bg-blue-500/15"
                           >
                             Xem tất cả
                           </button>
@@ -579,7 +579,7 @@ export default function AdminDashboard() {
                       </div>
 
                       <div className="space-y-6">
-                        <div className="rounded-3xl border border-white/10 bg-gray-900/90 p-6 shadow-[0_20px_40px_rgba(0,0,0,0.25)]">
+                        <div className="rounded-lg border border-white/10 bg-gray-900/90 p-6 shadow-[0_20px_40px_rgba(0,0,0,0.25)]">
                           <h2 className="text-lg font-bold text-white">Phân bổ vai trò</h2>
                           <p className="mt-1 text-sm text-gray-500">
                             Tỷ trọng hiện tại giữa quản trị, nhà tuyển dụng và ứng viên.
@@ -609,7 +609,7 @@ export default function AdminDashboard() {
                           </div>
                         </div>
 
-                        <div className="rounded-3xl border border-amber-500/15 bg-gradient-to-br from-amber-500/10 to-red-500/5 p-6 shadow-[0_20px_40px_rgba(0,0,0,0.25)]">
+                        <div className="rounded-lg border border-amber-500/15 bg-gradient-to-br from-amber-500/10 to-red-500/5 p-6 shadow-[0_20px_40px_rgba(0,0,0,0.25)]">
                           <h2 className="text-lg font-bold text-white">Điểm nóng kiểm duyệt</h2>
                           <p className="mt-2 text-sm leading-6 text-amber-100/80">
                             {stats.pendingJobs > 0
@@ -618,7 +618,7 @@ export default function AdminDashboard() {
                           </p>
                           <button
                             onClick={() => setActiveTab('jobs')}
-                            className="mt-4 rounded-xl border border-amber-400/20 bg-white/5 px-4 py-2.5 text-sm font-semibold text-amber-200 transition-colors hover:bg-white/10"
+                            className="mt-4 rounded-lg border border-amber-400/20 bg-white/5 px-4 py-2.5 text-sm font-semibold text-amber-200 transition-colors hover:bg-white/10"
                           >
                             Kiểm tra danh sách
                           </button>
@@ -626,7 +626,7 @@ export default function AdminDashboard() {
                       </div>
                     </section>
 
-                    <section className="rounded-3xl border border-white/10 bg-gray-900/90 p-6 shadow-[0_20px_40px_rgba(0,0,0,0.25)]">
+                    <section className="rounded-lg border border-white/10 bg-gray-900/90 p-6 shadow-[0_20px_40px_rgba(0,0,0,0.25)]">
                       <div className="mb-6 flex items-center justify-between gap-4">
                         <div>
                           <h2 className="text-xl font-bold text-white">Hàng chờ phê duyệt nổi bật</h2>
@@ -636,7 +636,7 @@ export default function AdminDashboard() {
                         </div>
                         <button
                           onClick={() => setActiveTab('jobs')}
-                          className="rounded-xl border border-amber-500/20 bg-amber-500/10 px-4 py-2 text-sm font-semibold text-amber-300 transition-colors hover:bg-amber-500/15"
+                          className="rounded-lg border border-amber-500/20 bg-amber-500/10 px-4 py-2 text-sm font-semibold text-amber-300 transition-colors hover:bg-amber-500/15"
                         >
                           Mở tab việc làm
                         </button>
@@ -646,7 +646,7 @@ export default function AdminDashboard() {
                         {pendingPreview.map((job) => (
                           <div
                             key={job.id}
-                            className="rounded-2xl border border-white/10 bg-white/[0.03] p-5 transition-colors hover:bg-white/[0.05]"
+                            className="rounded-lg border border-white/10 bg-white/[0.03] p-5 transition-colors hover:bg-white/[0.05]"
                           >
                             <div className="flex items-start justify-between gap-3">
                               <div className="min-w-0">
@@ -665,7 +665,7 @@ export default function AdminDashboard() {
                         ))}
 
                         {!pendingPreview.length && (
-                          <div className="rounded-2xl border border-dashed border-white/10 bg-white/[0.02] p-8 text-center text-sm text-gray-500 xl:col-span-2">
+                          <div className="rounded-lg border border-dashed border-white/10 bg-white/[0.02] p-8 text-center text-sm text-gray-500 xl:col-span-2">
                             Không còn tin nào trong hàng chờ phù hợp với bộ lọc hiện tại.
                           </div>
                         )}
@@ -675,7 +675,7 @@ export default function AdminDashboard() {
                 )}
 
                 {activeTab === 'users' && (
-                  <section className="rounded-3xl border border-white/10 bg-gray-900/90 p-6 shadow-[0_20px_40px_rgba(0,0,0,0.25)]">
+                  <section className="rounded-lg border border-white/10 bg-gray-900/90 p-6 shadow-[0_20px_40px_rgba(0,0,0,0.25)]">
                     <div className="mb-6 flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
                       <div>
                         <h2 className="text-xl font-bold text-white">Danh sách người dùng</h2>
@@ -761,7 +761,7 @@ export default function AdminDashboard() {
                 )}
 
                 {activeTab === 'jobs' && (
-                  <section className="rounded-3xl border border-white/10 bg-gray-900/90 p-6 shadow-[0_20px_40px_rgba(0,0,0,0.25)]">
+                  <section className="rounded-lg border border-white/10 bg-gray-900/90 p-6 shadow-[0_20px_40px_rgba(0,0,0,0.25)]">
                     <div className="mb-6 flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
                       <div>
                         <h2 className="text-xl font-bold text-white">Phê duyệt tin tuyển dụng</h2>
@@ -770,13 +770,13 @@ export default function AdminDashboard() {
                         </p>
                       </div>
 
-                      <div className="rounded-2xl border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-200">
+                      <div className="rounded-lg border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-200">
                         Hàng chờ hiện tại: <span className="font-semibold text-white">{filteredPendingJobs.length.toLocaleString()}</span> tin
                       </div>
                     </div>
 
                     {filteredPendingJobs.length === 0 ? (
-                      <div className="rounded-2xl border border-dashed border-white/10 bg-white/[0.02] py-16 text-center text-gray-500">
+                      <div className="rounded-lg border border-dashed border-white/10 bg-white/[0.02] py-16 text-center text-gray-500">
                         <Briefcase className="mx-auto mb-4 h-12 w-12 opacity-20" />
                         Không có tin tuyển dụng nào đang chờ duyệt.
                       </div>
@@ -819,14 +819,14 @@ export default function AdminDashboard() {
                                     <button
                                       onClick={() => handleJobModeration(job.id, 'approved')}
                                       disabled={jobActionLoading === job.id}
-                                      className="rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-2 text-xs font-bold uppercase tracking-[0.16em] text-emerald-300 transition-colors hover:bg-emerald-500 hover:text-white disabled:opacity-60"
+                                      className="rounded-lg border border-emerald-500/20 bg-emerald-500/10 px-4 py-2 text-xs font-bold uppercase tracking-[0.16em] text-emerald-300 transition-colors hover:bg-emerald-500 hover:text-white disabled:opacity-60"
                                     >
                                       {jobActionLoading === job.id ? 'Đang xử lý...' : 'Chấp nhận'}
                                     </button>
                                     <button
                                       onClick={() => handleJobModeration(job.id, 'rejected')}
                                       disabled={jobActionLoading === job.id}
-                                      className="rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-2 text-xs font-bold uppercase tracking-[0.16em] text-red-300 transition-colors hover:bg-red-500 hover:text-white disabled:opacity-60"
+                                      className="rounded-lg border border-red-500/20 bg-gradient-to-r from-rose-500 to-pink-500/10 px-4 py-2 text-xs font-bold uppercase tracking-[0.16em] text-red-300 transition-colors hover:bg-gradient-to-r from-rose-500 to-pink-500 hover:text-white disabled:opacity-60"
                                     >
                                       Từ chối
                                     </button>
@@ -842,7 +842,7 @@ export default function AdminDashboard() {
                 )}
 
                 {activeTab === 'notifications' && (
-                  <section className="rounded-3xl border border-white/10 bg-gray-900/90 p-6 shadow-[0_20px_40px_rgba(0,0,0,0.25)]">
+                  <section className="rounded-lg border border-white/10 bg-gray-900/90 p-6 shadow-[0_20px_40px_rgba(0,0,0,0.25)]">
                     <div className="mb-6 flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
                       <div>
                         <h2 className="text-xl font-bold text-white">Thông báo quản trị</h2>
@@ -851,7 +851,7 @@ export default function AdminDashboard() {
                         </p>
                       </div>
 
-                      <div className="rounded-2xl border border-blue-500/20 bg-blue-500/10 px-4 py-3 text-sm text-blue-200">
+                      <div className="rounded-lg border border-blue-500/20 bg-blue-500/10 px-4 py-3 text-sm text-blue-200">
                         Tổng số: <span className="font-semibold text-white">{filteredNotifications.length.toLocaleString()}</span> thông báo
                       </div>
                     </div>
@@ -863,7 +863,7 @@ export default function AdminDashboard() {
                             key={note.id}
                             type="button"
                             onClick={() => setActiveTab(note.tab || 'jobs')}
-                            className={`w-full rounded-2xl border p-4 text-left transition ${
+                            className={`w-full rounded-lg border p-4 text-left transition ${
                               note.read
                                 ? 'border-white/10 bg-white/[0.03] hover:bg-white/[0.05]'
                                 : 'border-blue-500/20 bg-blue-500/10'
@@ -885,7 +885,7 @@ export default function AdminDashboard() {
                           </button>
                         ))
                       ) : (
-                        <div className="rounded-2xl border border-dashed border-white/10 bg-white/[0.02] py-16 text-center text-gray-500">
+                        <div className="rounded-lg border border-dashed border-white/10 bg-white/[0.02] py-16 text-center text-gray-500">
                           <Bell className="mx-auto mb-4 h-12 w-12 opacity-20" />
                           Chưa có thông báo quản trị nào.
                         </div>
@@ -896,13 +896,13 @@ export default function AdminDashboard() {
 
                 {activeTab === 'settings' && (
                   <section className="grid grid-cols-1 gap-6 xl:grid-cols-[1.2fr,1fr]">
-                    <div className="rounded-3xl border border-white/10 bg-gray-900/90 p-6 shadow-[0_20px_40px_rgba(0,0,0,0.25)]">
+                    <div className="rounded-lg border border-white/10 bg-gray-900/90 p-6 shadow-[0_20px_40px_rgba(0,0,0,0.25)]">
                       <h2 className="text-xl font-bold text-white">Thông tin quản trị</h2>
                       <p className="mt-1 text-sm text-gray-500">
                         Tóm tắt tài khoản hiện tại và trạng thái vận hành chung.
                       </p>
 
-                      <div className="mt-6 flex items-center gap-4 rounded-2xl border border-white/10 bg-white/[0.03] p-5">
+                      <div className="mt-6 flex items-center gap-4 rounded-lg border border-white/10 bg-white/[0.03] p-5">
                         <UserAvatar
                           src={user?.avatar_url}
                           alt={user?.full_name}
@@ -925,9 +925,9 @@ export default function AdminDashboard() {
                           { label: 'Người dùng đã xác thực', value: verifiedCount, icon: UserCheck, tone: 'text-emerald-400 bg-emerald-500/10' },
                           { label: 'Tin chờ xử lý', value: stats.pendingJobs, icon: Clock3, tone: 'text-amber-400 bg-amber-500/10' },
                         ].map((item) => (
-                          <div key={item.label} className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+                          <div key={item.label} className="rounded-lg border border-white/10 bg-white/[0.03] p-4">
                             <div className="flex items-center gap-3">
-                              <div className={`rounded-2xl p-3 ${item.tone}`}>
+                              <div className={`rounded-lg p-3 ${item.tone}`}>
                                 <item.icon className="h-5 w-5" />
                               </div>
                               <div>
@@ -940,7 +940,7 @@ export default function AdminDashboard() {
                       </div>
                     </div>
 
-                    <div className="rounded-3xl border border-white/10 bg-gray-900/90 p-6 shadow-[0_20px_40px_rgba(0,0,0,0.25)]">
+                    <div className="rounded-lg border border-white/10 bg-gray-900/90 p-6 shadow-[0_20px_40px_rgba(0,0,0,0.25)]">
                       <h2 className="text-xl font-bold text-white">Nguyên tắc vận hành</h2>
                       <p className="mt-1 text-sm text-gray-500">
                         Các điểm cần giữ đồng bộ khi kiểm duyệt nội dung hệ thống.
@@ -954,7 +954,7 @@ export default function AdminDashboard() {
                         ].map((item) => (
                           <div
                             key={item}
-                            className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-4 text-sm leading-6 text-gray-300"
+                            className="rounded-lg border border-white/10 bg-white/[0.03] px-4 py-4 text-sm leading-6 text-gray-300"
                           >
                             {item}
                           </div>

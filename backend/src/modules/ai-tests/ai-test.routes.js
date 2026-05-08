@@ -30,6 +30,7 @@ router.post('/tests/:testId/generate-questions', aiTestController.generateQuesti
 // Candidate UI / Mocks
 router.post('/generate-video', aiTestController.generateVideo);
 router.post('/speech-to-text', aiTestController.speechToText);
+router.post('/liveavatar/session-token', aiTestController.createLiveAvatarSessionToken);
 router.post('/start-submission', aiTestController.startSubmission);
 router.post('/submit-answer', aiTestController.submitAnswer);
 router.post('/complete-submission', aiTestController.completeSubmission);

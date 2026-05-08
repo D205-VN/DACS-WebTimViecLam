@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, CheckCircle, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, CheckCircle, AlertTriangle, ClipboardList } from 'lucide-react';
+import EmployerHeader from '@widgets/employer/EmployerHeader';
 import { aiTestApi } from '@shared/api/aiTestApi';
+import { getEmployerDashboardPath, getEmployerDashboardState } from '@shared/utils/employerDashboardRoutes';
 
 const ScoreManagementPage = () => {
   const { id } = useParams(); // Test ID
@@ -9,6 +11,7 @@ const ScoreManagementPage = () => {
   const [submissions, setSubmissions] = useState([]);
   const [selectedSub, setSelectedSub] = useState(null);
   const [manualScore, setManualScore] = useState({});
+  const backToTests = () => navigate(getEmployerDashboardPath('ai-tests'), { state: getEmployerDashboardState('ai-tests') });
 
   useEffect(() => {
     let active = true;
@@ -50,24 +53,27 @@ const ScoreManagementPage = () => {
   };
 
   return (
-    <div className="max-w-7xl mx-auto p-6 flex gap-6">
-      {/* Sidebar - Submission List */}
-      <div className="w-1/3 bg-white rounded-xl shadow-sm border border-gray-100 p-4">
-        <button onClick={() => navigate('/employer/ai-tests')} className="text-gray-500 hover:text-blue-600 mb-4 flex items-center gap-2">
-          <ArrowLeft size={16} /> Quay lại danh sách
+    <div className="aw-page">
+      <EmployerHeader />
+      <div className="mx-auto flex max-w-7xl flex-col gap-6 px-4 py-6 sm:px-6 lg:flex-row lg:px-8">
+      {/* Sidebar */}
+      <div className="relative w-full overflow-hidden rounded-2xl border border-indigo-100/60 bg-white/90 p-5 shadow-sm backdrop-blur-sm lg:w-1/3">
+        <div className="absolute left-0 right-0 top-0 h-1 rounded-t-2xl bg-gradient-to-r from-indigo-500 to-violet-500"></div>
+        <button onClick={backToTests} className="text-xs text-gray-400 hover:text-indigo-600 mb-4 flex items-center gap-1 transition-colors">
+          <ArrowLeft size={12} /> Quay lại danh sách
         </button>
-        <h2 className="text-lg font-bold mb-4">Danh sách nộp bài</h2>
+        <h2 className="text-lg font-bold text-gray-800 mb-4">Danh sách nộp bài</h2>
         <div className="space-y-2">
           {submissions.length === 0 ? <p className="text-gray-500 text-sm">Chưa có bài nộp nào.</p> : null}
           {submissions.map(sub => (
             <div 
               key={sub.id} 
               onClick={() => fetchSubmissionDetails(sub.id)}
-              className={`p-3 rounded-lg cursor-pointer border ${selectedSub?.id === sub.id ? 'border-blue-600 bg-blue-50' : 'border-gray-100 hover:bg-gray-50'}`}
+              className={`cursor-pointer rounded-xl border p-3 transition-all duration-200 ${selectedSub?.id === sub.id ? 'border-indigo-300 bg-gradient-to-r from-indigo-50 to-violet-50 shadow-sm' : 'border-indigo-100/60 hover:bg-indigo-50/30 hover:border-indigo-200'}`}
             >
-              <div className="font-medium text-navy-900 flex justify-between">
+              <div className="font-medium text-gray-900 flex justify-between">
                 <span>{sub.full_name}</span>
-                <span className="text-blue-600 font-bold">{sub.total_score} điểm</span>
+                <span className="text-indigo-600 font-bold">{sub.total_score} điểm</span>
               </div>
               <div className="text-xs text-gray-500 mt-1 flex justify-between">
                 <span>{new Date(sub.completed_at).toLocaleString()}</span>
@@ -79,26 +85,27 @@ const ScoreManagementPage = () => {
       </div>
 
       {/* Main Content - Submission Details */}
-      <div className="w-2/3 bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+      <div className="relative w-full overflow-hidden rounded-2xl border border-indigo-100/60 bg-white/90 p-6 shadow-sm backdrop-blur-sm lg:w-2/3">
+        <div className="absolute left-0 right-0 top-0 h-1 rounded-t-2xl bg-gradient-to-r from-violet-500 to-purple-500"></div>
         {!selectedSub ? (
-          <div className="h-full flex items-center justify-center text-gray-400">
-            Select a submission to view details
+          <div className="flex min-h-80 items-center justify-center text-center text-sm text-gray-400">
+            Chọn một bài nộp để xem chi tiết
           </div>
         ) : (
           <div>
-            <div className="flex justify-between items-start mb-6 border-b pb-4">
+            <div className="mb-6 flex flex-col gap-3 border-b pb-4 sm:flex-row sm:items-start sm:justify-between">
               <div>
-                <h2 className="text-2xl font-bold text-navy-900">{selectedSub.full_name}</h2>
+                <h2 className="text-2xl font-extrabold bg-gradient-to-r from-indigo-700 to-violet-700 bg-clip-text text-transparent">{selectedSub.full_name}</h2>
                 <p className="text-gray-500">{selectedSub.email}</p>
               </div>
               <div className="text-right">
-                <div className="text-3xl font-black text-blue-600">{selectedSub.total_score}</div>
+                <div className="text-3xl font-black bg-gradient-to-r from-indigo-600 to-violet-600 bg-clip-text text-transparent">{selectedSub.total_score}</div>
                 <div className="text-sm text-gray-500">Tổng điểm</div>
               </div>
             </div>
 
             {selectedSub.suspicious_flag && (
-              <div className="mb-6 p-4 bg-red-50 text-red-700 rounded-lg flex items-start gap-3">
+              <div className="mb-6 p-4 bg-gradient-to-r from-rose-50 to-pink-50 text-rose-700 rounded-xl border border-rose-200/60 flex items-start gap-3">
                 <AlertTriangle className="mt-0.5" />
                 <div>
                   <h4 className="font-bold">Cảnh báo gian lận</h4>
@@ -108,13 +115,15 @@ const ScoreManagementPage = () => {
             )}
 
             <div className="space-y-6">
-              <h3 className="text-lg font-bold text-navy-800">Câu trả lời</h3>
+              <h3 className="text-lg font-bold text-gray-800 flex items-center gap-2">
+                <ClipboardList className="w-5 h-5 text-violet-500" /> Câu trả lời
+              </h3>
               {selectedSub.answers.map((ans, idx) => {
                 const details = typeof ans.scoring_details === 'string' ? JSON.parse(ans.scoring_details) : (ans.scoring_details || {});
                 return (
-                  <div key={ans.id} className="border border-gray-200 rounded-xl p-5">
+                  <div key={ans.id} className="border border-indigo-100/60 rounded-xl p-5 hover:shadow-md hover:shadow-indigo-50 transition-all">
                     <h4 className="font-medium mb-2 text-gray-800">Q{idx + 1}: {ans.question_content}</h4>
-                    <div className="bg-gray-50 p-3 rounded mb-4 text-sm">
+                    <div className="bg-indigo-50/50 p-3 rounded mb-4 text-sm">
                       <p className="font-medium text-gray-500 mb-1">Đáp án mẫu:</p>
                       <p className="text-gray-700">{ans.expected_answer || 'Không có'}</p>
                     </div>
@@ -155,7 +164,7 @@ const ScoreManagementPage = () => {
                       </div>
                     ) : (
                       <>
-                        <div className="grid grid-cols-4 gap-4 mt-4 bg-gray-50 p-3 rounded-lg border">
+                        <div className="mt-4 grid gap-3 rounded-lg border bg-indigo-50/50 p-3 sm:grid-cols-2 xl:grid-cols-4">
                           <div className="text-center border-r">
                             <div className="text-xs text-gray-500">Chấm AI</div>
                             <div className="font-bold text-lg">{Number(details.semantic_score || 0).toFixed(1)}</div>
@@ -178,9 +187,9 @@ const ScoreManagementPage = () => {
                                 value={manualScore[ans.id] || 0}
                                 onChange={(e) => setManualScore({...manualScore, [ans.id]: e.target.value})}
                               />
-                              <button 
+                                <button
                                 onClick={() => handleAdjustScore(ans.id)}
-                                className="bg-blue-600 text-white p-1 rounded hover:bg-blue-700"
+                                className="bg-gradient-to-r from-indigo-600 to-violet-600 text-white p-1 rounded-lg shadow-sm"
                               >
                                 <CheckCircle size={16} />
                               </button>
@@ -189,7 +198,7 @@ const ScoreManagementPage = () => {
                         </div>
                         <div className="mt-2 text-right">
                           <span className="text-sm text-gray-500">Điểm câu hỏi: </span>
-                          <span className="font-bold text-blue-600">{Number(ans.final_score).toFixed(2)}</span>
+                          <span className="font-bold text-indigo-600">{Number(ans.final_score).toFixed(2)}</span>
                         </div>
                       </>
                     )}
@@ -200,6 +209,7 @@ const ScoreManagementPage = () => {
           </div>
         )}
       </div>
+    </div>
     </div>
   );
 };

@@ -25,13 +25,13 @@ export default function SavedJobsPage() {
   };
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-8">
-      <Link to={backRoute} className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-navy-700 mb-6 transition-colors">
+    <div className="aw-container max-w-5xl py-6">
+      <Link to={backRoute} className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-indigo-700 mb-6 transition-colors">
         <ArrowLeft className="w-4 h-4" /> {backLabel}
       </Link>
 
-      <div className="flex items-center gap-3 mb-6">
-        <div className="w-12 h-12 bg-gradient-to-br from-red-100 to-pink-100 rounded-xl flex items-center justify-center">
+      <div className="aw-surface mb-4 flex items-center gap-3 p-4">
+        <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-red-50">
           <Bookmark className="w-6 h-6 text-red-500" />
         </div>
         <div>
@@ -41,25 +41,25 @@ export default function SavedJobsPage() {
       </div>
 
       {loading ? (
-        <div className="flex justify-center py-12"><Loader2 className="w-8 h-8 animate-spin text-navy-600" /></div>
+        <div className="flex justify-center py-12"><Loader2 className="w-8 h-8 animate-spin text-indigo-600" /></div>
       ) : jobs.length === 0 ? (
-        <div className="bg-white rounded-2xl border border-gray-100 p-12 text-center">
+        <div className="aw-surface p-12 text-center">
           <Bookmark className="w-12 h-12 text-gray-300 mx-auto mb-4" />
           <p className="text-gray-500">Bạn chưa lưu việc làm nào.</p>
-          <Link to={backRoute} className="inline-block mt-4 text-sm font-semibold text-navy-700 hover:underline">Khám phá việc làm →</Link>
+          <Link to={backRoute} className="inline-block mt-4 text-sm font-semibold text-indigo-700 hover:underline">Khám phá việc làm →</Link>
         </div>
       ) : (
         <div className="space-y-3">
           {jobs.map(job => (
-            <div key={job.id} className="bg-white rounded-2xl border border-gray-100 p-5 hover:shadow-lg hover:border-navy-100 transition-all group">
+            <div key={job.id} className="aw-surface group p-5 transition-colors hover:border-gray-300 hover:bg-indigo-50/30">
               <div className="flex gap-4">
-                <div className="w-12 h-12 bg-gradient-to-br from-navy-500 to-cyan-500 rounded-xl flex items-center justify-center text-white shrink-0">
+                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-indigo-50 text-indigo-700">
                   <Briefcase className="w-6 h-6" />
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-start justify-between gap-2">
                     <Link to={getJobDetailRoute(user?.role_code, job.id)} className="block">
-                      <h3 className="text-base font-bold text-gray-800 group-hover:text-navy-700 transition-colors uppercase">{job.title}</h3>
+                      <h3 className="line-clamp-2 text-base font-bold text-gray-900 transition-colors group-hover:text-indigo-700">{job.title}</h3>
                       <p className="text-sm text-gray-500 mt-0.5">{job.company_name || 'Đang cập nhật'}</p>
                     </Link>
                     <button onClick={() => handleUnsave(job.id)} className="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Bỏ lưu">

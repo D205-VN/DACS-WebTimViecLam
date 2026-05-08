@@ -241,18 +241,18 @@ export default function BlockchainVerificationPage() {
     }
   };
 
-  const inputClass = 'w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-700 transition-all focus:border-navy-400 focus:outline-none focus:ring-2 focus:ring-navy-200';
+  const inputClass = 'w-full rounded-lg border border-indigo-100/60 bg-white px-4 py-3 text-sm text-gray-700 transition-all focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-violet-200';
   const textareaClass = `${inputClass} min-h-[110px] resize-y`;
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8">
-      <Link to={backRoute} className="mb-6 inline-flex items-center gap-1.5 text-sm text-gray-500 transition-colors hover:text-navy-700">
+      <Link to={backRoute} className="mb-6 inline-flex items-center gap-1.5 text-sm text-gray-500 transition-colors hover:text-indigo-700">
         <ArrowLeft className="h-4 w-4" /> {backLabel}
       </Link>
 
       <div className="mb-8 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div className="flex items-center gap-4">
-          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-100 via-cyan-100 to-indigo-100">
+          <div className="flex h-14 w-14 items-center justify-center rounded-lg bg-emerald-50">
             <ShieldCheck className="h-7 w-7 text-emerald-700" />
           </div>
           <div>
@@ -264,15 +264,15 @@ export default function BlockchainVerificationPage() {
         </div>
 
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-          <div className="rounded-2xl border border-gray-100 bg-white px-4 py-3 shadow-sm">
+          <div className="rounded-lg border border-indigo-50 bg-white px-4 py-3 shadow-sm">
             <p className="text-xs uppercase tracking-[0.18em] text-gray-400">CV đã neo</p>
             <p className="mt-2 text-2xl font-bold text-gray-800">{summary.notarizedCvs}</p>
           </div>
-          <div className="rounded-2xl border border-gray-100 bg-white px-4 py-3 shadow-sm">
+          <div className="rounded-lg border border-indigo-50 bg-white px-4 py-3 shadow-sm">
             <p className="text-xs uppercase tracking-[0.18em] text-gray-400">Chứng chỉ active</p>
             <p className="mt-2 text-2xl font-bold text-gray-800">{summary.activeCertificates}</p>
           </div>
-          <div className="rounded-2xl border border-gray-100 bg-white px-4 py-3 shadow-sm">
+          <div className="rounded-lg border border-indigo-50 bg-white px-4 py-3 shadow-sm">
             <p className="text-xs uppercase tracking-[0.18em] text-gray-400">Kinh nghiệm active</p>
             <p className="mt-2 text-2xl font-bold text-gray-800">{summary.activeWorkHistories}</p>
           </div>
@@ -282,21 +282,21 @@ export default function BlockchainVerificationPage() {
       <SeekerToolsNav />
 
       {error ? (
-        <div className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">{error}</div>
+        <div className="mb-4 rounded-lg rounded-xl border border-rose-200 bg-gradient-to-r from-rose-50 to-pink-50 px-4 py-3 text-sm text-red-600">{error}</div>
       ) : null}
       {notice ? (
-        <div className="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">{notice}</div>
+        <div className="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">{notice}</div>
       ) : null}
 
       {loading ? (
         <div className="flex justify-center py-24">
-          <Loader2 className="h-10 w-10 animate-spin text-navy-600" />
+          <Loader2 className="h-10 w-10 animate-spin text-indigo-600" />
         </div>
       ) : (
         <div className="space-y-8">
-          <section className="rounded-3xl border border-gray-100 bg-white p-6 shadow-sm">
+          <section className="rounded-lg border border-indigo-50 bg-white p-6 shadow-sm">
             <div className="mb-5 flex items-center gap-3">
-              <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-navy-50 text-navy-700">
+              <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-indigo-50 text-indigo-700">
                 <FileCheck2 className="h-5 w-5" />
               </div>
               <div>
@@ -306,13 +306,13 @@ export default function BlockchainVerificationPage() {
             </div>
 
             {overview.cvs.length === 0 ? (
-              <div className="rounded-2xl border border-dashed border-gray-200 bg-gray-50 px-6 py-12 text-center text-sm text-gray-500">
+              <div className="rounded-lg border border-dashed border-indigo-100/60 bg-indigo-50/50 px-6 py-12 text-center text-sm text-gray-500">
                 Bạn chưa có CV nào để xác thực. Hãy tạo hoặc import CV trước.
               </div>
             ) : (
               <div className="grid gap-4 lg:grid-cols-2">
                 {overview.cvs.map((cv) => (
-                  <div key={cv.id} className="rounded-2xl border border-gray-100 bg-gray-50 p-5">
+                  <div key={cv.id} className="rounded-lg border border-indigo-50 bg-indigo-50/50 p-5">
                     <div className="flex items-start justify-between gap-4">
                       <div>
                         <h3 className="text-base font-bold text-gray-800">{cv.title}</h3>
@@ -346,7 +346,7 @@ export default function BlockchainVerificationPage() {
                         type="button"
                         onClick={() => handleNotarizeCv(cv.id)}
                         disabled={notarizingCvId === cv.id}
-                        className="inline-flex items-center gap-2 rounded-xl bg-navy-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-navy-700 disabled:opacity-70"
+                        className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-gradient-to-r from-indigo-600 to-violet-600 disabled:opacity-70"
                       >
                         {notarizingCvId === cv.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldEllipsis className="h-4 w-4" />}
                         {cv.verification_code ? 'Cập nhật blockchain' : 'Ghi lên blockchain'}
@@ -356,7 +356,7 @@ export default function BlockchainVerificationPage() {
                           <button
                             type="button"
                             onClick={() => handleCopy(resolvePublicUrl(cv.public_url, cv.verification_code), 'Đã sao chép link xác thực CV.')}
-                            className="inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-50"
+                            className="inline-flex items-center gap-2 rounded-lg border border-indigo-100/60 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 transition-colors hover:bg-indigo-50/30"
                           >
                             <Copy className="h-4 w-4" /> Sao chép link
                           </button>
@@ -364,7 +364,7 @@ export default function BlockchainVerificationPage() {
                             href={resolvePublicUrl(cv.public_url, cv.verification_code)}
                             target="_blank"
                             rel="noreferrer"
-                            className="inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-50"
+                            className="inline-flex items-center gap-2 rounded-lg border border-indigo-100/60 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 transition-colors hover:bg-indigo-50/30"
                           >
                             <ExternalLink className="h-4 w-4" /> Xem public
                           </a>
@@ -378,9 +378,9 @@ export default function BlockchainVerificationPage() {
           </section>
 
           <section className="grid gap-8 xl:grid-cols-[0.95fr,1.05fr]">
-            <div className="rounded-3xl border border-gray-100 bg-white p-6 shadow-sm">
+            <div className="rounded-lg border border-indigo-50 bg-white p-6 shadow-sm">
               <div className="mb-5 flex items-center gap-3">
-                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-amber-50 text-amber-700">
+                <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-amber-50 text-amber-700">
                   <GraduationCap className="h-5 w-5" />
                 </div>
                 <div>
@@ -439,7 +439,7 @@ export default function BlockchainVerificationPage() {
                 <button
                   type="submit"
                   disabled={submittingCertificate}
-                  className="inline-flex items-center gap-2 rounded-xl bg-amber-600 px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-amber-700 disabled:opacity-70"
+                  className="inline-flex items-center gap-2 rounded-lg bg-amber-600 px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-amber-700 disabled:opacity-70"
                 >
                   {submittingCertificate ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
                   Ghi chứng chỉ
@@ -447,7 +447,7 @@ export default function BlockchainVerificationPage() {
               </form>
             </div>
 
-            <div className="rounded-3xl border border-gray-100 bg-white p-6 shadow-sm">
+            <div className="rounded-lg border border-indigo-50 bg-white p-6 shadow-sm">
               <div className="mb-5 flex items-center justify-between gap-3">
                 <div>
                   <h2 className="text-lg font-bold text-gray-800">Danh sách chứng chỉ đã xác thực</h2>
@@ -460,12 +460,12 @@ export default function BlockchainVerificationPage() {
 
               <div className="space-y-4">
                 {overview.certificates.length === 0 ? (
-                  <div className="rounded-2xl border border-dashed border-gray-200 bg-gray-50 px-6 py-12 text-center text-sm text-gray-500">
+                  <div className="rounded-lg border border-dashed border-indigo-100/60 bg-indigo-50/50 px-6 py-12 text-center text-sm text-gray-500">
                     Chưa có chứng chỉ nào được ghi lên blockchain ledger.
                   </div>
                 ) : (
                   overview.certificates.map((item) => (
-                    <div key={item.id} className="rounded-2xl border border-gray-100 bg-gray-50 p-5">
+                    <div key={item.id} className="rounded-lg border border-indigo-50 bg-indigo-50/50 p-5">
                       <div className="flex items-start justify-between gap-4">
                         <div>
                           <h3 className="text-base font-bold text-gray-800">{item.certificate_name}</h3>
@@ -491,7 +491,7 @@ export default function BlockchainVerificationPage() {
                             <button
                               type="button"
                               onClick={() => handleCopy(resolvePublicUrl(item.public_url, item.verification_code), 'Đã sao chép link xác thực chứng chỉ.')}
-                              className="inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-50"
+                              className="inline-flex items-center gap-2 rounded-lg border border-indigo-100/60 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 transition-colors hover:bg-indigo-50/30"
                             >
                               <Copy className="h-4 w-4" /> Sao chép link
                             </button>
@@ -499,7 +499,7 @@ export default function BlockchainVerificationPage() {
                               href={resolvePublicUrl(item.public_url, item.verification_code)}
                               target="_blank"
                               rel="noreferrer"
-                              className="inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-50"
+                              className="inline-flex items-center gap-2 rounded-lg border border-indigo-100/60 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 transition-colors hover:bg-indigo-50/30"
                             >
                               <Link2 className="h-4 w-4" /> Xem public
                             </a>
@@ -510,7 +510,7 @@ export default function BlockchainVerificationPage() {
                             type="button"
                             onClick={() => handleRevokeCertificate(item.id)}
                             disabled={revokingCertificateId === item.id}
-                            className="inline-flex items-center gap-2 rounded-xl bg-red-50 px-4 py-2.5 text-sm font-semibold text-red-600 transition-colors hover:bg-red-100 disabled:opacity-70"
+                            className="inline-flex items-center gap-2 rounded-lg bg-red-50 px-4 py-2.5 text-sm font-semibold text-red-600 transition-colors hover:bg-red-100 disabled:opacity-70"
                           >
                             {revokingCertificateId === item.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
                             Thu hồi
@@ -525,9 +525,9 @@ export default function BlockchainVerificationPage() {
           </section>
 
           <section className="grid gap-8 xl:grid-cols-[0.95fr,1.05fr]">
-            <div className="rounded-3xl border border-gray-100 bg-white p-6 shadow-sm">
+            <div className="rounded-lg border border-indigo-50 bg-white p-6 shadow-sm">
               <div className="mb-5 flex items-center gap-3">
-                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-blue-50 text-blue-700">
+                <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-blue-50 text-blue-700">
                   <Briefcase className="h-5 w-5" />
                 </div>
                 <div>
@@ -583,7 +583,7 @@ export default function BlockchainVerificationPage() {
                         end_date: event.target.checked ? '' : prev.end_date,
                       }))
                     }
-                    className="h-4 w-4 rounded border-gray-300 text-navy-600 focus:ring-navy-200"
+                    className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-violet-200"
                   />
                   Tôi vẫn đang làm ở vị trí này
                 </label>
@@ -596,7 +596,7 @@ export default function BlockchainVerificationPage() {
                 <button
                   type="submit"
                   disabled={submittingWorkHistory}
-                  className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-blue-700 disabled:opacity-70"
+                  className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-blue-700 disabled:opacity-70"
                 >
                   {submittingWorkHistory ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
                   Ghi lịch sử làm việc
@@ -604,7 +604,7 @@ export default function BlockchainVerificationPage() {
               </form>
             </div>
 
-            <div className="rounded-3xl border border-gray-100 bg-white p-6 shadow-sm">
+            <div className="rounded-lg border border-indigo-50 bg-white p-6 shadow-sm">
               <div className="mb-5 flex items-center justify-between gap-3">
                 <div>
                   <h2 className="text-lg font-bold text-gray-800">Lịch sử làm việc đã xác thực</h2>
@@ -617,12 +617,12 @@ export default function BlockchainVerificationPage() {
 
               <div className="space-y-4">
                 {overview.workHistories.length === 0 ? (
-                  <div className="rounded-2xl border border-dashed border-gray-200 bg-gray-50 px-6 py-12 text-center text-sm text-gray-500">
+                  <div className="rounded-lg border border-dashed border-indigo-100/60 bg-indigo-50/50 px-6 py-12 text-center text-sm text-gray-500">
                     Chưa có lịch sử làm việc nào được ghi lên blockchain ledger.
                   </div>
                 ) : (
                   overview.workHistories.map((item) => (
-                    <div key={item.id} className="rounded-2xl border border-gray-100 bg-gray-50 p-5">
+                    <div key={item.id} className="rounded-lg border border-indigo-50 bg-indigo-50/50 p-5">
                       <div className="flex items-start justify-between gap-4">
                         <div>
                           <h3 className="text-base font-bold text-gray-800">{item.job_title}</h3>
@@ -653,7 +653,7 @@ export default function BlockchainVerificationPage() {
                             <button
                               type="button"
                               onClick={() => handleCopy(resolvePublicUrl(item.public_url, item.verification_code), 'Đã sao chép link xác thực lịch sử làm việc.')}
-                              className="inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-50"
+                              className="inline-flex items-center gap-2 rounded-lg border border-indigo-100/60 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 transition-colors hover:bg-indigo-50/30"
                             >
                               <Copy className="h-4 w-4" /> Sao chép link
                             </button>
@@ -661,7 +661,7 @@ export default function BlockchainVerificationPage() {
                               href={resolvePublicUrl(item.public_url, item.verification_code)}
                               target="_blank"
                               rel="noreferrer"
-                              className="inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-50"
+                              className="inline-flex items-center gap-2 rounded-lg border border-indigo-100/60 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 transition-colors hover:bg-indigo-50/30"
                             >
                               <ExternalLink className="h-4 w-4" /> Xem public
                             </a>
@@ -672,7 +672,7 @@ export default function BlockchainVerificationPage() {
                             type="button"
                             onClick={() => handleRevokeWorkHistory(item.id)}
                             disabled={revokingWorkHistoryId === item.id}
-                            className="inline-flex items-center gap-2 rounded-xl bg-red-50 px-4 py-2.5 text-sm font-semibold text-red-600 transition-colors hover:bg-red-100 disabled:opacity-70"
+                            className="inline-flex items-center gap-2 rounded-lg bg-red-50 px-4 py-2.5 text-sm font-semibold text-red-600 transition-colors hover:bg-red-100 disabled:opacity-70"
                           >
                             {revokingWorkHistoryId === item.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
                             Thu hồi

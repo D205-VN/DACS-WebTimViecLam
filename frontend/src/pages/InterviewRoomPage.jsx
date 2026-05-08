@@ -191,7 +191,7 @@ export default function InterviewRoomPage() {
           if (disposed) { stream.getTracks().forEach((t) => t.stop()); return; }
           localStreamRef.current = stream;
           setCamOn(false);
-        } catch (err2) {
+        } catch {
           if (!disposed) setError('Không thể truy cập camera/microphone. Hãy cho phép quyền truy cập.');
           return;
         }
@@ -239,7 +239,7 @@ export default function InterviewRoomPage() {
 
       sock.on('webrtc:ice-candidate', async ({ candidate }) => {
         if (pcRef.current) {
-          try { await pcRef.current.addIceCandidate(new RTCIceCandidate(candidate)); } catch (e) { /* ignore */ }
+          try { await pcRef.current.addIceCandidate(new RTCIceCandidate(candidate)); } catch { /* ignore */ }
         }
       });
 
@@ -247,6 +247,18 @@ export default function InterviewRoomPage() {
         cleanupPeer();
         setPeerConnected(false);
         if (remoteVideoRef.current) remoteVideoRef.current.srcObject = null;
+      });
+
+      sock.on('webrtc:interview-completed', () => {
+        if (role === 'candidate') {
+          cleanupPeer();
+          cleanupMedia();
+          setJoining(false);
+          setWaiting(false);
+          setPeerConnected(false);
+          if (remoteVideoRef.current) remoteVideoRef.current.srcObject = null;
+          setRoom((prev) => prev ? ({ ...prev, queue_status: 'completed', ended_at: new Date().toISOString() }) : prev);
+        }
       });
     };
 
@@ -263,7 +275,7 @@ export default function InterviewRoomPage() {
       cleanupMedia();
       setPeerConnected(false);
     };
-  }, [joining, room?.id, createPeer, cleanupPeer, cleanupMedia]);
+  }, [joining, room?.id, role, createPeer, cleanupPeer, cleanupMedia]);
 
   // ── Candidate polling ──
   useEffect(() => {
@@ -371,6 +383,8 @@ export default function InterviewRoomPage() {
     }
   };
 
+  const interviewCompleted = room?.queue_status === 'completed' || Boolean(room?.ended_at);
+
   // ── Render ──
   if (loading) {
     return (
@@ -383,9 +397,9 @@ export default function InterviewRoomPage() {
   if (error || !room) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-slate-950 px-4 text-white">
-        <div className="max-w-md rounded-2xl border border-white/10 bg-white/10 p-6 text-center">
+        <div className="max-w-md rounded-lg border border-white/10 bg-white/10 p-6 text-center">
           <p className="font-semibold">{error || 'Phòng phỏng vấn không tồn tại'}</p>
-          <Link to="/" className="mt-4 inline-flex rounded-xl bg-white px-4 py-2 text-sm font-semibold text-slate-900">
+          <Link to="/" className="mt-4 inline-flex rounded-lg bg-white px-4 py-2 text-sm font-semibold text-slate-900">
             Quay lại
           </Link>
         </div>
@@ -400,7 +414,7 @@ export default function InterviewRoomPage() {
         {!joining && (
           <header className="flex flex-col gap-4 border-b border-white/10 pb-4 lg:flex-row lg:items-center lg:justify-between">
             <div>
-              <Link to={role === 'host' ? '/employer/meeting-rooms' : '/seeker/applied-jobs'} className="mb-3 inline-flex items-center gap-2 text-sm text-slate-300 hover:text-white">
+              <Link to={role === 'host' ? '/employer/dashboard?tab=meeting-rooms' : '/seeker/applied-jobs'} className="mb-3 inline-flex items-center gap-2 text-sm text-slate-300 hover:text-white">
                 <ArrowLeft className="h-4 w-4" />
                 Quay lại
               </Link>
@@ -437,16 +451,16 @@ export default function InterviewRoomPage() {
             </div>
             {role === 'host' && (
               <div className="flex flex-wrap gap-2">
-                <button type="button" onClick={() => handleRecording('recording')} className="inline-flex items-center gap-2 rounded-xl bg-red-600 px-3 py-1.5 text-xs font-semibold hover:bg-red-700">
+                <button type="button" onClick={() => handleRecording('recording')} className="inline-flex items-center gap-2 rounded-lg bg-red-600 px-3 py-1.5 text-xs font-semibold hover:bg-red-700">
                   <Mic className="h-3.5 w-3.5" /> Ghi hình
                 </button>
-                <button type="button" onClick={() => handleRecording('stored')} className="rounded-xl bg-white px-3 py-1.5 text-xs font-semibold text-slate-900 hover:bg-slate-100">
+                <button type="button" onClick={() => handleRecording('stored')} className="rounded-lg bg-white px-3 py-1.5 text-xs font-semibold text-slate-900 hover:bg-slate-100">
                   Dừng ghi
                 </button>
-                <span className="rounded-xl border border-white/10 px-3 py-1.5 text-xs text-slate-300">
+                <span className="rounded-lg border border-white/10 px-3 py-1.5 text-xs text-slate-300">
                   {recordingStatus === 'recording' ? 'Đang ghi' : 'Sẵn sàng'}
                 </span>
-                <button type="button" onClick={handleCompleteInterview} className="inline-flex items-center gap-2 rounded-xl bg-emerald-500 px-3 py-1.5 text-xs font-semibold text-slate-950 hover:bg-emerald-400">
+                <button type="button" onClick={handleCompleteInterview} className="inline-flex items-center gap-2 rounded-lg bg-emerald-500 px-3 py-1.5 text-xs font-semibold text-slate-950 hover:bg-emerald-400">
                   <CheckCircle2 className="h-3.5 w-3.5" /> Hoàn tất lượt
                 </button>
               </div>
@@ -457,15 +471,17 @@ export default function InterviewRoomPage() {
         <main className={`flex flex-1 flex-col ${joining ? 'py-0' : 'py-5'}`}>
           {!joining ? (
             <div className="mx-auto flex w-full max-w-xl flex-1 items-center">
-              <div className="w-full rounded-3xl border border-white/10 bg-white/10 p-7 shadow-2xl">
-                <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-cyan-400/20 text-cyan-200">
+              <div className="w-full rounded-lg border border-white/10 bg-white/10 p-7 shadow-lg">
+                <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-lg bg-cyan-400/20 text-cyan-200">
                   <Video className="h-7 w-7" />
                 </div>
                 <h2 className="text-xl font-bold">
-                  {waiting ? 'Bạn đang ở phòng chờ' : nextCandidate ? 'Đã gọi ứng viên tiếp theo' : 'Phòng phỏng vấn trực tuyến'}
+                  {interviewCompleted ? 'Lượt phỏng vấn đã hoàn tất' : waiting ? 'Bạn đang ở phòng chờ' : nextCandidate ? 'Đã gọi ứng viên tiếp theo' : 'Phòng phỏng vấn trực tuyến'}
                 </h2>
                 <p className="mt-3 text-sm leading-6 text-slate-300">
-                  {waiting
+                  {interviewCompleted
+                    ? 'Cảm ơn bạn đã tham gia. Camera và microphone đã được tắt cho lượt phỏng vấn này.'
+                    : waiting
                     ? `Bạn đang xếp hàng chờ. Vị trí hiện tại: ${room.queue_position || 'đang cập nhật'}. Nhà tuyển dụng sẽ gọi bạn vào lượt.`
                     : nextCandidate
                       ? `${nextCandidate.candidate_name || 'Ứng viên tiếp theo'} đã được chuyển vào lượt phỏng vấn.`
@@ -474,18 +490,18 @@ export default function InterviewRoomPage() {
                     : 'Bạn đã vào phòng HR. Bắt đầu phỏng vấn khi sẵn sàng.'}
                 </p>
                 {waiting ? (
-                  <div className="mt-6 rounded-2xl border border-cyan-300/20 bg-cyan-300/10 px-4 py-3 text-sm text-cyan-100">
+                  <div className="mt-6 rounded-lg border border-cyan-300/20 bg-cyan-300/10 px-4 py-3 text-sm text-cyan-100">
                     <div className="flex items-center gap-2">
                       <Loader2 className="h-4 w-4 animate-spin" />
                       <span>Trang sẽ tự cập nhật mỗi vài giây. Bạn có thể giữ tab này mở.</span>
                     </div>
                   </div>
                 ) : nextCandidate ? (
-                  <button type="button" onClick={() => { setNextCandidate(null); setJoining(true); }} className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-emerald-400 px-5 py-3 text-sm font-bold text-slate-950 transition hover:bg-emerald-300">
+                  <button type="button" onClick={() => { setNextCandidate(null); setJoining(true); }} className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-emerald-400 px-5 py-3 text-sm font-bold text-slate-950 transition hover:bg-emerald-300">
                     <UserCheck className="h-4 w-4" /> Vào lượt tiếp theo
                   </button>
                 ) : role === 'host' ? (
-                  <button type="button" onClick={handleJoin} className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-cyan-400 px-5 py-3 text-sm font-bold text-slate-950 transition hover:bg-cyan-300">
+                  <button type="button" onClick={handleJoin} className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-cyan-400 px-5 py-3 text-sm font-bold text-slate-950 transition hover:bg-cyan-300">
                     <Video className="h-4 w-4" /> Vào phòng HR
                   </button>
                 ) : null}
@@ -497,7 +513,7 @@ export default function InterviewRoomPage() {
               {/* Video area */}
               <div className="relative flex flex-1 items-center justify-center bg-slate-900 p-2">
                 {/* Remote video (main) */}
-                <div className="relative h-full w-full max-h-[calc(100vh-140px)] overflow-hidden rounded-2xl bg-slate-800">
+                <div className="relative h-full w-full max-h-[calc(100vh-140px)] overflow-hidden rounded-lg bg-slate-800">
                   <video ref={remoteVideoRef} autoPlay playsInline className="h-full w-full object-cover" style={{ transform: 'scaleX(-1)' }} />
                   {!peerConnected && (
                     <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-slate-800/90">
@@ -507,7 +523,7 @@ export default function InterviewRoomPage() {
                   )}
                 </div>
                 {/* Local video (picture-in-picture) */}
-                <div className="absolute bottom-4 right-4 h-36 w-48 overflow-hidden rounded-xl border-2 border-white/20 bg-slate-800 shadow-2xl">
+                <div className="absolute bottom-4 right-4 h-36 w-48 overflow-hidden rounded-lg border-2 border-white/20 bg-slate-800 shadow-lg">
                   <video ref={localVideoRef} autoPlay playsInline muted className="h-full w-full object-cover" style={{ transform: 'scaleX(-1)' }} />
                   {!camOn && (
                     <div className="absolute inset-0 flex items-center justify-center bg-slate-800">
@@ -519,16 +535,16 @@ export default function InterviewRoomPage() {
 
               {/* Control bar */}
               <div className="flex items-center justify-center gap-3 border-t border-white/10 bg-slate-950 px-4 py-3">
-                <button type="button" onClick={toggleMic} className={`flex h-12 w-12 items-center justify-center rounded-full transition ${micOn ? 'bg-slate-700 hover:bg-slate-600' : 'bg-red-600 hover:bg-red-500'}`} title={micOn ? 'Tắt mic' : 'Bật mic'}>
+                <button type="button" onClick={toggleMic} className={`flex h-12 w-12 items-center justify-center rounded-full transition ${micOn ? 'bg-slate-700 hover:bg-slate-600' : 'bg-red-600 hover:bg-gradient-to-r from-rose-500 to-pink-500'}`} title={micOn ? 'Tắt mic' : 'Bật mic'}>
                   {micOn ? <Mic className="h-5 w-5" /> : <MicOff className="h-5 w-5" />}
                 </button>
-                <button type="button" onClick={toggleCam} className={`flex h-12 w-12 items-center justify-center rounded-full transition ${camOn ? 'bg-slate-700 hover:bg-slate-600' : 'bg-red-600 hover:bg-red-500'}`} title={camOn ? 'Tắt camera' : 'Bật camera'}>
+                <button type="button" onClick={toggleCam} className={`flex h-12 w-12 items-center justify-center rounded-full transition ${camOn ? 'bg-slate-700 hover:bg-slate-600' : 'bg-red-600 hover:bg-gradient-to-r from-rose-500 to-pink-500'}`} title={camOn ? 'Tắt camera' : 'Bật camera'}>
                   {camOn ? <Video className="h-5 w-5" /> : <VideoOff className="h-5 w-5" />}
                 </button>
                 <button type="button" onClick={toggleScreen} className={`flex h-12 w-12 items-center justify-center rounded-full transition ${screenOn ? 'bg-cyan-600 hover:bg-cyan-500' : 'bg-slate-700 hover:bg-slate-600'}`} title={screenOn ? 'Dừng chia sẻ' : 'Chia sẻ màn hình'}>
                   {screenOn ? <MonitorOff className="h-5 w-5" /> : <Monitor className="h-5 w-5" />}
                 </button>
-                <button type="button" onClick={handleLeave} className="flex h-12 w-12 items-center justify-center rounded-full bg-red-600 transition hover:bg-red-500" title="Rời phòng">
+                <button type="button" onClick={handleLeave} className="flex h-12 w-12 items-center justify-center rounded-full bg-red-600 transition hover:bg-gradient-to-r from-rose-500 to-pink-500" title="Rời phòng">
                   <PhoneOff className="h-5 w-5" />
                 </button>
               </div>

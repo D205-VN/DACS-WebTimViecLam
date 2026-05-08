@@ -14,6 +14,41 @@ const {
   ensureCompanyBrandingSchema,
 } = require('./employer.model');
 
+const EMPLOYER_RESPONSE_CACHE_TTL = {
+  dashboard: 15 * 1000,
+  analytics: 60 * 1000,
+};
+
+const employerResponseCache = new Map();
+let employerSchemaReadyPromise = null;
+
+function getEmployerCacheKey(userId, name) {
+  return `${userId}:${name}`;
+}
+
+function getEmployerResponseCache(userId, name) {
+  const entry = employerResponseCache.get(getEmployerCacheKey(userId, name));
+  if (!entry || entry.expiresAt <= Date.now()) {
+    if (entry) employerResponseCache.delete(getEmployerCacheKey(userId, name));
+    return null;
+  }
+  return entry.payload;
+}
+
+function setEmployerResponseCache(userId, name, payload, ttlMs) {
+  employerResponseCache.set(getEmployerCacheKey(userId, name), {
+    payload,
+    expiresAt: Date.now() + ttlMs,
+  });
+}
+
+function clearEmployerResponseCache(userId) {
+  const prefix = `${userId}:`;
+  for (const key of employerResponseCache.keys()) {
+    if (key.startsWith(prefix)) employerResponseCache.delete(key);
+  }
+}
+
 async function createDailyRoom(roomName) {
   const apiKey = process.env.DAILY_API_KEY;
   if (!apiKey) return null;
@@ -114,12 +149,21 @@ function normalizeJobModerationStatus(status) {
 
 async function ensureEmployerJobSchemaForRequest(req, res, next) {
   try {
-    await ensureEmployerJobSchema();
-    await ensureEmployerProfileSchema();
-    await ensureEmployerApplicationSchema();
-    await ensureJobAnalyticsSchema();
-    await ensureCompanyBrandingSchema();
-    await ensureMeetingRoomSchema();
+    if (!employerSchemaReadyPromise) {
+      employerSchemaReadyPromise = Promise.all([
+        ensureEmployerJobSchema(),
+        ensureEmployerProfileSchema(),
+        ensureEmployerApplicationSchema(),
+        ensureJobAnalyticsSchema(),
+        ensureCompanyBrandingSchema(),
+        ensureMeetingRoomSchema(),
+      ]).catch((err) => {
+        employerSchemaReadyPromise = null;
+        throw err;
+      });
+    }
+
+    await employerSchemaReadyPromise;
     return next();
   } catch (err) {
     console.error('Ensure employer job schema error:', err);
@@ -360,87 +404,92 @@ function buildJobDescriptionInsights(jobs = []) {
 async function getDashboard(req, res) {
   try {
     const userId = req.user.id;
-    const deadlineDateSql = buildDeadlineSqlExpression('submission_deadline');
+    const cached = getEmployerResponseCache(userId, 'dashboard');
+    if (cached) {
+      res.set('X-Aptertek-Cache', 'HIT');
+      return res.json(cached);
+    }
 
-    // Thống kê
-    const [
-      totalJobsResult,
-      activeJobsResult,
-      pendingJobsResult,
-      rejectedJobsResult,
-      totalCandidatesResult,
-      newCandidatesResult,
-      recentJobsResult,
-    ] = await Promise.all([
-      pool.query(
-        'SELECT COUNT(*) FROM jobs WHERE employer_id = $1',
-        [userId]
-      ),
-      pool.query(
-        `SELECT COUNT(*) FROM jobs
-         WHERE employer_id = $1
-           AND COALESCE(NULLIF(TRIM(status), ''), 'approved') = 'approved'
-           AND (${deadlineDateSql} IS NULL OR ${deadlineDateSql} >= CURRENT_DATE)`,
-        [userId]
-      ),
-      pool.query(
-        `SELECT COUNT(*) FROM jobs
-         WHERE employer_id = $1
-           AND COALESCE(NULLIF(TRIM(status), ''), 'approved') = 'pending'`,
-        [userId]
-      ),
-      pool.query(
-        `SELECT COUNT(*) FROM jobs
-         WHERE employer_id = $1
-           AND COALESCE(NULLIF(TRIM(status), ''), 'approved') = 'rejected'`,
-        [userId]
-      ),
-      pool.query(
-        `SELECT COUNT(*) FROM applied_jobs aj 
-         JOIN jobs j ON aj.job_id = j.id 
-         WHERE j.employer_id = $1`,
-        [userId]
-      ),
-      pool.query(
-        `SELECT COUNT(*) FROM applied_jobs aj 
-         JOIN jobs j ON aj.job_id = j.id 
-         WHERE j.employer_id = $1 AND aj.created_at >= NOW() - INTERVAL '7 days'`,
-        [userId]
-      ),
-      pool.query(
-        `SELECT j.id, j.job_title as title, j.job_address as location, j.salary, 
-                j.submission_deadline as deadline, j.created_at,
-                COALESCE(NULLIF(TRIM(j.status), ''), 'approved') as status,
-                (SELECT COUNT(*) FROM applied_jobs WHERE job_id = j.id) as applicant_count
-         FROM jobs j 
-         WHERE j.employer_id = $1 
-         ORDER BY j.created_at DESC 
-         LIMIT 5`,
-        [userId]
-      ),
-    ]);
+    const deadlineDateSql = buildDeadlineSqlExpression('j.submission_deadline');
+    const result = await pool.query(
+      `WITH job_base AS (
+          SELECT j.id,
+                 j.job_title,
+                 j.job_address,
+                 j.salary,
+                 j.submission_deadline,
+                 j.created_at,
+                 COALESCE(NULLIF(TRIM(j.status), ''), 'approved') AS status
+          FROM jobs j
+          WHERE j.employer_id = $1
+        ),
+        job_stats AS (
+          SELECT
+            COUNT(*)::int AS total_jobs,
+            COUNT(*) FILTER (
+              WHERE status = 'approved'
+                AND (${deadlineDateSql} IS NULL OR ${deadlineDateSql} >= CURRENT_DATE)
+            )::int AS active_jobs,
+            COUNT(*) FILTER (WHERE status = 'pending')::int AS pending_jobs,
+            COUNT(*) FILTER (WHERE status = 'rejected')::int AS rejected_jobs
+          FROM job_base j
+        ),
+        candidate_stats AS (
+          SELECT
+            COUNT(aj.id)::int AS total_candidates,
+            COUNT(aj.id) FILTER (WHERE aj.created_at >= NOW() - INTERVAL '7 days')::int AS new_candidates
+          FROM job_base j
+          LEFT JOIN applied_jobs aj ON aj.job_id = j.id
+        ),
+        applicant_counts AS (
+          SELECT aj.job_id, COUNT(*)::int AS applicant_count
+          FROM applied_jobs aj
+          JOIN job_base j ON j.id = aj.job_id
+          GROUP BY aj.job_id
+        ),
+        recent_jobs AS (
+          SELECT j.id,
+                 j.job_title AS title,
+                 j.job_address AS location,
+                 j.salary,
+                 j.submission_deadline AS deadline,
+                 j.created_at,
+                 j.status,
+                 COALESCE(ac.applicant_count, 0)::int AS applicant_count
+          FROM job_base j
+          LEFT JOIN applicant_counts ac ON ac.job_id = j.id
+          ORDER BY j.created_at DESC
+          LIMIT 5
+        )
+        SELECT
+          js.total_jobs,
+          js.active_jobs,
+          js.pending_jobs,
+          js.rejected_jobs,
+          cs.total_candidates,
+          cs.new_candidates,
+          COALESCE((SELECT json_agg(row_to_json(rj)) FROM recent_jobs rj), '[]'::json) AS recent_jobs
+        FROM job_stats js
+        CROSS JOIN candidate_stats cs`,
+      [userId]
+    );
 
-    console.log(`Dashboard stats for user ${userId}:`, {
-      totalJobs: totalJobsResult.rows[0].count,
-      activeJobs: activeJobsResult.rows[0].count,
-      pendingJobs: pendingJobsResult.rows[0].count,
-      rejectedJobs: rejectedJobsResult.rows[0].count,
-      totalCandidates: totalCandidatesResult.rows[0].count,
-      newCandidates: newCandidatesResult.rows[0].count,
-    });
-    console.log(`Recent jobs for user ${userId}:`, recentJobsResult.rows.length);
-
-    res.json({
+    const row = result.rows[0] || {};
+    const payload = {
       stats: {
-        totalJobs: parseInt(totalJobsResult.rows[0].count),
-        activeJobs: parseInt(activeJobsResult.rows[0].count),
-        pendingJobs: parseInt(pendingJobsResult.rows[0].count),
-        rejectedJobs: parseInt(rejectedJobsResult.rows[0].count),
-        totalCandidates: parseInt(totalCandidatesResult.rows[0].count),
-        newCandidates: parseInt(newCandidatesResult.rows[0].count),
+        totalJobs: parseInt(row.total_jobs || 0, 10),
+        activeJobs: parseInt(row.active_jobs || 0, 10),
+        pendingJobs: parseInt(row.pending_jobs || 0, 10),
+        rejectedJobs: parseInt(row.rejected_jobs || 0, 10),
+        totalCandidates: parseInt(row.total_candidates || 0, 10),
+        newCandidates: parseInt(row.new_candidates || 0, 10),
       },
-      recentJobs: recentJobsResult.rows,
-    });
+      recentJobs: row.recent_jobs || [],
+    };
+
+    setEmployerResponseCache(userId, 'dashboard', payload, EMPLOYER_RESPONSE_CACHE_TTL.dashboard);
+    res.set('X-Aptertek-Cache', 'MISS');
+    return res.json(payload);
   } catch (err) {
     console.error('Employer dashboard error:', err);
     res.status(500).json({ error: 'Lỗi khi tải dữ liệu dashboard' });
@@ -516,6 +565,7 @@ async function createJob(req, res) {
       console.error('Create admin pending job notifications error:', notificationError);
     });
 
+    clearEmployerResponseCache(userId);
     res.status(201).json({
       message: 'Tin tuyển dụng đã được gửi và đang chờ admin phê duyệt.',
       job: result.rows[0],
@@ -843,7 +893,8 @@ async function updateProfile(req, res) {
         userId
       ]
     );
-    
+
+    clearEmployerResponseCache(userId);
     res.json({ message: 'Cập nhật hồ sơ thành công!', data: result.rows[0] });
   } catch (err) {
     console.error('Update profile error:', err);
@@ -1025,6 +1076,12 @@ async function getAnalytics(req, res) {
 async function getAnalyticsV2(req, res) {
   try {
     const userId = req.user.id;
+    const cached = getEmployerResponseCache(userId, 'analytics');
+    if (cached) {
+      res.set('X-Aptertek-Cache', 'HIT');
+      return res.json(cached);
+    }
+
     await ensureJobAnalyticsSchema();
 
     const deadlineDateSql = buildDeadlineSqlExpression('j.submission_deadline');
@@ -1264,7 +1321,7 @@ async function getAnalyticsV2(req, res) {
       .sort((a, b) => b.demand_count - a.demand_count || a.skill.localeCompare(b.skill, 'vi'))
       .slice(0, 8);
 
-    res.json({
+    const payload = {
       summary: {
         totalJobs,
         activeJobs,
@@ -1321,7 +1378,11 @@ async function getAnalyticsV2(req, res) {
         })),
         hotSkills,
       },
-    });
+    };
+
+    setEmployerResponseCache(userId, 'analytics', payload, EMPLOYER_RESPONSE_CACHE_TTL.analytics);
+    res.set('X-Aptertek-Cache', 'MISS');
+    return res.json(payload);
   } catch (err) {
     console.error('Get analytics error:', err);
     res.status(500).json({ error: 'Lỗi khi tải thống kê' });
@@ -1394,6 +1455,7 @@ async function updateJob(req, res) {
       });
     }
 
+    clearEmployerResponseCache(userId);
     res.json({
       message: nextModerationStatus === 'pending'
         ? 'Tin đã được cập nhật và gửi lại để admin phê duyệt.'
@@ -1454,6 +1516,7 @@ async function updateJobStatus(req, res) {
       );
     }
 
+    clearEmployerResponseCache(userId);
     res.json({ message: 'Đã cập nhật trạng thái tin' });
   } catch (err) {
     console.error('Update status error:', err);
@@ -1483,6 +1546,7 @@ async function deleteJob(req, res) {
       return res.status(403).json({ error: 'Không tìm thấy tin hoặc không có quyền' });
     }
 
+    clearEmployerResponseCache(userId);
     res.json({ message: 'Đã xóa tin tuyển dụng thành công' });
   } catch (err) {
     console.error('Delete job error:', err);
@@ -1564,6 +1628,7 @@ async function updateApplicationStatus(req, res) {
       }
     }
 
+    clearEmployerResponseCache(userId);
     res.json({ message: 'Đã cập nhật trạng thái ứng viên', data: result.rows[0] });
   } catch (err) {
     console.error('Update app status error:', err);
@@ -1593,6 +1658,7 @@ async function saveCandidateNote(req, res) {
       [note, applicationId]
     );
 
+    clearEmployerResponseCache(userId);
     res.json({ message: 'Đã lưu ghi chú nội bộ', data: result.rows[0] });
   } catch (err) {
     console.error('Save candidate note error:', err);
@@ -1865,6 +1931,7 @@ async function scheduleInterview(req, res) {
       });
     }
 
+    clearEmployerResponseCache(userId);
     res.json({
       message: 'Đã lên lịch phỏng vấn',
       data: {

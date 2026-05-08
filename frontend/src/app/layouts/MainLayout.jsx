@@ -3,7 +3,7 @@ import Footer from '@widgets/layout/Footer';
 
 export default function MainLayout({ children }) {
   return (
-    <div className="min-h-screen bg-gray-50/80 flex flex-col">
+    <div className="aw-page flex flex-col">
       <Header />
       <div className="flex-1">{children}</div>
       <Footer />

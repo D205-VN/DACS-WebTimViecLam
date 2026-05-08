@@ -18,6 +18,7 @@ import {
 import { useAuth } from '@features/auth/AuthContext';
 import API_BASE_URL from '@shared/api/baseUrl';
 import { useNavigate } from 'react-router-dom';
+import { cachedJsonFetch, clearRequestCache, readCachedJson } from '@shared/api/requestCache';
 import { analyzeJobQuality, getTodayDateInputValue } from '@shared/utils/jobQuality';
 
 function parseJobDeadline(deadline) {
@@ -49,19 +50,19 @@ function getModerationMeta(job) {
     case 'pending':
       return {
         label: 'Chờ duyệt',
-        className: 'bg-amber-100 text-amber-700',
+        className: 'bg-gradient-to-r from-amber-50 to-orange-50 text-amber-700 border border-amber-200/60',
         helper: 'Admin sẽ chấp nhận hoặc từ chối trước khi hiển thị công khai.',
       };
     case 'rejected':
       return {
         label: 'Từ chối',
-        className: 'bg-red-100 text-red-700',
+        className: 'bg-gradient-to-r from-rose-50 to-pink-50 text-rose-700 border border-rose-200/60',
         helper: job.rejection_reason || 'Cần chỉnh sửa rồi gửi lại để admin xem xét.',
       };
     default:
       return {
         label: 'Đã duyệt',
-        className: 'bg-emerald-100 text-emerald-700',
+        className: 'bg-gradient-to-r from-emerald-50 to-teal-50 text-emerald-700 border border-emerald-200/60',
         helper: 'Tin đủ điều kiện hiển thị nếu chưa ngừng tuyển.',
       };
   }
@@ -116,21 +117,20 @@ export default function ManageJobsTab() {
   const [viewingJob, setViewingJob] = useState(null);
 
   const fetchJobs = useCallback(async () => {
-    setLoading(true);
     setError('');
+    const requestOptions = { headers: { Authorization: `Bearer ${token}` } };
+    const cached = readCachedJson(`${API_BASE_URL}/api/employer/jobs`, requestOptions);
+
+    if (cached) {
+      setJobs(cached.data || []);
+      setLoading(false);
+    } else {
+      setLoading(true);
+    }
 
     try {
-      const res = await fetch(`${API_BASE_URL}/api/employer/jobs`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const data = await res.json();
-
-      if (res.ok) {
-        setJobs(data.data || []);
-        return;
-      }
-
-      setError(data.error || 'Lỗi khi tải danh sách tin');
+      const data = await cachedJsonFetch(`${API_BASE_URL}/api/employer/jobs`, requestOptions, { ttlMs: 30 * 1000 });
+      setJobs(data.data || []);
     } catch (err) {
       console.error('Fetch jobs error:', err);
       setError('Không thể kết nối đến máy chủ');
@@ -171,6 +171,7 @@ export default function ManageJobsTab() {
         return;
       }
 
+      clearRequestCache((key) => key.includes('/api/employer'));
       setNotice({ type: 'success', text: data.message || 'Đã cập nhật trạng thái tin.' });
       fetchJobs();
     } catch (err) {
@@ -200,6 +201,7 @@ export default function ManageJobsTab() {
       }
 
       setJobs((prev) => prev.filter((job) => job.id !== jobId));
+      clearRequestCache((key) => key.includes('/api/employer'));
       setNotice({ type: 'success', text: data.message || 'Đã xóa tin tuyển dụng.' });
     } catch (err) {
       console.error('Delete job error:', err);
@@ -249,6 +251,7 @@ export default function ManageJobsTab() {
       }
 
       setEditingJob(null);
+      clearRequestCache((key) => key.includes('/api/employer'));
       setNotice({ type: 'success', text: data.message || 'Đã cập nhật tin tuyển dụng.' });
       fetchJobs();
     } catch (err) {
@@ -268,8 +271,8 @@ export default function ManageJobsTab() {
 
   if (loading) {
     return (
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-20 flex flex-col items-center justify-center">
-        <Loader2 className="w-10 h-10 text-navy-700 animate-spin mb-4" />
+      <div className="rounded-2xl border border-indigo-100/60 bg-white/90 backdrop-blur-sm shadow-sm p-20 flex flex-col items-center justify-center">
+        <Loader2 className="w-10 h-10 text-indigo-700 animate-spin mb-4" />
         <p className="text-gray-500 font-medium">Đang tải danh sách tin đăng...</p>
       </div>
     );
@@ -279,39 +282,48 @@ export default function ManageJobsTab() {
     <div className="space-y-6">
       <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
         {[
-          { label: 'Tổng tin', value: jobs.length, tone: 'bg-slate-50 text-slate-700 border-slate-200' },
-          { label: 'Chờ duyệt', value: pendingCount, tone: 'bg-amber-50 text-amber-700 border-amber-200' },
-          { label: 'Đã duyệt', value: approvedCount, tone: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
-          { label: 'Đang hiển thị', value: visibleCount, tone: 'bg-blue-50 text-blue-700 border-blue-200' },
+          { label: 'Tổng tin', value: jobs.length, tone: 'border-slate-200/60', gradient: 'from-slate-500 to-gray-600', bg: 'bg-white/90 backdrop-blur-sm', text: 'text-slate-700' },
+          { label: 'Chờ duyệt', value: pendingCount, tone: 'border-amber-200/60', gradient: 'from-amber-500 to-orange-500', bg: 'bg-white/90 backdrop-blur-sm', text: 'text-amber-700' },
+          { label: 'Đã duyệt', value: approvedCount, tone: 'border-emerald-200/60', gradient: 'from-emerald-500 to-teal-500', bg: 'bg-white/90 backdrop-blur-sm', text: 'text-emerald-700' },
+          { label: 'Đang hiển thị', value: visibleCount, tone: 'border-blue-200/60', gradient: 'from-blue-500 to-indigo-500', bg: 'bg-white/90 backdrop-blur-sm', text: 'text-blue-700' },
         ].map((item) => (
-          <div key={item.label} className={`rounded-2xl border p-4 ${item.tone}`}>
-            <p className="text-xs uppercase tracking-[0.16em]">{item.label}</p>
-            <p className="mt-2 text-2xl font-bold">{item.value}</p>
+          <div key={item.label} className={`group relative overflow-hidden rounded-2xl border ${item.tone} p-5 ${item.bg} shadow-sm hover:shadow-lg hover:-translate-y-0.5 transition-all duration-500`}>
+            <div className={`absolute top-0 left-0 right-0 h-1 bg-gradient-to-r ${item.gradient} rounded-t-2xl`}></div>
+            <p className={`text-[11px] uppercase tracking-wider font-semibold ${item.text} mt-1`}>{item.label}</p>
+            <p className={`mt-2 text-3xl font-extrabold ${item.text}`}>{item.value}</p>
           </div>
         ))}
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-        <div className="p-5 border-b border-gray-100 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between bg-gray-50/50">
-          <div>
-            <h3 className="font-bold text-gray-800 text-lg">Quản lý tin đăng</h3>
-            <p className="text-xs text-gray-500">
-              Tin mới của bạn sẽ ở trạng thái chờ duyệt cho đến khi admin chấp nhận hoặc từ chối.
-            </p>
-          </div>
-
-          <div className="flex items-center gap-3">
-            {rejectedCount > 0 && (
-              <div className="rounded-xl border border-red-100 bg-red-50 px-3 py-2 text-xs font-medium text-red-600">
-                {rejectedCount} tin bị từ chối cần chỉnh sửa
+      <div className="overflow-hidden rounded-2xl border border-indigo-100/60 bg-white/90 backdrop-blur-sm shadow-sm">
+        <div className="relative">
+          <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-indigo-500 via-violet-500 to-purple-500 rounded-t-2xl"></div>
+          <div className="p-5 pt-6 border-b border-indigo-50 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center shadow-lg shadow-indigo-200/60">
+                <FileText className="w-5 h-5 text-white" />
               </div>
-            )}
-            <button
-              onClick={() => navigate('/employer/post-job')}
-              className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-navy-600 to-navy-800 text-white rounded-lg text-sm font-semibold hover:shadow-md transition-all"
-            >
-              <Plus className="w-4 h-4" /> Đăng tin mới
-            </button>
+              <div>
+                <h3 className="font-bold text-gray-800 text-lg">Quản lý tin đăng</h3>
+                <p className="text-xs text-gray-500">
+                  Tin mới của bạn sẽ ở trạng thái chờ duyệt cho đến khi admin chấp nhận hoặc từ chối.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3">
+              {rejectedCount > 0 && (
+                <div className="rounded-xl border border-rose-200/60 bg-gradient-to-r from-rose-50 to-pink-50 px-3 py-2 text-xs font-medium text-rose-600">
+                  {rejectedCount} tin bị từ chối cần chỉnh sửa
+                </div>
+              )}
+              <button
+                onClick={() => navigate('/employer/post-job')}
+                className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-indigo-600 to-violet-600 text-white rounded-xl text-sm font-semibold shadow-lg shadow-indigo-200/60 hover:shadow-xl hover:shadow-indigo-300/60 hover:-translate-y-0.5 transition-all duration-300"
+              >
+                <Plus className="w-4 h-4" /> Đăng tin mới
+              </button>
+            </div>
           </div>
         </div>
 
@@ -332,7 +344,7 @@ export default function ManageJobsTab() {
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse min-w-[1080px]">
             <thead>
-              <tr className="bg-slate-50 border-b border-slate-100 text-[11px] uppercase text-slate-500 font-bold tracking-widest">
+              <tr className="bg-gradient-to-r from-indigo-50/60 to-violet-50/40 border-b border-indigo-100/40 text-[11px] uppercase text-gray-500 font-bold tracking-wider">
                 <th className="p-4 rounded-tl-xl">Vị trí tuyển dụng</th>
                 <th className="p-4">Kiểm duyệt</th>
                 <th className="p-4">Trạng thái</th>
@@ -342,7 +354,7 @@ export default function ManageJobsTab() {
                 <th className="p-4 text-right rounded-tr-xl">Thao tác</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-indigo-50/60">
               {jobs.length > 0 ? jobs.map((job) => {
                 const moderationMeta = getModerationMeta(job);
                 const recruitmentMeta = getRecruitmentMeta(job);
@@ -352,13 +364,13 @@ export default function ManageJobsTab() {
                 return (
                   <tr 
                     key={job.id} 
-                    className={`hover:bg-slate-50/80 transition-all duration-300 ${isActionLoading ? 'opacity-50 pointer-events-none' : ''}`}
+                    className={`hover:bg-indigo-50/30 transition-all duration-300 ${isActionLoading ? 'opacity-50 pointer-events-none' : ''}`}
                   >
                     <td className="p-4">
                       <button
                         type="button"
                         onClick={() => setViewingJob(job)}
-                        className="font-bold text-slate-800 text-left hover:text-navy-600 transition-colors line-clamp-1"
+                        className="font-bold text-slate-800 text-left hover:text-indigo-600 transition-colors line-clamp-1"
                         title={job.title}
                       >
                         {job.title}
@@ -396,15 +408,15 @@ export default function ManageJobsTab() {
                     </td>
 
                     <td className="p-4 text-center">
-                      <span className="inline-flex items-center justify-center min-w-[28px] h-7 px-2 bg-navy-50 text-navy-700 font-bold text-xs rounded-lg">
+                      <span className="inline-flex items-center justify-center min-w-[28px] h-7 px-2.5 bg-gradient-to-r from-indigo-50 to-violet-50 text-indigo-700 font-bold text-xs rounded-full">
                         {job.applicant_count || 0}
                       </span>
                     </td>
 
                     <td className="p-4 text-center">
-                      <span className={`inline-flex items-center justify-center min-w-[28px] h-7 px-2 font-bold text-xs rounded-lg ${
+                      <span className={`inline-flex items-center justify-center min-w-[28px] h-7 px-2.5 font-bold text-xs rounded-full ${
                         parseInt(job.recent_applicant_count) > 0
-                          ? 'bg-emerald-50 text-emerald-700'
+                          ? 'bg-gradient-to-r from-emerald-50 to-teal-50 text-emerald-700'
                           : 'bg-gray-50 text-gray-400'
                       }`}>
                         {job.recent_applicant_count || 0}
@@ -416,11 +428,11 @@ export default function ManageJobsTab() {
                     </td>
 
                     <td className="p-4">
-                      <div className="flex items-center justify-end gap-1.5">
+                      <div className="flex items-center justify-end gap-1">
                         <button
                           onClick={() => setViewingJob(job)}
                           disabled={isActionLoading}
-                          className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
+                          className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all duration-200"
                           title="Xem chi tiết"
                         >
                           <Eye className="w-4 h-4" />
@@ -428,7 +440,7 @@ export default function ManageJobsTab() {
                         <button
                           onClick={() => openEditModal(job)}
                           disabled={isActionLoading}
-                          className="p-2 text-slate-400 hover:text-navy-600 hover:bg-navy-50 rounded-lg transition-all"
+                          className="p-2 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-all duration-200"
                           title="Chỉnh sửa"
                         >
                           <Edit className="w-4 h-4" />
@@ -437,10 +449,10 @@ export default function ManageJobsTab() {
                           <button
                             onClick={() => handleStatusChange(job)}
                             disabled={isActionLoading}
-                            className={`p-2 rounded-lg transition-all ${
+                            className={`p-2 rounded-xl transition-all duration-200 ${
                               recruitmentMeta?.label === 'Đang hiển thị' 
-                                ? 'text-slate-400 hover:text-amber-600 hover:bg-amber-50' 
-                                : 'text-slate-400 hover:text-emerald-600 hover:bg-emerald-50'
+                                ? 'text-gray-400 hover:text-amber-600 hover:bg-amber-50'
+                                : 'text-gray-400 hover:text-emerald-600 hover:bg-emerald-50'
                             }`}
                             title={recruitmentMeta?.label === 'Đang hiển thị' ? 'Ngừng tuyển' : 'Bật tuyển'}
                           >
@@ -450,7 +462,7 @@ export default function ManageJobsTab() {
                         <button
                           onClick={() => handleDelete(job.id)}
                           disabled={isActionLoading}
-                          className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
+                          className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all duration-200"
                           title="Xóa tin"
                         >
                           <Trash2 className="w-4 h-4" />
@@ -465,7 +477,7 @@ export default function ManageJobsTab() {
                     <div className="flex flex-col items-center justify-center">
                       <Briefcase className="w-12 h-12 text-slate-300 mb-3" />
                       <p className="font-medium">Bạn chưa đăng tin tuyển dụng nào.</p>
-                      <button onClick={() => navigate('/employer/post-job')} className="mt-4 text-sm font-semibold text-navy-600 hover:text-navy-700">
+                      <button onClick={() => navigate('/employer/post-job')} className="mt-4 text-sm font-semibold text-indigo-600 hover:text-indigo-700">
                         + Tạo tin mới ngay
                       </button>
                     </div>
@@ -478,11 +490,13 @@ export default function ManageJobsTab() {
       </div>
 
       {viewingJob && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col animate-in zoom-in-95 duration-200">
-            <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-2xl shadow-indigo-100/40 w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col border border-indigo-100/60">
+            <div className="relative">
+              <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-indigo-500 via-violet-500 to-purple-500 rounded-t-2xl"></div>
+              <div className="p-6 pt-7 border-b border-indigo-50 flex justify-between items-center">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-navy-100 rounded-lg flex items-center justify-center text-navy-600">
+                <div className="w-10 h-10 bg-indigo-100 rounded-lg flex items-center justify-center text-indigo-600">
                   <Briefcase className="w-5 h-5" />
                 </div>
                 <div>
@@ -490,17 +504,18 @@ export default function ManageJobsTab() {
                   <p className="text-sm text-gray-500">Theo dõi tình trạng kiểm duyệt trước khi tin hiển thị công khai.</p>
                 </div>
               </div>
-              <button onClick={() => setViewingJob(null)} className="p-2 hover:bg-gray-200 rounded-full transition-colors">
+              <button onClick={() => setViewingJob(null)} className="p-2 hover:bg-indigo-50 rounded-full transition-colors">
                 <X className="w-5 h-5" />
               </button>
+              </div>
             </div>
 
             <div className="flex-1 overflow-y-auto p-6 space-y-8">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pb-8 border-b border-gray-100">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pb-8 border-b border-indigo-50">
                 <div className="md:col-span-2">
-                  <h2 className="text-2xl font-extrabold text-navy-800 mb-4">{viewingJob.title}</h2>
+                  <h2 className="text-2xl font-extrabold text-indigo-800 mb-4">{viewingJob.title}</h2>
                   <div className="flex flex-wrap gap-3 text-sm font-medium">
-                    <span className="flex items-center gap-2 px-3 py-1.5 bg-navy-50 text-navy-600 rounded-lg">
+                    <span className="flex items-center gap-2 px-3 py-1.5 bg-indigo-50 text-indigo-600 rounded-lg">
                       <MapPin className="w-4 h-4" /> {viewingJob.location || 'Chưa cập nhật'}
                     </span>
                     <span className="flex items-center gap-2 px-3 py-1.5 bg-emerald-50 text-emerald-600 rounded-lg">
@@ -512,7 +527,7 @@ export default function ManageJobsTab() {
                   </div>
                 </div>
 
-                <div className="bg-gray-50 p-4 rounded-xl space-y-3">
+                <div className="bg-indigo-50/50 p-4 rounded-lg space-y-3">
                   <div className="flex justify-between items-center gap-3 text-sm">
                     <span className="text-gray-500">Kiểm duyệt:</span>
                     <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${getModerationMeta(viewingJob).className}`}>
@@ -546,21 +561,21 @@ export default function ManageJobsTab() {
                 </div>
               </div>
 
-              <div className="rounded-2xl border border-amber-100 bg-amber-50 px-4 py-3 text-sm text-amber-700">
+              <div className="rounded-lg border border-amber-100 bg-amber-50 px-4 py-3 text-sm text-amber-700">
                 {getModerationMeta(viewingJob).helper}
               </div>
 
               <div className="space-y-6">
                 <section>
                   <h4 className="flex items-center gap-2 text-lg font-bold text-gray-800 mb-3">
-                    <FileText className="w-5 h-5 text-navy-600" /> Mô tả công việc
+                    <FileText className="w-5 h-5 text-indigo-600" /> Mô tả công việc
                   </h4>
                   <p className="text-gray-600 whitespace-pre-wrap leading-relaxed">{viewingJob.job_description || viewingJob.description}</p>
                 </section>
 
                 <section>
                   <h4 className="flex items-center gap-2 text-lg font-bold text-gray-800 mb-3">
-                    <AlertCircle className="w-5 h-5 text-navy-600" /> Yêu cầu ứng viên
+                    <AlertCircle className="w-5 h-5 text-indigo-600" /> Yêu cầu ứng viên
                   </h4>
                   <p className="text-gray-600 whitespace-pre-wrap leading-relaxed">
                     {viewingJob.job_requirements || viewingJob.requirements || 'Chưa có thông tin'}
@@ -569,17 +584,17 @@ export default function ManageJobsTab() {
 
                 <section>
                   <h4 className="flex items-center gap-2 text-lg font-bold text-gray-800 mb-3">
-                    <CheckCircle2 className="w-5 h-5 text-navy-600" /> Quyền lợi
+                    <CheckCircle2 className="w-5 h-5 text-indigo-600" /> Quyền lợi
                   </h4>
                   <p className="text-gray-600 whitespace-pre-wrap leading-relaxed">{viewingJob.benefits || 'Chưa có thông tin'}</p>
                 </section>
               </div>
             </div>
 
-            <div className="p-6 border-t border-gray-100 flex justify-end gap-3 bg-gray-50/50">
+            <div className="p-6 border-t border-indigo-50 flex justify-end gap-3 bg-indigo-50/50/50">
               <button
                 onClick={() => setViewingJob(null)}
-                className="px-8 py-2.5 bg-white border border-gray-200 text-gray-700 font-bold rounded-xl hover:bg-gray-50 transition-colors"
+                className="px-8 py-2.5 bg-white border border-indigo-100/60 text-gray-700 font-bold rounded-lg hover:bg-indigo-50/30 transition-colors"
               >
                 Đóng
               </button>
@@ -588,7 +603,7 @@ export default function ManageJobsTab() {
                   setViewingJob(null);
                   openEditModal(viewingJob);
                 }}
-                className="px-8 py-2.5 bg-navy-700 text-white font-bold rounded-xl hover:bg-navy-800 transition-colors flex items-center gap-2"
+                className="px-8 py-2.5 bg-gradient-to-r from-indigo-600 to-violet-600 text-white font-bold rounded-lg hover:from-indigo-700 hover:to-violet-700 transition-colors flex items-center gap-2"
               >
                 <Edit className="w-4 h-4" />
                 {normalizeModerationStatus(viewingJob.status) === 'rejected' ? 'Chỉnh sửa và gửi lại' : 'Chỉnh sửa tin này'}
@@ -599,22 +614,25 @@ export default function ManageJobsTab() {
       )}
 
       {editingJob && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-hidden flex flex-col animate-in zoom-in-95 duration-200">
-            <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-2xl shadow-indigo-100/40 w-full max-w-3xl max-h-[90vh] overflow-hidden flex flex-col border border-indigo-100/60">
+            <div className="relative">
+              <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-indigo-500 via-violet-500 to-purple-500 rounded-t-2xl"></div>
+              <div className="p-6 pt-7 border-b border-indigo-50 flex justify-between items-center">
               <div>
                 <h3 className="text-xl font-bold text-gray-800">Chỉnh sửa tin tuyển dụng</h3>
                 {normalizeModerationStatus(editingJob.status) !== 'approved' && (
                   <p className="text-sm text-amber-600 mt-1">Sau khi lưu, tin sẽ tiếp tục ở trạng thái chờ admin phê duyệt.</p>
                 )}
               </div>
-              <button onClick={() => setEditingJob(null)} className="p-2 hover:bg-gray-200 rounded-full transition-colors">
+              <button onClick={() => setEditingJob(null)} className="p-2 hover:bg-indigo-50 rounded-full transition-colors">
                 <X className="w-5 h-5" />
               </button>
+              </div>
             </div>
 
             <form onSubmit={handleEditSubmit} className="flex-1 overflow-y-auto p-6 space-y-6">
-              <div className="rounded-2xl border border-gray-100 bg-gray-50 p-4">
+              <div className="rounded-lg border border-indigo-50 bg-indigo-50/50 p-4">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <div>
                     <p className="text-xs font-bold uppercase tracking-[0.18em] text-gray-400">Chất lượng tin</p>
@@ -623,7 +641,7 @@ export default function ManageJobsTab() {
                   <div className="h-2 w-full overflow-hidden rounded-full bg-white sm:w-56">
                     <div
                       className={`h-full rounded-full ${
-                        editJobQuality.tone === 'emerald' ? 'bg-emerald-500' : editJobQuality.tone === 'amber' ? 'bg-amber-500' : 'bg-red-500'
+                        editJobQuality.tone === 'emerald' ? 'bg-emerald-500' : editJobQuality.tone === 'amber' ? 'bg-amber-500' : 'bg-gradient-to-r from-rose-500 to-pink-500'
                       }`}
                       style={{ width: `${editJobQuality.score}%` }}
                     />
@@ -631,7 +649,7 @@ export default function ManageJobsTab() {
                 </div>
                 <div className="mt-3 grid gap-2 sm:grid-cols-2">
                   {editJobQuality.suggestions.slice(0, 4).map((item) => (
-                    <p key={item.text} className="rounded-xl bg-white px-3 py-2 text-xs text-gray-600">{item.text}</p>
+                    <p key={item.text} className="rounded-lg bg-white px-3 py-2 text-xs text-gray-600">{item.text}</p>
                   ))}
                 </div>
               </div>
@@ -643,7 +661,7 @@ export default function ManageJobsTab() {
                     type="text"
                     value={editFormData.title}
                     onChange={(event) => setEditFormData({ ...editFormData, title: event.target.value })}
-                    className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-navy-100 outline-none"
+                    className="w-full px-4 py-2.5 border border-indigo-100/60 rounded-lg focus:ring-2 focus:ring-violet-200 outline-none"
                     required
                   />
                 </div>
@@ -653,7 +671,7 @@ export default function ManageJobsTab() {
                   <textarea
                     value={editFormData.description}
                     onChange={(event) => setEditFormData({ ...editFormData, description: event.target.value })}
-                    className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-navy-100 outline-none min-h-[120px]"
+                    className="w-full px-4 py-2.5 border border-indigo-100/60 rounded-lg focus:ring-2 focus:ring-violet-200 outline-none min-h-[120px]"
                     required
                   />
                 </div>
@@ -663,7 +681,7 @@ export default function ManageJobsTab() {
                   <textarea
                     value={editFormData.requirements}
                     onChange={(event) => setEditFormData({ ...editFormData, requirements: event.target.value })}
-                    className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-navy-100 outline-none min-h-[100px]"
+                    className="w-full px-4 py-2.5 border border-indigo-100/60 rounded-lg focus:ring-2 focus:ring-violet-200 outline-none min-h-[100px]"
                   />
                 </div>
 
@@ -672,7 +690,7 @@ export default function ManageJobsTab() {
                   <textarea
                     value={editFormData.benefits}
                     onChange={(event) => setEditFormData({ ...editFormData, benefits: event.target.value })}
-                    className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-navy-100 outline-none min-h-[100px]"
+                    className="w-full px-4 py-2.5 border border-indigo-100/60 rounded-lg focus:ring-2 focus:ring-violet-200 outline-none min-h-[100px]"
                   />
                 </div>
 
@@ -682,7 +700,7 @@ export default function ManageJobsTab() {
                     type="text"
                     value={editFormData.location}
                     onChange={(event) => setEditFormData({ ...editFormData, location: event.target.value })}
-                    className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-navy-100 outline-none"
+                    className="w-full px-4 py-2.5 border border-indigo-100/60 rounded-lg focus:ring-2 focus:ring-violet-200 outline-none"
                   />
                 </div>
 
@@ -692,7 +710,7 @@ export default function ManageJobsTab() {
                     type="text"
                     value={editFormData.salary}
                     onChange={(event) => setEditFormData({ ...editFormData, salary: event.target.value })}
-                    className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-navy-100 outline-none"
+                    className="w-full px-4 py-2.5 border border-indigo-100/60 rounded-lg focus:ring-2 focus:ring-violet-200 outline-none"
                     placeholder="VD: 15-20 triệu"
                   />
                 </div>
@@ -704,7 +722,7 @@ export default function ManageJobsTab() {
                     value={editFormData.deadline}
                     min={todayInputValue}
                     onChange={(event) => setEditFormData({ ...editFormData, deadline: event.target.value })}
-                    className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-navy-100 outline-none"
+                    className="w-full px-4 py-2.5 border border-indigo-100/60 rounded-lg focus:ring-2 focus:ring-violet-200 outline-none"
                   />
                 </div>
 
@@ -714,25 +732,25 @@ export default function ManageJobsTab() {
                     type="number"
                     value={editFormData.positions}
                     onChange={(event) => setEditFormData({ ...editFormData, positions: event.target.value })}
-                    className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-navy-100 outline-none"
+                    className="w-full px-4 py-2.5 border border-indigo-100/60 rounded-lg focus:ring-2 focus:ring-violet-200 outline-none"
                     min="1"
                   />
                 </div>
               </div>
             </form>
 
-            <div className="p-6 border-t border-gray-100 flex justify-end gap-3 bg-gray-50/50">
+            <div className="p-6 border-t border-indigo-50 flex justify-end gap-3 bg-indigo-50/50/50">
               <button
                 type="button"
                 onClick={() => setEditingJob(null)}
-                className="px-6 py-2.5 bg-white border border-gray-200 text-gray-700 font-semibold rounded-xl hover:bg-gray-50 transition-colors"
+                className="px-6 py-2.5 bg-white border border-indigo-100/60 text-gray-700 font-semibold rounded-lg hover:bg-indigo-50/30 transition-colors"
               >
                 Hủy
               </button>
               <button
                 onClick={handleEditSubmit}
                 disabled={actionLoading === editingJob.id}
-                className="px-8 py-2.5 bg-gradient-to-r from-navy-600 to-navy-800 text-white font-semibold rounded-xl hover:shadow-lg transition-all flex items-center gap-2"
+                className="px-8 py-2.5 bg-gradient-to-r from-indigo-600 to-violet-600 text-white font-semibold rounded-lg  transition-all flex items-center gap-2"
               >
                 {actionLoading === editingJob.id ? (
                   <Loader2 className="w-4 h-4 animate-spin" />

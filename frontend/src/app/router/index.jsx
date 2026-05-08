@@ -1,9 +1,8 @@
-import { createBrowserRouter, Navigate, RouterProvider } from 'react-router-dom';
+import { createBrowserRouter, Navigate, RouterProvider, useLocation } from 'react-router-dom';
 import { useAuth } from '@features/auth/AuthContext';
 import MainLayout from '@app/layouts/MainLayout';
 import { AdminRoute, EmployerRoute, ProtectedRoute, SeekerRoute } from '@app/router/guards';
 import EmployerPageLayout from '@widgets/employer/EmployerPageLayout';
-import ManageMeetingRoomsTab from '@widgets/employer/ManageMeetingRoomsTab';
 import HomePage from '@pages/HomePage';
 import CompaniesPage from '@pages/CompaniesPage';
 import BlogPage from '@pages/BlogPage';
@@ -25,13 +24,13 @@ import JobAlertsPage from '@pages/seeker/JobAlertsPage';
 import OnboardingPage from '@pages/seeker/OnboardingPage';
 import EmployerDashboard from '@pages/employer/EmployerDashboard';
 import PostJob from '@pages/employer/PostJob';
-import AITestManagementPage from '@pages/employer/AITestManagementPage';
 import AITestEditPage from '@pages/employer/AITestEditPage';
 import ScoreManagementPage from '@pages/employer/ScoreManagementPage';
 import CandidateTestUI from '@pages/seeker/CandidateTestUI';
 import VerificationPublicPage from '@pages/VerificationPublicPage';
 import CompanyBrandingPage from '@pages/CompanyBrandingPage';
 import InterviewRoomPage from '@pages/InterviewRoomPage';
+import { getEmployerDashboardPath, getEmployerDashboardState } from '@shared/utils/employerDashboardRoutes';
 
 function RoleBasedHome() {
   const { user, isAuthenticated, loading } = useAuth();
@@ -39,7 +38,7 @@ function RoleBasedHome() {
   if (loading) {
     return (
       <div className="flex justify-center py-20">
-        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-navy-700"></div>
+        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-indigo-500"></div>
       </div>
     );
   }
@@ -54,6 +53,19 @@ function RoleBasedHome() {
     <MainLayout>
       <HomePage />
     </MainLayout>
+  );
+}
+
+function EmployerDashboardTabRedirect({ tab }) {
+  const location = useLocation();
+  const params = Object.fromEntries(new URLSearchParams(location.search));
+
+  return (
+    <Navigate
+      to={getEmployerDashboardPath(tab, params)}
+      replace
+      state={getEmployerDashboardState(tab)}
+    />
   );
 }
 
@@ -96,11 +108,13 @@ const router = createBrowserRouter([
   { path: '/cv-import', element: <Navigate to="/seeker/cv-import" replace /> },
   { path: '/blockchain-verification', element: <Navigate to="/seeker/blockchain-verification" replace /> },
   { path: '/employer/dashboard', element: <EmployerRoute><EmployerDashboard /></EmployerRoute> },
-  { path: '/employer/meeting-rooms', element: <EmployerRoute><EmployerPageLayout activeKey="meeting-rooms"><ManageMeetingRoomsTab /></EmployerPageLayout></EmployerRoute> },
+  { path: '/employer/meeting-rooms', element: <EmployerRoute><EmployerDashboardTabRedirect tab="meeting-rooms" /></EmployerRoute> },
   { path: '/employer/post-job', element: <EmployerRoute><PostJob /></EmployerRoute> },
-  { path: '/employer/ai-tests', element: <EmployerRoute><EmployerPageLayout activeKey="ai-tests"><AITestManagementPage /></EmployerPageLayout></EmployerRoute> },
+  { path: '/employer/ai-tests', element: <EmployerRoute><EmployerDashboardTabRedirect tab="ai-tests" /></EmployerRoute> },
   { path: '/employer/ai-tests/:id/edit', element: <EmployerRoute><EmployerPageLayout activeKey="ai-tests"><AITestEditPage /></EmployerPageLayout></EmployerRoute> },
   { path: '/employer/ai-tests/:id/scores', element: <EmployerRoute><EmployerPageLayout activeKey="ai-tests"><ScoreManagementPage /></EmployerPageLayout></EmployerRoute> },
+  { path: '/seeker/ai-tests/:id', element: <ProtectedRoute><CandidateTestUI /></ProtectedRoute> },
+  { path: '/candidate-test/:id', element: <ProtectedRoute><CandidateTestUI /></ProtectedRoute> },
   { path: '/test/:id', element: <ProtectedRoute><CandidateTestUI /></ProtectedRoute> },
   { path: '/admin', element: <Navigate to="/admin/dashboard" replace /> },
   { path: '/admin/dashboard', element: <AdminRoute><AdminDashboard /></AdminRoute> },

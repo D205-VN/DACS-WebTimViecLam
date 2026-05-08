@@ -26,7 +26,7 @@ export default function CVReviewModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 px-4 py-6">
-      <div className="w-full max-w-4xl max-h-[92vh] overflow-hidden rounded-[2rem] bg-white shadow-2xl">
+      <div className="w-full max-w-4xl max-h-[92vh] overflow-hidden rounded-lg bg-white shadow-lg">
         <div className="flex items-start justify-between gap-4 border-b border-slate-200 px-6 py-5">
           <div>
             <p className="text-xs uppercase tracking-[0.22em] text-slate-400">AI Review</p>
@@ -45,29 +45,29 @@ export default function CVReviewModal({
         <div className="max-h-[calc(92vh-96px)] overflow-auto p-6">
           {loading ? (
             <div className="flex min-h-[260px] flex-col items-center justify-center text-slate-500">
-              <Loader2 className="mb-3 h-9 w-9 animate-spin text-navy-600" />
+              <Loader2 className="mb-3 h-9 w-9 animate-spin text-indigo-600" />
               <p className="text-sm font-medium">Đang phân tích CV...</p>
             </div>
           ) : error ? (
-            <div className="flex items-start gap-3 rounded-2xl border border-red-100 bg-red-50 p-4 text-red-700">
+            <div className="flex items-start gap-3 rounded-lg border border-red-100 bg-red-50 p-4 text-red-700">
               <AlertCircle className="mt-0.5 h-5 w-5 shrink-0" />
               <p className="text-sm font-medium">{error}</p>
             </div>
           ) : review ? (
             <div className="space-y-6">
               {applyMessage ? (
-                <div className="flex items-start gap-3 rounded-2xl border border-emerald-100 bg-emerald-50 p-4 text-emerald-800">
+                <div className="flex items-start gap-3 rounded-lg border border-emerald-100 bg-emerald-50 p-4 text-emerald-800">
                   <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0" />
                   <p className="text-sm font-medium">{applyMessage}</p>
                 </div>
               ) : null}
 
-              <div className="flex flex-col gap-4 rounded-2xl border border-blue-100 bg-blue-50 p-5 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex flex-col gap-4 rounded-lg border border-blue-100 bg-blue-50 p-5 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-[0.18em] text-blue-500">Đánh giá tổng quan</p>
                   <p className="mt-2 text-sm leading-6 text-blue-950">{review.summary}</p>
                 </div>
-                <div className="flex h-24 w-24 shrink-0 flex-col items-center justify-center rounded-2xl bg-white text-navy-700 shadow-sm">
+                <div className="flex h-24 w-24 shrink-0 flex-col items-center justify-center rounded-lg bg-white text-indigo-700 shadow-sm">
                   <Sparkles className="h-5 w-5" />
                   <span className="mt-1 text-2xl font-bold">{review.score ?? '--'}</span>
                   <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-400">điểm</span>
@@ -81,7 +81,7 @@ export default function CVReviewModal({
                   </h4>
                   <div className="grid gap-2 sm:grid-cols-2">
                     {strengths.map((item, index) => (
-                      <div key={index} className="rounded-xl border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+                      <div key={index} className="rounded-lg border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
                         {item}
                       </div>
                     ))}
@@ -106,7 +106,7 @@ export default function CVReviewModal({
                       ? 'bg-emerald-600 text-white'
                       : isFailed
                         ? 'bg-red-600 text-white hover:bg-red-700'
-                        : 'bg-navy-600 text-white hover:bg-navy-700';
+                        : 'bg-indigo-600 text-white hover:bg-gradient-to-r from-indigo-600 to-violet-600';
                     const applyButtonIcon = isApplying
                       ? <Loader2 className="h-4 w-4 animate-spin" />
                       : isDone
@@ -123,7 +123,7 @@ export default function CVReviewModal({
                           : 'Sửa CV';
 
                     return (
-                      <div key={index} className="rounded-2xl border border-slate-200 bg-white p-4">
+                      <div key={index} className="rounded-lg border border-slate-200 bg-white p-4">
                         <div className="mb-3 flex flex-wrap items-center gap-2">
                           <span className="text-sm font-bold text-slate-900">{item.section || 'CV'}</span>
                           <span className={`rounded-full border px-2.5 py-1 text-[11px] font-semibold ${meta.className}`}>
@@ -133,12 +133,12 @@ export default function CVReviewModal({
                         <p className="text-sm font-semibold text-slate-800">{item.issue}</p>
                         <p className="mt-2 text-sm leading-6 text-slate-600">{item.suggestion}</p>
                         {item.example ? (
-                          <div className="mt-3 rounded-xl bg-slate-50 px-4 py-3 text-sm leading-6 text-slate-700">
+                          <div className="mt-3 rounded-lg bg-slate-50 px-4 py-3 text-sm leading-6 text-slate-700">
                             <span className="font-semibold text-slate-900">Ví dụ: </span>{item.example}
                           </div>
                         ) : null}
                         {applyError ? (
-                          <div className="mt-3 flex items-start gap-2 rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-700">
+                          <div className="mt-3 flex items-start gap-2 rounded-lg border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-700">
                             <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
                             <span>{applyError}</span>
                           </div>
@@ -148,7 +148,7 @@ export default function CVReviewModal({
                             type="button"
                             onClick={() => onApplySuggestion(item, index)}
                             disabled={isBusyElsewhere || isDone}
-                            className={`mt-3 inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-70 ${applyButtonClass}`}
+                            className={`mt-3 inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-70 ${applyButtonClass}`}
                           >
                             {applyButtonIcon}
                             {applyButtonLabel}

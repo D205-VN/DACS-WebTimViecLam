@@ -165,62 +165,67 @@ export default function RegisterPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const inputClass = 'w-full pl-12 pr-4 py-3 bg-white border border-gray-200 rounded-xl text-sm text-gray-700 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-navy-200 focus:border-navy-400 transition-all';
-  const selectClass = 'w-full pl-12 pr-10 py-3 bg-white border border-gray-200 rounded-xl text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-navy-200 focus:border-navy-400 transition-all appearance-none cursor-pointer';
+  const inputClass = 'w-full pl-12 pr-4 py-3 bg-white border border-indigo-100/60 rounded-md text-sm text-gray-700 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-violet-200 focus:border-indigo-400 transition-all';
+  const selectClass = 'w-full pl-12 pr-10 py-3 bg-white border border-indigo-100/60 rounded-md text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-violet-200 focus:border-indigo-400 transition-all appearance-none cursor-pointer';
 
   return (
     <div className="min-h-screen flex">
       {/* Left Side */}
-      <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-navy-800 via-navy-700 to-navy-900 relative overflow-hidden">
-        <div className="absolute -top-40 -right-40 w-96 h-96 bg-navy-600/30 rounded-full blur-3xl"></div>
-        <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-navy-500/20 rounded-full blur-3xl"></div>
-        <div className="absolute top-1/3 right-1/4 w-64 h-64 bg-emerald-500/10 rounded-full blur-3xl"></div>
-        <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: 'radial-gradient(circle, white 1px, transparent 1px)', backgroundSize: '30px 30px' }}></div>
+      <div className="relative hidden overflow-hidden bg-gradient-to-br from-indigo-600 via-violet-600 to-purple-700 lg:flex lg:w-1/2">
         <div className="relative z-10 flex flex-col justify-center px-16 xl:px-24">
           <div className="flex items-center gap-2 mb-12">
-            <div className="w-11 h-11 bg-white/10 backdrop-blur-sm rounded-xl flex items-center justify-center border border-white/10">
+            <div className="flex h-11 w-11 items-center justify-center rounded-md border border-white/10 bg-white/10">
               <Briefcase className="w-6 h-6 text-white" />
             </div>
             <span className="text-2xl font-extrabold">
-              <span className="text-white">Aptertek</span><span className="text-emerald-400">Work</span><span className="text-navy-300">.vn</span>
+              <span className="text-white">Aptertek</span><span className="text-emerald-400">Work</span><span className="text-indigo-300">.vn</span>
             </span>
           </div>
           <h2 className="text-4xl xl:text-5xl font-extrabold text-white leading-tight mb-6">
-            {step === 1 ? <>Bắt đầu hành trình<br /><span className="bg-gradient-to-r from-emerald-400 to-cyan-400 bg-clip-text text-transparent">sự nghiệp mới</span></> : <>Xác thực<br /><span className="bg-gradient-to-r from-emerald-400 to-cyan-400 bg-clip-text text-transparent">tài khoản</span></>}
+            {step === 1 ? <>Bắt đầu hành trình<br /><span className="text-emerald-300">sự nghiệp mới</span></> : <>Xác thực<br /><span className="text-emerald-300">tài khoản</span></>}
           </h2>
-          <p className="text-lg text-navy-200 leading-relaxed max-w-md">
+          <p className="text-lg text-indigo-200 leading-relaxed max-w-md">
             {step === 1 ? 'Tạo tài khoản miễn phí để tiếp cận hàng ngàn cơ hội việc làm.' : 'Nhập mã OTP 6 số đã gửi đến email của bạn.'}
           </p>
-          {step === 1 && <div className="mt-12 space-y-4">{['✅ Tạo CV chuyên nghiệp miễn phí', '✅ Nhận thông báo việc làm phù hợp', '✅ Ứng tuyển nhanh chóng chỉ 1 click'].map(f => <p key={f} className="text-navy-200 text-sm">{f}</p>)}</div>}
+          {step === 1 && (
+            <div className="mt-12 space-y-4">
+              {['Tạo CV chuyên nghiệp miễn phí', 'Nhận thông báo việc làm phù hợp', 'Ứng tuyển nhanh chỉ 1 click'].map((feature) => (
+                <p key={feature} className="flex items-center gap-2 text-sm text-indigo-200">
+                  <CheckCircle2 className="h-4 w-4 text-emerald-300" />
+                  {feature}
+                </p>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
       {/* Right Side */}
-      <div className="w-full lg:w-1/2 flex items-center justify-center px-6 py-8 bg-gray-50">
+      <div className="flex w-full items-center justify-center bg-gradient-to-br from-indigo-50/40 via-white to-violet-50/30 px-6 py-8 lg:w-1/2">
         <div className="w-full max-w-md">
           {/* Mobile Logo */}
           <div className="flex items-center gap-2 mb-6 lg:hidden">
-            <div className="w-9 h-9 bg-gradient-to-br from-navy-600 to-navy-800 rounded-xl flex items-center justify-center shadow-lg shadow-navy-700/20">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600">
               <Briefcase className="w-5 h-5 text-white" />
             </div>
-            <span className="text-xl font-extrabold"><span className="text-navy-700">Aptertek</span><span className="text-emerald-500">Work</span><span className="text-navy-400">.vn</span></span>
+            <span className="text-xl font-extrabold"><span className="text-indigo-700">Aptertek</span><span className="text-emerald-500">Work</span><span className="text-indigo-400">.vn</span></span>
           </div>
 
           {/* Error display */}
-          {error && <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-600">{error}</div>}
+          {error && <div className="mb-4 rounded-md rounded-xl border border-rose-200 bg-gradient-to-r from-rose-50 to-pink-50 p-3 text-sm text-red-600">{error}</div>}
 
           {step === 1 ? (
             <>
               <div className="mb-6">
                 <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-800 mb-2">Đăng ký tài khoản</h1>
-                <p className="text-gray-500">Đã có tài khoản? <Link to="/login" className="text-navy-700 font-semibold hover:text-navy-800">Đăng nhập</Link></p>
+                <p className="text-gray-500">Đã có tài khoản? <Link to="/login" className="text-indigo-700 font-semibold hover:text-indigo-800">Đăng nhập</Link></p>
               </div>
 
               {/* Role Selection */}
               <div className="flex gap-3 mb-6">
-                {[['seeker', '🔍 Tìm việc'], ['employer', '🏢 Nhà tuyển dụng']].map(([r, label]) => (
+                {[['seeker', 'Tìm việc'], ['employer', 'Nhà tuyển dụng']].map(([r, label]) => (
                   <button key={r} type="button" onClick={() => handleChange('role_code', r)}
-                    className={`flex-1 py-3 rounded-xl text-sm font-semibold border-2 transition-all duration-200 ${formData.role_code === r ? 'border-navy-600 bg-navy-50 text-navy-700 shadow-sm' : 'border-gray-200 bg-white text-gray-500 hover:border-gray-300'}`}>
+                    className={`flex-1 rounded-md border py-3 text-sm font-semibold transition-colors duration-200 ${formData.role_code === r ? 'border-indigo-500 bg-indigo-50 text-indigo-700' : 'border-indigo-100/60 bg-white text-gray-500 hover:border-gray-300'}`}>
                     {label}
                   </button>
                 ))}
@@ -256,7 +261,7 @@ export default function RegisterPage() {
                         <Building2 className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                         <input type="email" value={formData.companyEmail} onChange={e => handleChange('companyEmail', e.target.value)} placeholder="hr@congty.com.vn" className={inputClass} required />
                       </div>
-                      <p className="text-xs text-amber-600 mt-1">⚠️ Không chấp nhận Gmail, Yahoo, Hotmail...</p>
+                      <p className="mt-1 text-xs text-amber-600">Không chấp nhận Gmail, Yahoo, Hotmail...</p>
                     </div>
                     <div>
                       <label className="block text-sm font-semibold text-gray-700 mb-1.5">Tên công ty</label>
@@ -301,7 +306,7 @@ export default function RegisterPage() {
                   <label className="block text-sm font-semibold text-gray-700 mb-1.5">Mật khẩu</label>
                   <div className="relative">
                     <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                    <input type={showPassword ? 'text' : 'password'} value={formData.password} onChange={e => handleChange('password', e.target.value)} placeholder="Tối thiểu 8 ký tự" className="w-full pl-12 pr-12 py-3 bg-white border border-gray-200 rounded-xl text-sm text-gray-700 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-navy-200 focus:border-navy-400 transition-all" required minLength={8} />
+                    <input type={showPassword ? 'text' : 'password'} value={formData.password} onChange={e => handleChange('password', e.target.value)} placeholder="Tối thiểu 8 ký tự" className="w-full rounded-md border border-indigo-100/60 bg-white py-3 pl-12 pr-12 text-sm text-gray-700 placeholder:text-gray-400 transition-all focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-violet-200" required minLength={8} />
                     <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">{showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}</button>
                   </div>
                 </div>
@@ -311,20 +316,20 @@ export default function RegisterPage() {
                   <label className="block text-sm font-semibold text-gray-700 mb-1.5">Xác nhận mật khẩu</label>
                   <div className="relative">
                     <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                    <input type={showConfirmPassword ? 'text' : 'password'} value={formData.confirmPassword} onChange={e => handleChange('confirmPassword', e.target.value)} placeholder="Nhập lại mật khẩu" className="w-full pl-12 pr-12 py-3 bg-white border border-gray-200 rounded-xl text-sm text-gray-700 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-navy-200 focus:border-navy-400 transition-all" required minLength={8} />
+                    <input type={showConfirmPassword ? 'text' : 'password'} value={formData.confirmPassword} onChange={e => handleChange('confirmPassword', e.target.value)} placeholder="Nhập lại mật khẩu" className="w-full rounded-md border border-indigo-100/60 bg-white py-3 pl-12 pr-12 text-sm text-gray-700 placeholder:text-gray-400 transition-all focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-violet-200" required minLength={8} />
                     <button type="button" onClick={() => setShowConfirmPassword(!showConfirmPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">{showConfirmPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}</button>
                   </div>
                 </div>
 
                 {/* Terms */}
                 <div className="flex items-start gap-2">
-                  <input type="checkbox" id="terms" checked={formData.agreeTerms} onChange={e => handleChange('agreeTerms', e.target.checked)} className="w-4 h-4 mt-0.5 rounded accent-navy-700" required />
+                  <input type="checkbox" id="terms" checked={formData.agreeTerms} onChange={e => handleChange('agreeTerms', e.target.checked)} className="w-4 h-4 mt-0.5 rounded accent-indigo-600" required />
                   <label htmlFor="terms" className="text-sm text-gray-600 cursor-pointer leading-snug">
-                    Tôi đồng ý với <a href="#" className="text-navy-700 font-medium hover:underline">Điều khoản dịch vụ</a> và <a href="#" className="text-navy-700 font-medium hover:underline">Chính sách bảo mật</a>
+                    Tôi đồng ý với <a href="#" className="text-indigo-700 font-medium hover:underline">Điều khoản dịch vụ</a> và <a href="#" className="text-indigo-700 font-medium hover:underline">Chính sách bảo mật</a>
                   </label>
                 </div>
 
-                <button type="submit" disabled={loading} className="w-full flex items-center justify-center gap-2 py-3.5 bg-gradient-to-r from-navy-600 to-navy-800 text-white font-semibold rounded-xl hover:shadow-lg hover:shadow-navy-700/25 hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200 disabled:opacity-60">
+                <button type="submit" disabled={loading} className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 py-3.5 font-semibold text-white transition-colors hover:from-indigo-700 hover:to-violet-700 disabled:opacity-60">
                   {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <><span>Tạo tài khoản</span><ArrowRight className="w-4 h-4" /></>}
                 </button>
               </form>
@@ -338,32 +343,32 @@ export default function RegisterPage() {
               {/* Google Sign-In Div */}
               <div id="googleSignInDiv" className="w-full flex justify-center"></div>
 
-              <p className="text-center mt-6"><Link to="/" className="text-sm text-gray-500 hover:text-navy-700 transition-colors">← Quay lại trang chủ</Link></p>
+              <p className="text-center mt-6"><Link to="/" className="text-sm text-gray-500 hover:text-indigo-700 transition-colors">← Quay lại trang chủ</Link></p>
             </>
           ) : (
             /* STEP 2: OTP Verification */
             <div className="text-center">
-              <div className="w-16 h-16 bg-gradient-to-br from-emerald-100 to-cyan-100 rounded-2xl flex items-center justify-center mx-auto mb-6">
+              <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-md bg-emerald-50">
                 <Mail className="w-8 h-8 text-emerald-600" />
               </div>
               <h1 className="text-2xl font-extrabold text-gray-800 mb-2">Xác thực email</h1>
-              <p className="text-gray-500 mb-8">Mã OTP 6 số đã gửi đến <br/><strong className="text-navy-700">{emailForOTP}</strong></p>
+              <p className="text-gray-500 mb-8">Mã OTP 6 số đã gửi đến <br/><strong className="text-indigo-700">{emailForOTP}</strong></p>
 
               <div className="flex justify-center gap-3 mb-6">
                 {otp.map((digit, i) => (
                   <input key={i} ref={el => otpRefs.current[i] = el} type="text" inputMode="numeric" maxLength={1} value={digit}
                     onChange={e => handleOtpChange(i, e.target.value)} onKeyDown={e => handleOtpKeyDown(i, e)}
-                    className="w-12 h-14 text-center text-xl font-bold bg-white border-2 border-gray-200 rounded-xl focus:border-navy-500 focus:ring-2 focus:ring-navy-200 outline-none transition-all" />
+                    className="h-14 w-12 rounded-md border-2 border-indigo-100/60 bg-white text-center text-xl font-bold outline-none transition-all focus:border-indigo-500 focus:ring-2 focus:ring-violet-200" />
                 ))}
               </div>
 
-              <button onClick={handleVerifyOTP} disabled={loading} className="w-full flex items-center justify-center gap-2 py-3.5 bg-gradient-to-r from-navy-600 to-navy-800 text-white font-semibold rounded-xl hover:shadow-lg transition-all disabled:opacity-60 mb-4">
+              <button onClick={handleVerifyOTP} disabled={loading} className="mb-4 flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 py-3.5 font-semibold text-white transition-colors hover:from-indigo-700 hover:to-violet-700 disabled:opacity-60">
                 {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <><CheckCircle2 className="w-5 h-5" /><span>Xác thực</span></>}
               </button>
 
               <p className="text-sm text-gray-500">
                 Không nhận được mã?{' '}
-                {otpCountdown > 0 ? <span className="text-gray-400">Gửi lại sau {otpCountdown}s</span> : <button onClick={handleResendOTP} className="text-navy-700 font-semibold hover:underline">Gửi lại</button>}
+                {otpCountdown > 0 ? <span className="text-gray-400">Gửi lại sau {otpCountdown}s</span> : <button onClick={handleResendOTP} className="text-indigo-700 font-semibold hover:underline">Gửi lại</button>}
               </p>
 
               <button onClick={() => setStep(1)} className="mt-4 text-sm text-gray-400 hover:text-gray-600">← Quay lại đăng ký</button>

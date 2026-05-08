@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { LayoutDashboard, FileText, Users, Building2, Plus, ClipboardCheck, BrainCircuit, Bell, BarChart3, Video } from 'lucide-react';
+import { LayoutDashboard, FileText, Users, Building2, Plus, ClipboardCheck, BrainCircuit, Bell, BarChart3, Video, Sparkles } from 'lucide-react';
 import { useAuth } from '@features/auth/AuthContext';
 import API_BASE_URL from '@shared/api/baseUrl';
 import EmployerHeader from '@widgets/employer/EmployerHeader';
@@ -12,40 +12,38 @@ import AnalyticsTab from '@widgets/employer/AnalyticsTab';
 import DashboardTab from '@widgets/employer/DashboardTab';
 import OnboardingTab from '@widgets/employer/OnboardingTab';
 import ManageMeetingRoomsTab from '@widgets/employer/ManageMeetingRoomsTab';
+import AITestManagementContent from '@widgets/employer/AITestManagementContent';
+import {
+  getEmployerDashboardPath,
+  getEmployerDashboardState,
+  getEmployerDashboardTab,
+} from '@shared/utils/employerDashboardRoutes';
+import { cachedJsonFetch } from '@shared/api/requestCache';
+import { prefetchEmployerPortalData } from '@shared/api/employerPrefetch';
+
 export default function EmployerDashboard() {
   const { user, token } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const [activeTab, setActiveTab] = useState(location.state?.activeTab || 'dashboard');
+  const [activeTab, setActiveTab] = useState(() => getEmployerDashboardTab(location));
   const [stats, setStats] = useState(null);
 
-  // Update activeTab if location state changes
   useEffect(() => {
-    if (location.state?.activeTab) {
-      setActiveTab(location.state.activeTab);
-    }
-  }, [location.state]);
+    setActiveTab(getEmployerDashboardTab(location));
+  }, [location]);
   const [recentJobs, setRecentJobs] = useState([]);
   const [loading, setLoading] = useState(true);
 
   // Fetch dashboard data
   useEffect(() => {
     const fetchDashboard = async () => {
-      console.log('Fetching dashboard data with token:', token ? 'Exists' : 'Missing');
       try {
-        const res = await fetch(`${API_BASE_URL}/api/employer/dashboard`, {
+        const data = await cachedJsonFetch(`${API_BASE_URL}/api/employer/dashboard`, {
           headers: { Authorization: `Bearer ${token}` },
-        });
-        console.log('Dashboard response status:', res.status);
-        if (res.ok) {
-          const data = await res.json();
-          console.log('Dashboard data received:', data);
-          setStats(data.stats);
-          setRecentJobs(data.recentJobs || []);
-        } else {
-          const errorData = await res.json();
-          console.error('Dashboard fetch failed:', errorData);
-        }
+        }, { ttlMs: 15 * 1000 });
+        setStats(data.stats);
+        setRecentJobs(data.recentJobs || []);
+        prefetchEmployerPortalData(token);
       } catch (err) {
         console.error('Error fetching dashboard:', err);
       } finally {
@@ -73,11 +71,16 @@ export default function EmployerDashboard() {
     { key: 'candidates', label: 'Nhóm Ứng viên', icon: Users },
     { key: 'notifications', label: 'Thông báo', icon: Bell },
     { key: 'analytics', label: 'Phân tích & Thống kê', icon: BarChart3 },
-    { key: 'ai-tests', label: 'Bài Test AI', icon: BrainCircuit, path: '/employer/ai-tests' },
+    { key: 'ai-tests', label: 'Bài Test AI', icon: BrainCircuit },
     { key: 'company', label: 'Hồ sơ công ty', icon: Building2 },
     { key: 'onboarding', label: 'Hồ sơ & Onboarding', icon: ClipboardCheck },
-    { key: 'meeting-rooms', label: 'Phòng Meet', icon: Video, path: '/employer/meeting-rooms' },
+    { key: 'meeting-rooms', label: 'Phòng Meet', icon: Video },
   ];
+
+  const handleTabChange = (tab) => {
+    setActiveTab(tab);
+    navigate(getEmployerDashboardPath(tab), { state: getEmployerDashboardState(tab) });
+  };
 
   // Greeting based on time
   const getGreeting = () => {
@@ -88,61 +91,61 @@ export default function EmployerDashboard() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50/80">
+    <div className="aw-page">
       <EmployerHeader />
 
-      <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="mx-auto max-w-[1440px] px-4 py-5 sm:px-6 lg:px-8">
         {/* Welcome Banner */}
-        <div className="bg-gradient-to-r from-navy-700 via-navy-800 to-navy-900 rounded-2xl p-8 mb-8 text-white relative overflow-hidden shadow-xl">
-          <div className="absolute -top-20 -right-20 w-64 h-64 bg-navy-500/20 rounded-full blur-3xl"></div>
-          <div className="absolute -bottom-20 -left-20 w-48 h-48 bg-success-500/10 rounded-full blur-3xl"></div>
-          <div className="relative z-10">
-            <h1 className="text-2xl sm:text-3xl font-bold mb-2">
-              {getGreeting()}, {user?.company_name || user?.full_name || 'Nhà tuyển dụng'}! 👋
-            </h1>
-            <p className="text-navy-200 text-sm sm:text-base">
-              {displayStats.pendingJobs > 0
-                ? `Hiện có ${displayStats.pendingJobs} tin đang chờ admin chấp nhận hoặc từ chối.`
-                : displayStats.newCandidates > 0
-                  ? `Hôm nay bạn có ${displayStats.newCandidates} ứng viên mới đang chờ xử lý.`
-                  : 'Chào mừng bạn đến với bảng điều khiển nhà tuyển dụng.'}
-            </p>
+        <div className="relative overflow-hidden rounded-2xl border border-indigo-100/60 bg-white/90 backdrop-blur-sm mb-5 p-6 shadow-sm">
+          <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-indigo-500 via-violet-500 to-purple-500 rounded-t-2xl"></div>
+          <div className="absolute -top-20 -right-20 w-60 h-60 rounded-full bg-gradient-to-br from-indigo-100/40 to-violet-100/30 blur-3xl"></div>
+          <div className="relative z-10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div>
+              <h1 className="text-xl font-extrabold sm:text-2xl bg-gradient-to-r from-indigo-700 to-violet-700 bg-clip-text text-transparent">
+                {getGreeting()}, {user?.company_name || user?.full_name || 'Nhà tuyển dụng'}
+              </h1>
+              <p className="mt-1.5 text-sm text-gray-500 sm:text-base">
+                {displayStats.pendingJobs > 0
+                  ? `Hiện có ${displayStats.pendingJobs} tin đang chờ admin chấp nhận hoặc từ chối.`
+                  : displayStats.newCandidates > 0
+                    ? `Hôm nay bạn có ${displayStats.newCandidates} ứng viên mới đang chờ xử lý.`
+                    : 'Chào mừng bạn đến với bảng điều khiển nhà tuyển dụng.'}
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <Sparkles className="w-5 h-5 text-violet-400" />
+              <span className="text-xs font-semibold text-violet-500 bg-violet-50 px-3 py-1.5 rounded-full">Employer Portal</span>
+            </div>
           </div>
         </div>
 
-        <div className="flex flex-col lg:flex-row gap-8">
+        <div className="flex flex-col gap-5 lg:flex-row">
           {/* Sidebar */}
           <div className="w-full lg:w-64 shrink-0">
-            <div className="bg-white rounded-xl shadow-sm p-4 border border-gray-100 sticky top-24">
+            <div className="sticky top-[72px] rounded-2xl border border-indigo-100/60 bg-white/90 backdrop-blur-sm p-4 shadow-sm">
               <h3 className="font-bold text-gray-400 mb-4 px-2 uppercase text-[11px] tracking-wider">Hệ thống</h3>
               <div className="space-y-1">
                 {sidebarItems.map((item) => (
                   <button
                     key={item.key}
-                    onClick={() => {
-                      if (item.path) {
-                        navigate(item.path);
-                        return;
-                      }
-                      setActiveTab(item.key);
-                    }}
-                    className={`w-full text-left p-3 rounded-lg flex items-center gap-3 text-sm font-medium transition-all duration-200 ${
+                    onClick={() => handleTabChange(item.key)}
+                    className={`flex w-full items-center gap-3 rounded-xl p-3 text-left text-sm font-medium transition-all duration-300 ${
                       activeTab === item.key
-                        ? 'bg-navy-50 text-navy-700 font-semibold shadow-sm'
-                        : 'text-gray-600 hover:bg-navy-50/50 hover:text-navy-700'
+                        ? 'bg-gradient-to-r from-indigo-50 to-violet-50 font-semibold text-indigo-700 shadow-sm shadow-indigo-100/50'
+                        : 'text-gray-600 hover:bg-indigo-50/40 hover:text-indigo-700'
                     }`}
                   >
-                    <item.icon className="w-4.5 h-4.5" />
+                    <item.icon className={`w-[18px] h-[18px] transition-colors duration-300 ${activeTab === item.key ? 'text-indigo-600' : ''}`} />
                     {item.label}
                   </button>
                 ))}
               </div>
 
-              <hr className="my-4 border-gray-100" />
+              <hr className="my-4 border-indigo-50" />
 
               <button
                 onClick={() => navigate('/employer/post-job')}
-                className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-navy-600 to-navy-800 text-white p-3 rounded-xl font-semibold text-sm hover:shadow-lg hover:shadow-navy-700/25 hover:-translate-y-0.5 transition-all duration-200"
+                className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 p-3 text-sm font-semibold text-white shadow-lg shadow-indigo-200/60 transition-all duration-300 hover:shadow-xl hover:shadow-indigo-300/60 hover:from-indigo-700 hover:to-violet-700 hover:-translate-y-0.5"
               >
                 <Plus className="w-4 h-4" />
                 Đăng tin mới
@@ -157,7 +160,7 @@ export default function EmployerDashboard() {
                 stats={stats} 
                 recentJobs={recentJobs} 
                 loading={loading} 
-                setActiveTab={setActiveTab} 
+                setActiveTab={handleTabChange}
               />
             )}
 
@@ -167,20 +170,22 @@ export default function EmployerDashboard() {
             {activeTab === 'analytics' && <AnalyticsTab />}
             {activeTab === 'company' && <CompanyProfileTab />}
             {activeTab === 'onboarding' && <OnboardingTab />}
+            {activeTab === 'ai-tests' && <AITestManagementContent />}
             {activeTab === 'meeting-rooms' && <ManageMeetingRoomsTab />}
           </div>
         </div>
       </div>
 
       {/* Footer */}
-      <footer className="bg-navy-900 text-navy-300 mt-16">
-        <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
-            <p className="text-xs text-navy-400">© 2026 AptertekWork — Bản quyền thuộc về D205-VN</p>
-            <div className="flex gap-4">
-              <a href="#" className="text-xs text-navy-400 hover:text-navy-200 transition-colors">Điều khoản</a>
-              <a href="#" className="text-xs text-navy-400 hover:text-navy-200 transition-colors">Chính sách</a>
-              <a href="#" className="text-xs text-navy-400 hover:text-navy-200 transition-colors">Trợ giúp</a>
+      <footer className="mt-12 bg-gradient-to-b from-slate-900 to-slate-950 text-slate-300">
+        <div className="h-1 bg-gradient-to-r from-indigo-500 via-violet-500 to-pink-500"></div>
+        <div className="mx-auto max-w-[1440px] px-4 py-6 sm:px-6 lg:px-8">
+          <div className="flex flex-col items-center justify-between gap-3 sm:flex-row">
+            <p className="text-xs text-slate-500">© 2026 AptertekWork - Bản quyền thuộc về D205-VN</p>
+            <div className="flex gap-5">
+              <a href="#" className="text-xs text-slate-400 transition-colors hover:text-white">Điều khoản</a>
+              <a href="#" className="text-xs text-slate-400 transition-colors hover:text-white">Chính sách</a>
+              <a href="#" className="text-xs text-slate-400 transition-colors hover:text-white">Trợ giúp</a>
             </div>
           </div>
         </div>

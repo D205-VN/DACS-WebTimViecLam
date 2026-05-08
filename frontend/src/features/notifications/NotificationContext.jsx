@@ -119,7 +119,7 @@ export const NotificationProvider = ({ children }) => {
       {children}
       <div className="fixed right-4 top-20 z-[70] flex w-[min(360px,calc(100vw-2rem))] flex-col gap-3">
         {toasts.map((toast) => (
-          <div key={toast.id} className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl shadow-slate-900/15">
+          <div key={toast.id} className="overflow-hidden rounded-lg border border-slate-200 bg-white shadow-lg shadow-slate-900/15">
             <div
               role="button"
               tabIndex={0}

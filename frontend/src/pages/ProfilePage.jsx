@@ -156,23 +156,23 @@ export default function ProfilePage() {
     }
   };
 
-  const inputClass = 'w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-700 placeholder:text-gray-400 transition-all focus:border-navy-400 focus:outline-none focus:ring-2 focus:ring-navy-200';
+  const inputClass = 'w-full rounded-lg border border-indigo-100/60 bg-white px-4 py-3 text-sm text-gray-700 placeholder:text-gray-400 transition-all focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-violet-200';
 
   return (
-    <div className="mx-auto max-w-5xl px-4 py-8">
-      <Link to={backRoute} className="mb-6 inline-flex items-center gap-1.5 text-sm text-gray-500 transition-colors hover:text-navy-700">
+    <div className="aw-container py-6">
+      <Link to={backRoute} className="mb-6 inline-flex items-center gap-1.5 text-sm text-gray-500 transition-colors hover:text-indigo-700">
         <ArrowLeft className="h-4 w-4" /> {backLabel}
       </Link>
 
-      <div className="grid gap-6 lg:grid-cols-[320px_minmax(0,1fr)]">
-        <aside className="rounded-3xl border border-gray-100 bg-gradient-to-br from-navy-700 via-navy-800 to-slate-900 p-6 text-white shadow-lg shadow-navy-900/10">
-          <div className="relative h-24 w-24 overflow-hidden rounded-3xl border border-white/15 bg-white/10 shadow-lg">
+      <div className="grid gap-5 lg:grid-cols-[320px_minmax(0,1fr)]">
+        <aside className="aw-surface p-6">
+          <div className="relative h-24 w-24 overflow-hidden rounded-lg border border-indigo-100/60 bg-indigo-50/50 shadow-sm">
             <UserAvatar
               src={form.avatarUrl}
               alt={form.fullName || 'Ảnh đại diện'}
               className="h-full w-full object-cover"
               fallbackClassName="flex h-full w-full items-center justify-center"
-              iconClassName="h-10 w-10 text-emerald-300"
+              iconClassName="h-10 w-10 text-indigo-600"
             />
           </div>
           {canEditAvatar ? (
@@ -188,7 +188,7 @@ export default function ProfilePage() {
                 type="button"
                 onClick={() => avatarInputRef.current?.click()}
                 disabled={avatarLoading}
-                className="inline-flex items-center gap-2 rounded-xl bg-white/10 px-3 py-2 text-xs font-semibold text-white transition hover:bg-white/15 disabled:cursor-not-allowed disabled:opacity-70"
+                className="inline-flex items-center gap-2 rounded-lg border border-indigo-100/60 bg-white px-3 py-2 text-xs font-semibold text-gray-700 transition hover:bg-indigo-50/30 disabled:cursor-not-allowed disabled:opacity-70"
               >
                 {avatarLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Camera className="h-3.5 w-3.5" />}
                 {avatarLoading ? 'Đang xử lý' : 'Đổi ảnh'}
@@ -197,36 +197,36 @@ export default function ProfilePage() {
                 <button
                   type="button"
                   onClick={() => handleChange('avatarUrl', '')}
-                  className="inline-flex items-center gap-2 rounded-xl bg-white/10 px-3 py-2 text-xs font-semibold text-white transition hover:bg-white/15"
+                  className="inline-flex items-center gap-2 rounded-lg border border-red-100 bg-red-50 px-3 py-2 text-xs font-semibold text-red-600 transition hover:bg-red-100"
                 >
                   <Trash2 className="h-3.5 w-3.5" /> Xóa ảnh
                 </button>
               ) : null}
             </div>
           ) : null}
-          <h1 className="mt-5 text-2xl font-bold">Cập nhật thông tin</h1>
-          <p className="mt-2 text-sm leading-6 text-navy-100">
+          <h1 className="mt-5 text-2xl font-bold text-gray-950">Cập nhật thông tin</h1>
+          <p className="mt-2 text-sm leading-6 text-gray-500">
             Điều chỉnh hồ sơ cá nhân để phần ứng tuyển, CV và thông báo hiển thị đúng dữ liệu mới nhất.
           </p>
 
-          <div className="mt-8 space-y-4 rounded-2xl border border-white/10 bg-white/5 p-4 backdrop-blur-sm">
+          <div className="mt-8 space-y-4 rounded-lg border border-indigo-100/60 bg-indigo-50/50 p-4">
             <div>
-              <p className="text-xs uppercase tracking-[0.18em] text-navy-200">Tài khoản</p>
-              <p className="mt-1 text-base font-semibold">{user?.full_name}</p>
-              <p className="text-sm text-navy-200">{user?.role_name}</p>
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">Tài khoản</p>
+              <p className="mt-1 text-base font-semibold text-gray-950">{user?.full_name}</p>
+              <p className="text-sm text-gray-500">{user?.role_name}</p>
             </div>
-            <div className="space-y-2 text-sm text-navy-100">
+            <div className="space-y-2 text-sm text-gray-600">
               <div className="flex items-center gap-2">
-                <Mail className="h-4 w-4 text-emerald-300" />
+                <Mail className="h-4 w-4 text-indigo-600" />
                 <span>{user?.email}</span>
               </div>
               <div className="flex items-center gap-2">
-                <Phone className="h-4 w-4 text-emerald-300" />
+                <Phone className="h-4 w-4 text-indigo-600" />
                 <span>{user?.phone || 'Chưa cập nhật số điện thoại'}</span>
               </div>
               {isEmployer ? (
                 <div className="flex items-center gap-2">
-                  <BriefcaseBusiness className="h-4 w-4 text-emerald-300" />
+                  <BriefcaseBusiness className="h-4 w-4 text-indigo-600" />
                   <span>{user?.company_name || 'Chưa cập nhật công ty'}</span>
                 </div>
               ) : null}
@@ -234,7 +234,7 @@ export default function ProfilePage() {
           </div>
         </aside>
 
-        <section className="rounded-3xl border border-gray-100 bg-white p-6 shadow-sm">
+        <section className="aw-surface p-6">
           <div className="mb-6 flex items-start justify-between gap-4">
             <div>
               <h2 className="text-xl font-bold text-gray-800">Hồ sơ tài khoản</h2>
@@ -242,17 +242,17 @@ export default function ProfilePage() {
                 Email đăng nhập được giữ cố định. Các trường còn lại có thể cập nhật ngay tại đây.
               </p>
             </div>
-            <span className="rounded-full bg-navy-50 px-3 py-1 text-xs font-semibold text-navy-700">
+            <span className="rounded-full bg-indigo-50 px-3 py-1 text-xs font-semibold text-indigo-700">
               {isEmployer ? 'Nhà tuyển dụng' : 'Ứng viên'}
             </span>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-6">
             {error ? (
-              <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">{error}</div>
+              <div className="rounded-lg rounded-xl border border-rose-200 bg-gradient-to-r from-rose-50 to-pink-50 px-4 py-3 text-sm text-red-600">{error}</div>
             ) : null}
             {success ? (
-              <div className="flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+              <div className="flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
                 <CheckCircle2 className="h-4 w-4" /> {success}
               </div>
             ) : null}
@@ -271,7 +271,7 @@ export default function ProfilePage() {
 
               <div>
                 <label className="mb-1.5 block text-sm font-semibold text-gray-700">Email đăng nhập</label>
-                <input value={form.email} disabled className={`${inputClass} cursor-not-allowed bg-gray-50 text-gray-400`} />
+                <input value={form.email} disabled className={`${inputClass} cursor-not-allowed bg-indigo-50/50 text-gray-400`} />
               </div>
 
               <div>
@@ -286,7 +286,7 @@ export default function ProfilePage() {
             </div>
 
             {isEmployer ? (
-              <div className="rounded-2xl border border-gray-100 bg-gray-50/80 p-5">
+              <div className="rounded-lg border border-indigo-50 bg-indigo-50/50/80 p-5">
                 <h3 className="text-base font-bold text-gray-800">Thông tin công ty</h3>
                 <div className="mt-4 grid gap-5 sm:grid-cols-2">
                   <div className="sm:col-span-2">
@@ -335,7 +335,7 @@ export default function ProfilePage() {
             <button
               type="submit"
               disabled={loading || avatarLoading}
-              className="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-navy-600 to-navy-800 px-5 py-3 text-sm font-semibold text-white transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-navy-700/20 disabled:cursor-not-allowed disabled:opacity-70"
+              className="aw-btn-primary px-5 py-3 text-sm disabled:cursor-not-allowed disabled:opacity-70"
             >
               {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
               {loading ? 'Đang lưu...' : 'Lưu thay đổi'}

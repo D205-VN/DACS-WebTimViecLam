@@ -172,18 +172,18 @@ export default function ManageCVsPage() {
     });
   }, [cvs, query]);
 
-  if (loading) return <div className="flex justify-center py-20"><Loader2 className="w-10 h-10 animate-spin text-navy-600" /></div>;
+  if (loading) return <div className="flex justify-center py-20"><Loader2 className="w-10 h-10 animate-spin text-indigo-600" /></div>;
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-8">
-      <Link to={backRoute} className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-navy-700 mb-6 transition-colors">
+    <div className="aw-container py-6">
+      <Link to={backRoute} className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-indigo-700 mb-6 transition-colors">
         <ArrowLeft className="w-4 h-4" /> {backLabel}
       </Link>
 
-      <div className="flex flex-col gap-4 mb-8 lg:flex-row lg:items-center lg:justify-between">
+      <div className="aw-surface mb-5 flex flex-col gap-4 p-4 lg:flex-row lg:items-center lg:justify-between">
         <div className="flex items-center gap-3">
-          <div className="w-14 h-14 bg-gradient-to-br from-blue-100 to-indigo-100 rounded-2xl flex items-center justify-center">
-            <FileText className="w-7 h-7 text-navy-600" />
+          <div className="flex h-14 w-14 items-center justify-center rounded-lg bg-indigo-50">
+            <FileText className="w-7 h-7 text-indigo-600" />
           </div>
           <div>
             <h1 className="text-2xl font-bold text-gray-800">Quản lý Hồ sơ CV</h1>
@@ -191,13 +191,13 @@ export default function ManageCVsPage() {
           </div>
         </div>
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-          <Link to="/seeker/blockchain-verification" className="flex items-center gap-2 px-5 py-2.5 bg-emerald-50 border border-emerald-100 text-emerald-700 font-semibold rounded-xl hover:bg-emerald-100 transition-all">
+          <Link to="/seeker/blockchain-verification" className="flex items-center gap-2 px-5 py-2.5 bg-emerald-50 border border-emerald-100 text-emerald-700 font-semibold rounded-lg hover:bg-emerald-100 transition-all">
             <ShieldCheck className="w-4 h-4" /> Blockchain
           </Link>
-          <Link to="/seeker/cv-import" className="flex items-center gap-2 px-5 py-2.5 bg-white border border-gray-200 text-gray-700 font-semibold rounded-xl hover:shadow-sm hover:bg-gray-50 transition-all">
+          <Link to="/seeker/cv-import" className="flex items-center gap-2 px-5 py-2.5 bg-white border border-indigo-100/60 text-gray-700 font-semibold rounded-lg hover:shadow-sm hover:bg-indigo-50/30 transition-all">
             <ImageUp className="w-4 h-4" /> Import ảnh từ máy
           </Link>
-          <Link to="/seeker/cv-builder" className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-purple-600 to-indigo-700 text-white font-semibold rounded-xl hover:shadow-lg transition-all">
+          <Link to="/seeker/cv-builder" className="aw-btn-primary px-5 py-2.5 text-sm">
             <Sparkles className="w-4 h-4" /> Tạo CV AI
           </Link>
         </div>
@@ -205,11 +205,11 @@ export default function ManageCVsPage() {
 
       <SeekerToolsNav />
 
-      <div className="mb-6 rounded-2xl border border-blue-100 bg-blue-50 px-5 py-4 text-sm text-blue-800">
+      <div className="mb-6 rounded-lg border border-blue-100 bg-blue-50 px-5 py-4 text-sm text-blue-800">
         Hệ thống sẽ tự dùng <b>CV chính</b> khi bạn bấm ứng tuyển. Bạn có thể xem trước từng bản CV và đổi CV chính bất kỳ lúc nào tại đây.
       </div>
 
-      {error && <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-600">{error}</div>}
+      {error && <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-600">{error}</div>}
 
       {cvs.length > 0 && (
         <div className="mb-6">
@@ -219,7 +219,7 @@ export default function ManageCVsPage() {
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Tìm theo tên tuyển dụng (vị trí ứng tuyển) hoặc tiêu đề CV..."
-              className="w-full pl-11 pr-4 py-3 bg-white border border-gray-200 rounded-xl text-sm text-gray-700 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-navy-200 focus:border-navy-400 transition-all"
+              className="w-full pl-11 pr-4 py-3 bg-white border border-indigo-100/60 rounded-lg text-sm text-gray-700 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-violet-200 focus:border-indigo-400 transition-all"
             />
           </div>
           {query.trim() && (
@@ -231,20 +231,20 @@ export default function ManageCVsPage() {
       )}
 
       {cvs.length === 0 ? (
-        <div className="bg-white rounded-2xl border border-gray-100 p-12 text-center shadow-sm">
+        <div className="aw-surface p-12 text-center">
           <FileText className="w-16 h-16 text-gray-300 mx-auto mb-4" />
           <h3 className="text-lg font-bold text-gray-800 mb-2">Chưa có hồ sơ nào</h3>
           <p className="text-gray-500 mb-6">Bạn chưa lưu bất kỳ bản CV nào. Hãy tạo một bản CV ấn tượng bằng AI nhé!</p>
-          <Link to="/seeker/cv-builder" className="inline-flex items-center gap-2 px-5 py-2.5 bg-navy-600 text-white font-semibold rounded-xl hover:bg-navy-700 transition-colors">
+          <Link to="/seeker/cv-builder" className="inline-flex items-center gap-2 px-5 py-2.5 bg-indigo-600 text-white font-semibold rounded-lg hover:bg-gradient-to-r from-indigo-600 to-violet-600 transition-colors">
             Bắt đầu tạo CV
           </Link>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredCVs.map(cv => (
-            <div key={cv.id} className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm hover:shadow-md transition-all flex flex-col">
+            <div key={cv.id} className="aw-surface flex flex-col p-6 transition-colors hover:border-gray-300 hover:bg-indigo-50/30">
               <div className="flex items-start justify-between mb-4">
-                <div className="w-12 h-12 bg-navy-50 text-navy-600 rounded-xl flex items-center justify-center shrink-0">
+                <div className="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-lg flex items-center justify-center shrink-0">
                   <FileText className="w-6 h-6" />
                 </div>
                 <button onClick={() => handleDelete(cv.id)} className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors" title="Xóa hồ sơ">
@@ -285,25 +285,25 @@ export default function ManageCVsPage() {
               <div className="mt-auto space-y-2">
                 <button
                   onClick={() => setPreviewCv(cv)}
-                  className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-white border border-gray-200 text-gray-700 font-semibold rounded-xl hover:bg-gray-50 transition-colors"
+                  className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-white border border-indigo-100/60 text-gray-700 font-semibold rounded-lg hover:bg-indigo-50/30 transition-colors"
                 >
                   <Eye className="w-4 h-4" /> Xem hồ sơ
                 </button>
                 <button
                   onClick={() => handleReview(cv)}
                   disabled={Boolean(reviewLoadingId)}
-                  className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-amber-50 text-amber-700 font-semibold rounded-xl hover:bg-amber-100 transition-colors disabled:opacity-70"
+                  className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-amber-50 text-amber-700 font-semibold rounded-lg hover:bg-amber-100 transition-colors disabled:opacity-70"
                 >
                   {reviewLoadingId === cv.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <ClipboardCheck className="w-4 h-4" />}
                   {reviewLoadingId === cv.id ? 'Đang phân tích...' : 'Gợi ý sửa CV'}
                 </button>
-                <button onClick={() => handleDownload(cv.html_content, cv.title)} className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-navy-50 text-navy-700 font-semibold rounded-xl hover:bg-navy-100 transition-colors">
+                <button onClick={() => handleDownload(cv.html_content, cv.title)} className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-indigo-50 text-indigo-700 font-semibold rounded-lg hover:bg-indigo-100 transition-colors">
                   <Download className="w-4 h-4" /> Tải PDF
                 </button>
                 <button
                   onClick={() => handleSetPrimary(cv.id)}
                   disabled={cv.is_primary || primaryLoadingId === cv.id}
-                  className={`w-full flex items-center justify-center gap-2 px-4 py-2.5 font-semibold rounded-xl transition-colors ${
+                  className={`w-full flex items-center justify-center gap-2 px-4 py-2.5 font-semibold rounded-lg transition-colors ${
                     cv.is_primary
                       ? 'bg-emerald-50 text-emerald-700 cursor-default'
                       : 'bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-70 disabled:cursor-not-allowed'
@@ -320,7 +320,7 @@ export default function ManageCVsPage() {
 
       {previewCv ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 px-4 py-6">
-          <div className="w-full max-w-5xl max-h-[92vh] overflow-hidden rounded-[2rem] bg-white shadow-2xl">
+          <div className="w-full max-w-5xl max-h-[92vh] overflow-hidden rounded-lg bg-white shadow-lg">
             <div className="flex items-center justify-between gap-4 border-b border-slate-200 px-6 py-5">
               <div>
                 <p className="text-xs uppercase tracking-[0.22em] text-slate-400">Xem hồ sơ CV</p>
@@ -338,7 +338,7 @@ export default function ManageCVsPage() {
 
             <div className="max-h-[calc(92vh-96px)] overflow-auto bg-slate-50 p-5">
               <div
-                className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm min-w-[800px] mx-auto"
+                className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm min-w-[800px] mx-auto"
                 dangerouslySetInnerHTML={{ __html: previewCv.html_content }}
               />
             </div>

@@ -117,8 +117,8 @@ export default function OnboardingTab() {
 
   if (loading) {
     return (
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-20 flex flex-col items-center justify-center">
-        <Loader2 className="w-10 h-10 text-navy-700 animate-spin mb-4" />
+      <div className="rounded-2xl border border-indigo-100/60 bg-white/90 backdrop-blur-sm shadow-sm p-20 flex flex-col items-center justify-center">
+        <Loader2 className="w-10 h-10 text-indigo-700 animate-spin mb-4" />
         <p className="text-gray-500 font-medium">Đang tải danh sách onboarding...</p>
       </div>
     );
@@ -139,7 +139,7 @@ export default function OnboardingTab() {
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             placeholder="Tìm tên hoặc vị trí..."
-            className="pl-10 pr-4 py-2 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-navy-500/20 w-64"
+            className="pl-10 pr-4 py-2 border border-indigo-100/60 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 w-64"
           />
         </div>
       </div>
@@ -151,10 +151,10 @@ export default function OnboardingTab() {
       <div className="grid lg:grid-cols-3 gap-6">
         {/* ─── Left: Danh sách ─── */}
         <div className="lg:col-span-1">
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-            <div className="p-4 border-b border-gray-50 bg-gray-50/50 flex items-center justify-between">
+          <div className="rounded-2xl border border-indigo-100/60 bg-white/90 backdrop-blur-sm shadow-sm overflow-hidden">
+            <div className="p-4 border-b border-gray-50 bg-indigo-50/50/50 flex items-center justify-between">
               <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Ứng viên trúng tuyển</span>
-              <span className="text-xs font-bold text-navy-600 bg-navy-50 px-2 py-0.5 rounded-full">{filteredCandidates.length}</span>
+              <span className="text-xs font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-full">{filteredCandidates.length}</span>
             </div>
             <div className="divide-y divide-gray-50 max-h-[600px] overflow-y-auto">
               {filteredCandidates.length > 0 ? (
@@ -165,21 +165,21 @@ export default function OnboardingTab() {
                     <button
                       key={candidate.id}
                       onClick={() => setSelectedCandidate(candidate)}
-                      className={`w-full text-left p-4 hover:bg-navy-50/50 transition-colors flex items-center gap-3 ${
-                        selectedCandidate?.id === candidate.id ? 'bg-navy-50 border-l-4 border-navy-600' : ''
+                      className={`w-full text-left p-4 hover:bg-indigo-50/50 transition-colors flex items-center gap-3 ${
+                        selectedCandidate?.id === candidate.id ? 'bg-indigo-50 border-l-4 border-indigo-500' : ''
                       }`}
                     >
                       <UserAvatar
                         src={candidate.avatar_url}
                         alt={candidate.candidate_name}
                         className="w-10 h-10 rounded-full"
-                        fallbackClassName="flex w-10 h-10 items-center justify-center rounded-full bg-gradient-to-br from-navy-500 to-navy-700"
+                        fallbackClassName="flex w-10 h-10 items-center justify-center rounded-full bg-gradient-to-r from-indigo-600 to-violet-600"
                         iconClassName="h-4 w-4 text-white"
                       />
                       <div className="flex-1 min-w-0">
                         <h4 className="font-bold text-gray-800 text-sm truncate">{candidate.candidate_name}</h4>
                         {/* FIX 2: Hiển thị tên tin tuyển dụng */}
-                        <p className="text-xs text-navy-600 font-semibold truncate flex items-center gap-1 mt-0.5">
+                        <p className="text-xs text-indigo-600 font-semibold truncate flex items-center gap-1 mt-0.5">
                           <Briefcase className="w-3 h-3 shrink-0" /> {candidate.job_title}
                         </p>
                         {/* Trạng thái + Progress */}
@@ -195,7 +195,7 @@ export default function OnboardingTab() {
                           />
                         </div>
                       </div>
-                      <ChevronRight className={`w-4 h-4 shrink-0 ${selectedCandidate?.id === candidate.id ? 'text-navy-600' : 'text-gray-300'}`} />
+                      <ChevronRight className={`w-4 h-4 shrink-0 ${selectedCandidate?.id === candidate.id ? 'text-indigo-600' : 'text-gray-300'}`} />
                     </button>
                   );
                 })
@@ -215,19 +215,19 @@ export default function OnboardingTab() {
         <div className="lg:col-span-2">
           {selectedCandidate ? (
             <div className="space-y-6">
-              <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+              <div className="rounded-2xl border border-indigo-100/60 bg-white/90 backdrop-blur-sm shadow-sm p-6">
                 {/* Info */}
                 <div className="flex items-center gap-4 mb-6">
                   <UserAvatar
                     src={selectedCandidate.avatar_url}
-                    className="w-16 h-16 rounded-2xl"
-                    fallbackClassName="flex w-16 h-16 items-center justify-center rounded-2xl bg-gradient-to-br from-navy-500 to-navy-700"
+                    className="w-16 h-16 rounded-lg"
+                    fallbackClassName="flex w-16 h-16 items-center justify-center rounded-lg bg-gradient-to-r from-indigo-600 to-violet-600"
                     iconClassName="h-6 w-6 text-white"
                   />
                   <div>
                     <h3 className="text-xl font-bold text-gray-900">{selectedCandidate.candidate_name}</h3>
                     {/* FIX 2: Hiển thị tên tin tuyển dụng nổi bật */}
-                    <p className="text-navy-600 font-semibold flex items-center gap-1.5 mt-0.5">
+                    <p className="text-indigo-600 font-semibold flex items-center gap-1.5 mt-0.5">
                       <Briefcase className="w-4 h-4" /> {selectedCandidate.job_title}
                     </p>
                     <div className="flex flex-wrap gap-3 mt-2">
@@ -242,14 +242,14 @@ export default function OnboardingTab() {
                 </div>
 
                 {/* Progress */}
-                <div className="bg-navy-50/50 rounded-xl p-4 mb-6">
+                <div className="bg-gradient-to-br from-indigo-50/40 to-violet-50/30 rounded-xl p-4 mb-6">
                   <div className="flex justify-between items-end mb-2">
-                    <span className="text-sm font-bold text-navy-700">Tiến độ hoàn thiện hồ sơ</span>
-                    <span className="text-lg font-black text-navy-700">{getProgress(selectedCandidate.documents)}%</span>
+                    <span className="text-sm font-bold text-indigo-700">Tiến độ hoàn thiện hồ sơ</span>
+                    <span className="text-lg font-black text-indigo-700">{getProgress(selectedCandidate.documents)}%</span>
                   </div>
                   <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden shadow-inner">
                     <div
-                      className="h-full bg-gradient-to-r from-navy-500 to-navy-700 transition-all duration-700"
+                      className="h-full bg-gradient-to-r from-indigo-600 to-violet-600 transition-all duration-700"
                       style={{ width: `${getProgress(selectedCandidate.documents)}%` }}
                     />
                   </div>
@@ -257,11 +257,11 @@ export default function OnboardingTab() {
 
                 {/* Documents */}
                 <h4 className="font-bold text-gray-800 mb-4 flex items-center gap-2">
-                  <FileText className="w-5 h-5 text-navy-600" /> Danh mục hồ sơ pháp lý
+                  <FileText className="w-5 h-5 text-indigo-600" /> Danh mục hồ sơ pháp lý
                 </h4>
                 <div className="space-y-3">
                   {selectedCandidate.documents.map((doc) => (
-                    <div key={doc.id} className="group p-4 rounded-xl border border-gray-100 hover:border-navy-200 hover:shadow-md transition-all bg-white">
+                    <div key={doc.id} className="group p-4 rounded-xl border border-indigo-100/60 hover:border-indigo-200 hover:shadow-sm  transition-all bg-white">
                       <div className="flex items-center justify-between gap-4">
                         <div className="flex items-center gap-3">
                           <div className={`p-2 rounded-lg ${
@@ -304,7 +304,7 @@ export default function OnboardingTab() {
                           )}
 
                           {doc.url ? (
-                            <button className="p-2 hover:bg-navy-50 text-navy-600 rounded-lg transition-colors" title="Xem tài liệu">
+                            <button className="p-2 hover:bg-indigo-50 text-indigo-600 rounded-lg transition-colors" title="Xem tài liệu">
                               <Eye className="w-4 h-4" />
                             </button>
                           ) : (
@@ -312,7 +312,7 @@ export default function OnboardingTab() {
                           )}
 
                           {doc.url && (
-                            <div className="flex gap-1 ml-2 pl-2 border-l border-gray-100">
+                            <div className="flex gap-1 ml-2 pl-2 border-l border-indigo-50">
                               <button className="p-1.5 bg-emerald-50 text-emerald-600 rounded-lg hover:bg-emerald-100 transition-colors" title="Duyệt">
                                 <Check className="w-4 h-4" />
                               </button>
@@ -326,7 +326,7 @@ export default function OnboardingTab() {
 
                       {/* Feedback */}
                       {(doc.feedback || doc.status === 'rejected') && (
-                        <div className="mt-3 ml-11 p-3 bg-red-50 rounded-lg border border-red-100 flex items-start gap-2">
+                        <div className="mt-3 ml-11 p-3 bg-red-50 rounded-xl border border-red-100 flex items-start gap-2">
                           <AlertCircle className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
                           <p className="text-xs text-red-700 font-medium">{doc.feedback || 'Yêu cầu tải lên lại tài liệu hợp lệ.'}</p>
                         </div>
@@ -336,7 +336,7 @@ export default function OnboardingTab() {
                 </div>
 
                 {/* Feedback Section */}
-                <div className="mt-8 border-t border-gray-100 pt-6">
+                <div className="mt-8 border-t border-indigo-50 pt-6">
                   <h4 className="font-bold text-gray-800 mb-4 flex items-center gap-2">
                     <MessageCircle className="w-5 h-5 text-cyan-600" /> Nhắn tin & Hướng dẫn cho ứng viên
                   </h4>
@@ -346,9 +346,9 @@ export default function OnboardingTab() {
                       value={feedback}
                       onChange={(e) => setFeedback(e.target.value)}
                       placeholder="Nhập yêu cầu bổ sung hoặc lời chào mừng..."
-                      className="flex-1 px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-navy-500/20 shadow-sm"
+                      className="flex-1 px-4 py-3 border border-indigo-100/60 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 shadow-sm"
                     />
-                    <button className="bg-navy-700 text-white p-3 rounded-xl hover:bg-navy-800 transition-all shadow-md active:scale-95">
+                    <button className="bg-gradient-to-r from-indigo-600 to-violet-600 text-white p-3 rounded-xl hover:from-indigo-700 hover:to-violet-700 transition-all  active:scale-95">
                       <Send className="w-5 h-5" />
                     </button>
                   </div>
@@ -357,8 +357,8 @@ export default function OnboardingTab() {
               </div>
             </div>
           ) : (
-            <div className="h-full bg-white rounded-2xl border border-dashed border-gray-200 flex flex-col items-center justify-center p-20 text-center">
-              <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mb-4">
+            <div className="h-full bg-white/90 backdrop-blur-sm rounded-2xl border border-dashed border-indigo-200/60 flex flex-col items-center justify-center p-20 text-center">
+              <div className="w-20 h-20 bg-indigo-50/50 rounded-full flex items-center justify-center mb-4">
                 <Users className="w-10 h-10 text-gray-300" />
               </div>
               <h3 className="text-lg font-bold text-gray-400">Chọn một ứng viên</h3>

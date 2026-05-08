@@ -53,7 +53,7 @@ function formatDateTime(value) {
 
 function formatAITestType(type) {
   if (type === 'video_ai') return 'Video AI + tự luận';
-  if (type === 'avatar_live2d') return 'Avatar Live2D + tự luận';
+  if (type === 'avatar_live3d' || type === 'avatar_live2d') return 'Avatar Live3D + tự luận';
   return 'Trắc nghiệm';
 }
 
@@ -118,13 +118,13 @@ export default function AppliedJobsPage() {
 
   return (
     <>
-    <div className="max-w-4xl mx-auto px-4 py-8">
-      <Link to={backRoute} className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-navy-700 mb-6 transition-colors">
+    <div className="aw-container max-w-5xl py-6">
+      <Link to={backRoute} className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-indigo-700 mb-6 transition-colors">
         <ArrowLeft className="w-4 h-4" /> {backLabel}
       </Link>
 
-      <div className="flex items-center gap-3 mb-6">
-        <div className="w-12 h-12 bg-gradient-to-br from-blue-100 to-indigo-100 rounded-xl flex items-center justify-center">
+      <div className="aw-surface mb-4 flex items-center gap-3 p-4">
+        <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-blue-50">
           <Send className="w-6 h-6 text-blue-500" />
         </div>
         <div>
@@ -134,12 +134,12 @@ export default function AppliedJobsPage() {
       </div>
 
       {loading ? (
-        <div className="flex justify-center py-12"><Loader2 className="w-8 h-8 animate-spin text-navy-600" /></div>
+        <div className="flex justify-center py-12"><Loader2 className="w-8 h-8 animate-spin text-indigo-600" /></div>
       ) : jobs.length === 0 ? (
-        <div className="bg-white rounded-2xl border border-gray-100 p-12 text-center">
+        <div className="aw-surface p-12 text-center">
           <Send className="w-12 h-12 text-gray-300 mx-auto mb-4" />
           <p className="text-gray-500">Bạn chưa ứng tuyển việc làm nào.</p>
-          <Link to={backRoute} className="inline-block mt-4 text-sm font-semibold text-navy-700 hover:underline">Khám phá việc làm →</Link>
+          <Link to={backRoute} className="inline-block mt-4 text-sm font-semibold text-indigo-700 hover:underline">Khám phá việc làm →</Link>
         </div>
       ) : (
         <div className="space-y-4">
@@ -165,15 +165,15 @@ export default function AppliedJobsPage() {
             const testInProgress = testSubmission?.status === 'in_progress' && !testCompleted;
 
             return (
-              <div key={job.application_id || job.id} className="bg-white rounded-2xl border border-gray-100 p-5 hover:shadow-lg hover:border-navy-100 transition-all group">
+              <div key={job.application_id || job.id} className="aw-surface group p-5 transition-colors hover:border-gray-300 hover:bg-indigo-50/30">
                 <div className="flex gap-4">
-                  <div className="w-12 h-12 bg-gradient-to-br from-navy-500 to-cyan-500 rounded-xl flex items-center justify-center text-white shrink-0">
+                  <div className="w-12 h-12 bg-gradient-to-r from-indigo-600 to-violet-600 rounded-lg flex items-center justify-center text-white shrink-0">
                     <Briefcase className="w-6 h-6" />
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-start justify-between gap-2">
                       <Link to={getJobDetailRoute(user?.role_code, job.id)} className="block">
-                        <h3 className="text-base font-bold text-gray-800 group-hover:text-navy-700 transition-colors uppercase">{job.title}</h3>
+                        <h3 className="line-clamp-2 text-base font-bold text-gray-900 transition-colors group-hover:text-indigo-700">{job.title}</h3>
                         <p className="text-sm text-gray-500 mt-0.5">{job.company_name || 'Đang cập nhật'}</p>
                       </Link>
                       <span className={`px-3 py-1 text-xs font-semibold rounded-lg border shrink-0 ${status.color}`}>{status.label}</span>
@@ -188,7 +188,7 @@ export default function AppliedJobsPage() {
                       <button
                         type="button"
                         onClick={() => setChatJob(job)}
-                        className="mt-3 inline-flex items-center gap-2 rounded-xl bg-cyan-50 px-4 py-2 text-sm font-semibold text-cyan-700 transition hover:bg-cyan-100"
+                        className="mt-3 inline-flex items-center gap-2 rounded-lg bg-cyan-50 px-4 py-2 text-sm font-semibold text-cyan-700 transition hover:bg-cyan-100"
                       >
                         <MessageCircle className="h-4 w-4" />
                         Nhắn nhà tuyển dụng
@@ -197,7 +197,7 @@ export default function AppliedJobsPage() {
                       {job.status === 'hired' && (
                         <Link
                           to={`/seeker/onboarding/${job.application_id}`}
-                          className="mt-3 ml-2 inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2 text-sm font-bold text-white transition hover:bg-emerald-700 shadow-md shadow-emerald-200"
+                          className="mt-3 ml-2 inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-bold text-white transition hover:bg-emerald-700  shadow-emerald-200"
                         >
                           <ShieldCheck className="h-4 w-4" />
                           Hoàn thiện hồ sơ nhận việc
@@ -205,10 +205,10 @@ export default function AppliedJobsPage() {
                       )}
 
                     {aiTest ? (
-                      <div className="mt-4 rounded-[1.5rem] border border-violet-100 bg-violet-50/80 p-4">
+                      <div className="mt-4 rounded-lg border border-violet-100 bg-violet-50/80 p-4">
                         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                           <div className="flex items-start gap-3">
-                            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-white text-violet-700 shadow-sm">
+                            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-white text-violet-700 shadow-sm">
                               <BrainCircuit className="h-5 w-5" />
                             </div>
                             <div>
@@ -239,8 +239,8 @@ export default function AppliedJobsPage() {
                           </div>
 
                           <Link
-                            to={`/test/${aiTest.id}`}
-                            className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-violet-700 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-violet-800"
+                            to={`/seeker/ai-tests/${aiTest.id}`}
+                            className="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg bg-violet-700 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-violet-800"
                           >
                             <BrainCircuit className="h-4 w-4" />
                             {testCompleted ? 'Làm lại bài test' : 'Làm bài test'}
@@ -250,7 +250,7 @@ export default function AppliedJobsPage() {
                     ) : null}
 
                     {hasInterviewFlow ? (
-                      <div className="mt-4 rounded-[1.5rem] border border-blue-100 bg-blue-50/70 p-4">
+                      <div className="mt-4 rounded-lg border border-blue-100 bg-blue-50/70 p-4">
                         <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                           <div>
                             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-blue-500">Vòng phỏng vấn</p>
@@ -276,9 +276,9 @@ export default function AppliedJobsPage() {
                                   type="button"
                                   disabled={preferenceLoadingId === job.application_id}
                                   onClick={() => handleSelectInterviewMode(job.application_id, mode)}
-                                  className={`rounded-2xl border px-4 py-3 text-sm font-semibold transition ${
+                                  className={`rounded-lg border px-4 py-3 text-sm font-semibold transition ${
                                     selectedMode === mode
-                                      ? 'border-navy-700 bg-navy-700 text-white'
+                                      ? 'border-indigo-500 bg-gradient-to-r from-indigo-600 to-violet-600 text-white'
                                       : 'border-blue-200 bg-white text-blue-700 hover:bg-blue-100'
                                   } disabled:cursor-not-allowed disabled:opacity-60`}
                                 >
@@ -294,11 +294,11 @@ export default function AppliedJobsPage() {
                               ))}
                             </div>
                             <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                              <div className="rounded-2xl bg-white px-4 py-3 text-sm text-slate-700 border border-blue-100">
+                              <div className="rounded-lg bg-white px-4 py-3 text-sm text-slate-700 border border-blue-100">
                                 <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Ngày phỏng vấn</p>
                                 <p className="mt-2 font-semibold text-slate-900">{formatDateTime(job.interview_at)}</p>
                               </div>
-                              <div className="rounded-2xl bg-white px-4 py-3 text-sm text-slate-700 border border-blue-100">
+                              <div className="rounded-lg bg-white px-4 py-3 text-sm text-slate-700 border border-blue-100">
                                 <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Cách phỏng vấn</p>
                                 <p className="mt-2 font-semibold text-slate-900">
                                   {selectedMode ? formatInterviewMode(selectedMode) : 'Bạn chưa chọn hình thức'}
@@ -314,11 +314,11 @@ export default function AppliedJobsPage() {
                         ) : (
                           <div className="mt-4 space-y-3">
                             <div className="grid gap-3 sm:grid-cols-2">
-                              <div className="rounded-2xl bg-white px-4 py-3 text-sm text-slate-700 border border-blue-100">
+                              <div className="rounded-lg bg-white px-4 py-3 text-sm text-slate-700 border border-blue-100">
                                 <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Ngày phỏng vấn</p>
                                 <p className="mt-2 font-semibold text-slate-900">{formatDateTime(job.interview_at)}</p>
                               </div>
-                              <div className="rounded-2xl bg-white px-4 py-3 text-sm text-slate-700 border border-blue-100">
+                              <div className="rounded-lg bg-white px-4 py-3 text-sm text-slate-700 border border-blue-100">
                                 <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Cách phỏng vấn</p>
                                 <p className="mt-2 font-semibold text-slate-900">
                                   {selectedMode ? formatInterviewMode(selectedMode) : 'Nhà tuyển dụng đang cập nhật'}
@@ -327,7 +327,7 @@ export default function AppliedJobsPage() {
                             </div>
 
                             {selectedMode === 'online' ? (
-                              <div className="rounded-2xl border border-white/70 bg-white px-4 py-4">
+                              <div className="rounded-lg border border-white/70 bg-white px-4 py-4">
                                 <div className="flex items-start justify-between gap-3">
                                   <div>
                                     <p className="text-sm font-semibold text-slate-900">Phỏng vấn online</p>
@@ -343,7 +343,7 @@ export default function AppliedJobsPage() {
                                 {job.interview_link ? (
                                   <Link
                                     to={`/interview-room/${job.interview_link.split('/interview-room/')[1] || ''}`}
-                                    className="mt-4 inline-flex items-center gap-2 rounded-xl bg-navy-700 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-navy-800"
+                                    className="mt-4 inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-indigo-600 to-violet-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:from-indigo-700 hover:to-violet-700"
                                   >
                                     Xác nhận & vào phòng <ExternalLink className="h-4 w-4" />
                                   </Link>
@@ -351,14 +351,14 @@ export default function AppliedJobsPage() {
                                   <button
                                     type="button"
                                     disabled
-                                    className="mt-4 inline-flex items-center gap-2 rounded-xl bg-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-500 cursor-not-allowed"
+                                    className="mt-4 inline-flex items-center gap-2 rounded-lg bg-slate-200 px-4 py-2.5 text-sm font-semibold text-slate-500 cursor-not-allowed"
                                   >
                                     Video call
                                   </button>
                                 )}
                               </div>
                             ) : selectedMode === 'offline' ? (
-                              <div className="rounded-2xl border border-white/70 bg-white px-4 py-4">
+                              <div className="rounded-lg border border-white/70 bg-white px-4 py-4">
                                 <div className="flex items-start justify-between gap-3">
                                   <div>
                                     <p className="text-sm font-semibold text-slate-900">Phỏng vấn offline</p>
@@ -368,7 +368,7 @@ export default function AppliedJobsPage() {
                                   </div>
                                   <Building2 className="h-5 w-5 text-blue-500" />
                                 </div>
-                                <p className="mt-4 rounded-xl bg-slate-50 px-4 py-3 text-sm font-medium text-slate-700">
+                                <p className="mt-4 rounded-lg bg-slate-50 px-4 py-3 text-sm font-medium text-slate-700">
                                   {job.company_address || 'Chưa cập nhật địa chỉ công ty'}
                                 </p>
                               </div>

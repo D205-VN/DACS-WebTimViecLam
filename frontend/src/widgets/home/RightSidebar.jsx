@@ -6,11 +6,11 @@ import { getCompanyFilterRoute, getJobDetailRoute, getRouteByRole } from '@share
 import API_BASE_URL from '@shared/api/baseUrl';
 
 const rankColors = [
-  'from-amber-400 to-orange-500',
-  'from-slate-400 to-slate-600',
-  'from-orange-500 to-rose-500',
-  'from-navy-500 to-cyan-500',
-  'from-emerald-500 to-teal-600',
+  'bg-gradient-to-br from-amber-100 to-yellow-50 text-amber-700',
+  'bg-gradient-to-br from-slate-100 to-gray-50 text-slate-700',
+  'bg-gradient-to-br from-orange-100 to-amber-50 text-orange-700',
+  'bg-gradient-to-br from-indigo-100 to-blue-50 text-indigo-700',
+  'bg-gradient-to-br from-emerald-100 to-teal-50 text-emerald-700',
 ];
 
 function getCompanyInitials(name = '') {
@@ -21,6 +21,15 @@ function getCompanyInitials(name = '') {
     .map((part) => part[0])
     .join('')
     .toUpperCase();
+}
+
+function Panel({ children, accentColor = 'from-indigo-500 to-violet-500' }) {
+  return (
+    <section className="overflow-hidden rounded-xl border border-indigo-100/60 bg-white/90 backdrop-blur-sm shadow-sm">
+      <div className={`h-1 bg-gradient-to-r ${accentColor}`}></div>
+      {children}
+    </section>
+  );
 }
 
 export default function RightSidebar({ searchParams }) {
@@ -121,35 +130,35 @@ export default function RightSidebar({ searchParams }) {
     ? 'Việc gần vị trí của bạn'
     : searchParams?.location
       ? `Việc gần ${searchParams.location}`
-    : 'Gợi ý cho bạn';
+      : 'Gợi ý cho bạn';
   const suggestionDescription = isGeolocationSearch
-    ? 'Sắp xếp theo khoảng cách từ vị trí GPS hiện tại của bạn.'
+    ? 'Ưu tiên khoảng cách GPS hiện tại.'
     : searchParams?.location
-      ? 'Ưu tiên theo khu vực bạn đang tìm kiếm.'
-    : 'Làm mới theo từ khóa, bộ lọc và tin tuyển dụng mới nhất.';
+      ? 'Ưu tiên khu vực bạn đang tìm.'
+      : 'Cập nhật theo bộ lọc và tin mới.';
 
   return (
-    <div className="space-y-5">
-      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-        <div className="flex items-center justify-between mb-4">
+    <div className="space-y-4">
+      <Panel accentColor="from-amber-500 via-orange-500 to-rose-500">
+        <div className="flex items-center justify-between border-b border-indigo-50 px-4 py-3">
           <div className="flex items-center gap-2">
-            <TrendingUp className="w-5 h-5 text-navy-700" />
-            <h3 className="text-base font-bold text-gray-800">Công ty hàng đầu</h3>
+            <TrendingUp className="h-4 w-4 text-amber-600" />
+            <h3 className="text-sm font-bold text-gray-900">Công ty hàng đầu</h3>
           </div>
-          <Link to={getRouteByRole(user?.role_code, 'companies')} className="text-xs text-navy-600 hover:text-navy-800 font-medium transition-colors flex items-center gap-0.5">
+          <Link to={getRouteByRole(user?.role_code, 'companies')} className="inline-flex items-center gap-1 text-xs font-medium text-indigo-600 transition-colors hover:text-indigo-800">
             Xem tất cả
-            <ArrowRight className="w-3 h-3" />
+            <ArrowRight className="h-3.5 w-3.5" />
           </Link>
         </div>
 
-        <div className="space-y-3">
+        <div className="space-y-1 p-2">
           {loadingCompanies ? (
             Array.from({ length: 4 }).map((_, index) => (
-              <div key={index} className="flex items-center gap-3 p-3 rounded-xl border border-gray-100 animate-pulse">
-                <div className="w-11 h-11 rounded-xl bg-gray-100 shrink-0"></div>
-                <div className="flex-1 min-w-0 space-y-2">
-                  <div className="h-3 rounded bg-gray-100 w-2/3"></div>
-                  <div className="h-3 rounded bg-gray-100 w-1/2"></div>
+              <div key={index} className="flex animate-pulse items-center gap-3 rounded-lg p-2">
+                <div className="h-10 w-10 shrink-0 rounded-lg bg-indigo-50"></div>
+                <div className="min-w-0 flex-1 space-y-2">
+                  <div className="h-3 w-2/3 rounded bg-indigo-50"></div>
+                  <div className="h-3 w-1/2 rounded bg-indigo-50"></div>
                 </div>
               </div>
             ))
@@ -159,37 +168,37 @@ export default function RightSidebar({ searchParams }) {
                 key={company.company_name}
                 type="button"
                 onClick={() => navigate(getCompanyFilterRoute(user?.role_code, company.company_name))}
-                className="w-full flex items-start gap-3 p-3 rounded-xl hover:bg-gray-50 border border-transparent hover:border-gray-100 transition-colors text-left group"
+                className="group flex w-full items-start gap-3 rounded-lg p-2 text-left transition-all duration-200 hover:bg-indigo-50/50"
               >
-                <div className={`w-11 h-11 bg-gradient-to-br ${rankColors[index % rankColors.length]} rounded-xl flex items-center justify-center text-white shrink-0 shadow-sm font-bold text-sm`}>
+                <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-sm font-bold ${rankColors[index % rankColors.length]}`}>
                   {index < 3 ? `#${index + 1}` : getCompanyInitials(company.company_name)}
                 </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-start justify-between gap-3">
-                    <h4 className="text-sm font-semibold text-gray-700 group-hover:text-navy-700 transition-colors line-clamp-2">
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-start justify-between gap-2">
+                    <h4 className="line-clamp-2 text-sm font-semibold text-gray-800 transition-colors group-hover:text-indigo-700">
                       {company.company_name}
                     </h4>
-                    <span className="shrink-0 rounded-full bg-emerald-50 px-2 py-1 text-[11px] font-semibold text-emerald-600">
+                    <span className="shrink-0 rounded-lg bg-gradient-to-r from-emerald-50 to-teal-50 px-2 py-1 text-[11px] font-semibold text-emerald-600">
                       {company.job_count} tin
                     </span>
                   </div>
 
-                  <div className="mt-2 space-y-1 text-xs text-gray-500">
+                  <div className="mt-1.5 space-y-1 text-xs text-gray-500">
                     {company.company_size ? (
                       <div className="inline-flex items-center gap-1.5">
-                        <Building2 className="w-3.5 h-3.5 text-gray-400" />
+                        <Building2 className="h-3.5 w-3.5 text-violet-400" />
                         {company.company_size}
                       </div>
                     ) : null}
                     {company.company_address ? (
                       <div className="flex items-start gap-1.5">
-                        <MapPin className="w-3.5 h-3.5 text-gray-400 mt-0.5 shrink-0" />
+                        <MapPin className="mt-0.5 h-3.5 w-3.5 shrink-0 text-rose-400" />
                         <span className="line-clamp-2">{company.company_address}</span>
                       </div>
                     ) : (
                       <div className="inline-flex items-center gap-1.5">
-                        <Briefcase className="w-3.5 h-3.5 text-gray-400" />
-                        Đang tuyển dụng nhiều vị trí
+                        <Briefcase className="h-3.5 w-3.5 text-amber-400" />
+                        Đang tuyển nhiều vị trí
                       </div>
                     )}
                   </div>
@@ -197,73 +206,76 @@ export default function RightSidebar({ searchParams }) {
               </button>
             ))
           ) : (
-            <div className="rounded-xl border border-dashed border-gray-200 bg-gray-50 px-4 py-6 text-center text-sm text-gray-500">
+            <div className="rounded-lg border border-dashed border-indigo-200 bg-indigo-50/30 px-4 py-6 text-center text-sm text-gray-500">
               Chưa có dữ liệu công ty nổi bật.
             </div>
           )}
         </div>
-      </div>
+      </Panel>
 
-      <div className="bg-gradient-to-br from-navy-700 to-navy-900 rounded-2xl p-5 shadow-lg shadow-navy-900/20">
-        <div className="mb-4 flex items-start gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/10 text-white">
-            <Sparkles className="h-5 w-5 text-amber-300" />
+      <Panel accentColor="from-violet-500 via-purple-500 to-indigo-500">
+        <div className="border-b border-indigo-50 px-4 py-3">
+          <div className="flex items-center gap-2">
+            <Sparkles className="h-4 w-4 text-violet-500" />
+            <h3 className="text-sm font-bold text-gray-900">{suggestionTitle}</h3>
           </div>
-          <div>
-            <h3 className="text-base font-bold text-white">{suggestionTitle}</h3>
-            <p className="mt-1 text-xs leading-5 text-navy-200">{suggestionDescription}</p>
-          </div>
+          <p className="mt-1 text-xs leading-5 text-gray-500">{suggestionDescription}</p>
         </div>
 
-        <div className="space-y-3">
+        <div className="space-y-2 p-2">
           {loadingSuggestions ? (
             Array.from({ length: 3 }).map((_, index) => (
-              <div key={index} className="rounded-xl border border-white/10 bg-white/10 p-3 animate-pulse">
-                <div className="h-4 w-2/3 rounded bg-white/10" />
-                <div className="mt-2 h-3 w-1/2 rounded bg-white/10" />
-                <div className="mt-3 h-3 w-full rounded bg-white/10" />
+              <div key={index} className="animate-pulse rounded-lg border border-indigo-50 p-3">
+                <div className="h-4 w-2/3 rounded bg-indigo-50" />
+                <div className="mt-2 h-3 w-1/2 rounded bg-indigo-50" />
+                <div className="mt-3 h-3 w-full rounded bg-indigo-50" />
               </div>
             ))
           ) : suggestedJobs.length > 0 ? (
-            suggestedJobs.map((job) => (
-              <button
-                key={job.id}
-                type="button"
-                onClick={() => navigate(getJobDetailRoute(user?.role_code, job.id))}
-                className="w-full rounded-xl border border-white/10 bg-white/10 p-3 text-left backdrop-blur-sm transition-all duration-200 hover:bg-white/15"
-              >
-                <h4 className="text-sm font-semibold text-white">{job.title}</h4>
-                <p className="mt-0.5 text-xs text-navy-200">{job.company_name || 'Đang cập nhật công ty'}</p>
-                <div className="mt-3 flex items-start justify-between gap-3">
-                  <div>
-                    <div className="text-xs font-semibold text-emerald-300">{job.salary || 'Thỏa thuận'}</div>
-                    {isGeolocationSearch && Number.isFinite(job.distance_km) ? (
-                      <div className="mt-1 text-[11px] text-amber-200">Cách bạn {job.distance_km} km</div>
-                    ) : null}
+            suggestedJobs.map((job, idx) => {
+              const borderColors = ['border-l-indigo-400', 'border-l-violet-400', 'border-l-rose-400', 'border-l-amber-400'];
+              return (
+                <button
+                  key={job.id}
+                  type="button"
+                  onClick={() => navigate(getJobDetailRoute(user?.role_code, job.id))}
+                  className={`w-full rounded-lg border border-indigo-50 border-l-[3px] ${borderColors[idx % borderColors.length]} p-3 text-left transition-all duration-200 hover:border-indigo-100 hover:bg-indigo-50/30 hover:shadow-sm`}
+                >
+                  <h4 className="line-clamp-2 text-sm font-semibold leading-snug text-gray-900">{job.title}</h4>
+                  <p className="mt-1 truncate text-xs text-gray-500">{job.company_name || 'Đang cập nhật công ty'}</p>
+                  <div className="mt-3 flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="truncate text-xs font-semibold text-emerald-600">{job.salary || 'Thỏa thuận'}</div>
+                      {isGeolocationSearch && Number.isFinite(job.distance_km) ? (
+                        <div className="mt-1 text-[11px] text-amber-600">Cách bạn {job.distance_km} km</div>
+                      ) : null}
+                    </div>
+                    <div className="flex min-w-0 items-start gap-1 text-right text-xs text-gray-500">
+                      <MapPin className="mt-0.5 h-3 w-3 shrink-0 text-violet-400" />
+                      <span className="line-clamp-2">{job.location || 'Chưa rõ địa điểm'}</span>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-1 text-right text-xs text-navy-200">
-                    <MapPin className="mt-0.5 h-3 w-3 shrink-0" />
-                    <span className="line-clamp-2">{job.location || 'Chưa rõ địa điểm'}</span>
-                  </div>
-                </div>
-              </button>
-            ))
+                </button>
+              );
+            })
           ) : (
-            <div className="rounded-xl border border-dashed border-white/15 bg-white/5 px-4 py-5 text-center text-sm text-navy-200">
+            <div className="rounded-lg border border-dashed border-indigo-200 bg-indigo-50/30 px-4 py-5 text-center text-sm text-gray-500">
               Không có gợi ý phù hợp với bộ lọc hiện tại.
             </div>
           )}
         </div>
 
-        <button
-          type="button"
-          onClick={() => document.getElementById('job-feed')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
-          className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl border border-white/15 py-2.5 text-sm font-semibold text-navy-100 transition-all hover:bg-white/10 hover:text-white"
-        >
-          {loadingSuggestions ? <Loader2 className="h-4 w-4 animate-spin" /> : <Briefcase className="h-4 w-4" />}
-          Xem việc phù hợp
-        </button>
-      </div>
+        <div className="border-t border-indigo-50 p-3">
+          <button
+            type="button"
+            onClick={() => document.getElementById('job-feed')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+            className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 py-2.5 text-sm font-semibold text-white shadow-md shadow-indigo-200/50 transition-all duration-200 hover:shadow-lg hover:shadow-indigo-300/50"
+          >
+            {loadingSuggestions ? <Loader2 className="h-4 w-4 animate-spin" /> : <Briefcase className="h-4 w-4" />}
+            Xem việc phù hợp
+          </button>
+        </div>
+      </Panel>
     </div>
   );
 }

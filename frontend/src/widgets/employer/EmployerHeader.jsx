@@ -4,7 +4,11 @@ import { BarChart3, Briefcase, ClipboardCheck, LayoutDashboard, FileText, Users,
 import { useAuth } from '@features/auth/AuthContext';
 import { useNotifications } from '@features/notifications/NotificationContext';
 import { getRouteByRole } from '@shared/utils/roleRedirect';
-import API_BASE_URL from '@shared/api/baseUrl';
+import {
+  getEmployerDashboardPath,
+  getEmployerDashboardState,
+  getEmployerDashboardTab,
+} from '@shared/utils/employerDashboardRoutes';
 import UserAvatar from '@shared/ui/UserAvatar';
 
 export default function EmployerHeader() {
@@ -18,15 +22,15 @@ export default function EmployerHeader() {
   const timeoutRef = useRef(null);
 
   const navLinks = [
-    { name: 'Bảng điều khiển', to: '/employer/dashboard', tab: 'dashboard', icon: LayoutDashboard },
-    { name: 'Nhóm Tuyển dụng', to: '/employer/dashboard', tab: 'jobs', icon: FileText },
-    { name: 'Nhóm Ứng viên', to: '/employer/dashboard', tab: 'candidates', icon: Users },
-    { name: 'Thông báo', to: '/employer/dashboard', tab: 'notifications', icon: Bell },
-    { name: 'Phân tích & Thống kê', to: '/employer/dashboard', tab: 'analytics', icon: BarChart3 },
-    { name: 'Bài Test AI', to: '/employer/ai-tests', icon: BrainCircuit },
-    { name: 'Hồ sơ công ty', to: '/employer/dashboard', tab: 'company', icon: Building2 },
-    { name: 'Hồ sơ & Onboarding', to: '/employer/dashboard', tab: 'onboarding', icon: ClipboardCheck },
-    { name: 'Phòng Meet', to: '/employer/meeting-rooms', icon: Video },
+    { name: 'Bảng điều khiển', tab: 'dashboard', icon: LayoutDashboard },
+    { name: 'Nhóm Tuyển dụng', tab: 'jobs', icon: FileText },
+    { name: 'Nhóm Ứng viên', tab: 'candidates', icon: Users },
+    { name: 'Thông báo', tab: 'notifications', icon: Bell },
+    { name: 'Phân tích & Thống kê', tab: 'analytics', icon: BarChart3 },
+    { name: 'Bài Test AI', tab: 'ai-tests', icon: BrainCircuit },
+    { name: 'Hồ sơ công ty', tab: 'company', icon: Building2 },
+    { name: 'Hồ sơ & Onboarding', tab: 'onboarding', icon: ClipboardCheck },
+    { name: 'Phòng Meet', tab: 'meeting-rooms', icon: Video },
   ];
 
   useEffect(() => {
@@ -49,33 +53,31 @@ export default function EmployerHeader() {
   };
 
   const isHeaderLinkActive = (link) => {
-    if (link.to !== '/employer/dashboard') {
-      return location.pathname === link.to || location.pathname.startsWith(`${link.to}/`);
+    if (link.tab === 'ai-tests' && location.pathname.startsWith('/employer/ai-tests/')) {
+      return true;
     }
-    return location.pathname === link.to && (location.state?.activeTab || 'dashboard') === link.tab;
+
+    return location.pathname === '/employer/dashboard' && getEmployerDashboardTab(location) === link.tab;
   };
 
   return (
-    <header className="bg-white border-b border-gray-100 sticky top-0 z-50 shadow-sm">
-      <div className="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16">
-          {/* Logo */}
-          <Link to="/employer/dashboard" className="flex items-center gap-2 shrink-0">
-            <div className="w-9 h-9 bg-gradient-to-br from-navy-600 to-navy-800 rounded-xl flex items-center justify-center shadow-lg shadow-navy-700/20">
+    <header className="sticky top-0 z-50 border-b border-indigo-100/50 bg-white/80 backdrop-blur-xl shadow-sm shadow-indigo-50">
+      <div className="mx-auto max-w-[1440px] px-4 sm:px-6 lg:px-8">
+        <div className="flex h-16 items-center justify-between">
+          <Link to="/employer/dashboard" className="flex items-center gap-2.5 shrink-0 group">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-600 to-violet-600 shadow-lg shadow-indigo-200/60 transition-transform duration-300 group-hover:scale-105">
               <Briefcase className="w-5 h-5 text-white" />
             </div>
-            <span className="text-xl font-extrabold tracking-tight">
-              <span className="text-navy-700">Aptertek</span>
-              <span className="text-success-500">Work</span>
+            <span className="text-lg font-extrabold tracking-tight">
+              <span className="bg-gradient-to-r from-indigo-700 to-violet-700 bg-clip-text text-transparent">Aptertek</span>
+              <span className="bg-gradient-to-r from-emerald-500 to-teal-500 bg-clip-text text-transparent">Work</span>
             </span>
           </Link>
 
-          {/* Desktop Right Section */}
-          <div className="hidden md:flex items-center gap-3">
-            {/* Post Job Button */}
+          <div className="hidden md:flex items-center gap-2">
             <button
               onClick={() => navigate('/employer/post-job')}
-              className="flex items-center gap-1.5 px-5 py-2 text-sm font-semibold text-white bg-gradient-to-r from-navy-600 to-navy-800 rounded-lg hover:shadow-lg hover:shadow-navy-700/25 hover:-translate-y-0.5 transition-all duration-200"
+              className="flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-indigo-200/60 transition-all duration-300 hover:shadow-xl hover:shadow-indigo-300/60 hover:from-indigo-700 hover:to-violet-700 hover:-translate-y-0.5"
             >
               <Plus className="w-4 h-4" />
               Đăng tin mới
@@ -83,13 +85,13 @@ export default function EmployerHeader() {
 
             {/* Notification Bell */}
             <button
-              onClick={() => navigate('/employer/dashboard', { state: { activeTab: 'notifications' } })}
-              className="relative p-2 text-gray-500 hover:text-navy-700 hover:bg-navy-50 rounded-lg transition-colors"
+              onClick={() => navigate(getEmployerDashboardPath('notifications'), { state: getEmployerDashboardState('notifications') })}
+              className="relative rounded-xl p-2.5 text-gray-400 transition-all duration-200 hover:bg-indigo-50/80 hover:text-indigo-600"
               title="Mở thông báo tuyển dụng"
             >
               <Bell className="w-5 h-5" />
               {unreadCount > 0 && (
-                <span className="absolute right-1 top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white">
+                <span className="absolute right-1.5 top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-gradient-to-r from-rose-500 to-pink-500 px-1 text-[10px] font-bold text-white animate-pulse shadow-sm shadow-rose-200">
                   {Math.min(unreadCount, 9)}
                 </span>
               )}
@@ -104,13 +106,13 @@ export default function EmployerHeader() {
             >
               <button
                 onClick={() => setDropdownOpen(!dropdownOpen)}
-                className="flex items-center gap-2.5 px-2 py-1.5 rounded-xl hover:bg-gray-50 transition-all duration-200 cursor-pointer"
+                className="flex cursor-pointer items-center gap-2.5 rounded-xl px-2.5 py-2 transition-all duration-200 hover:bg-indigo-50/60"
               >
                 <UserAvatar
                   src={user?.avatar_url}
                   alt={user?.full_name}
-                  className="w-9 h-9 rounded-full object-cover ring-2 ring-navy-100"
-                  fallbackClassName="flex w-9 h-9 items-center justify-center rounded-full bg-gradient-to-br from-navy-500 to-navy-700 ring-2 ring-navy-100"
+                  className="w-9 h-9 rounded-full object-cover ring-2 ring-violet-200 shadow-sm"
+                  fallbackClassName="flex w-9 h-9 items-center justify-center rounded-full bg-gradient-to-r from-indigo-600 to-violet-600 ring-2 ring-violet-200 shadow-sm"
                   iconClassName="h-4 w-4 text-white"
                 />
                 <div className="text-left hidden lg:block">
@@ -120,62 +122,64 @@ export default function EmployerHeader() {
                 <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${dropdownOpen ? 'rotate-180' : ''}`} />
               </button>
 
-              {/* Dropdown Menu */}
-              <div className={`absolute right-0 top-full mt-2 w-64 bg-white border border-gray-100 rounded-2xl shadow-xl shadow-gray-200/50 overflow-hidden transition-all duration-200 origin-top-right ${dropdownOpen ? 'opacity-100 scale-100 translate-y-0' : 'opacity-0 scale-95 -translate-y-2 pointer-events-none'}`}>
-                <div className="px-4 py-4 bg-gradient-to-r from-navy-50 to-gray-50 border-b border-gray-100">
+              <div className={`absolute right-0 top-full mt-2.5 w-72 origin-top-right overflow-hidden rounded-2xl border border-indigo-100/60 bg-white/95 backdrop-blur-xl shadow-2xl shadow-indigo-100/40 transition-all duration-300 ${dropdownOpen ? 'opacity-100 scale-100 translate-y-0' : 'opacity-0 scale-95 -translate-y-2 pointer-events-none'}`}>
+                {/* Gradient top accent */}
+                <div className="h-1 bg-gradient-to-r from-indigo-500 via-violet-500 to-purple-500"></div>
+
+                <div className="border-b border-indigo-50 bg-gradient-to-r from-indigo-50/80 to-violet-50/80 px-5 py-4">
                   <div className="flex items-center gap-3">
                     <UserAvatar
                       src={user?.avatar_url}
                       alt={user?.full_name}
-                      className="w-11 h-11 rounded-full object-cover ring-2 ring-white shadow-sm"
-                      fallbackClassName="flex w-11 h-11 items-center justify-center rounded-full bg-gradient-to-br from-navy-500 to-navy-700 ring-2 ring-white shadow-sm"
+                      className="w-12 h-12 rounded-xl object-cover ring-2 ring-white shadow-md"
+                      fallbackClassName="flex w-12 h-12 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-600 to-violet-600 ring-2 ring-white shadow-md"
                       iconClassName="h-5 w-5 text-white"
                     />
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-bold text-gray-800 truncate">{user?.full_name}</p>
                       <p className="text-xs text-gray-500 truncate">{user?.email}</p>
+                      <p className="text-[10px] text-indigo-500 font-semibold mt-0.5">{user?.company_name || 'Nhà tuyển dụng'}</p>
                     </div>
                   </div>
                 </div>
 
-                <div className="py-1.5">
-                  <Link to="/employer/dashboard" state={{ activeTab: 'company' }} onClick={() => setDropdownOpen(false)} className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-navy-50 hover:text-navy-700 transition-colors">
-                    <div className="w-8 h-8 bg-blue-50 rounded-lg flex items-center justify-center">
+                <div className="py-2 px-2">
+                  <Link to={getEmployerDashboardPath('company')} state={getEmployerDashboardState('company')} onClick={() => setDropdownOpen(false)} className="flex items-center gap-3 px-3 py-3 text-sm text-gray-700 hover:bg-indigo-50/60 hover:text-indigo-700 transition-all duration-200 rounded-xl">
+                    <div className="w-9 h-9 bg-blue-50 rounded-xl flex items-center justify-center shadow-sm">
                       <Building2 className="w-4 h-4 text-blue-500" />
                     </div>
                     <div>
-                      <p className="font-medium">Hồ sơ công ty</p>
+                      <p className="font-semibold">Hồ sơ công ty</p>
                       <p className="text-[11px] text-gray-400">Chỉnh sửa thông tin</p>
                     </div>
                   </Link>
 
-                  <Link to={getRouteByRole(user?.role_code, 'changePassword')} onClick={() => setDropdownOpen(false)} className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-navy-50 hover:text-navy-700 transition-colors">
-                    <div className="w-8 h-8 bg-amber-50 rounded-lg flex items-center justify-center">
+                  <Link to={getRouteByRole(user?.role_code, 'changePassword')} onClick={() => setDropdownOpen(false)} className="flex items-center gap-3 px-3 py-3 text-sm text-gray-700 hover:bg-indigo-50/60 hover:text-indigo-700 transition-all duration-200 rounded-xl">
+                    <div className="w-9 h-9 bg-amber-50 rounded-xl flex items-center justify-center shadow-sm">
                       <Shield className="w-4 h-4 text-amber-500" />
                     </div>
                     <div>
-                      <p className="font-medium">Bảo mật</p>
+                      <p className="font-semibold">Bảo mật</p>
                       <p className="text-[11px] text-gray-400">Đổi mật khẩu tài khoản</p>
                     </div>
                   </Link>
 
                 </div>
 
-                <div className="border-t border-gray-100 py-1.5">
-                  <button onClick={handleLogout} className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition-colors">
-                    <div className="w-8 h-8 bg-red-50 rounded-lg flex items-center justify-center">
+                <div className="border-t border-gray-100 py-2 px-2">
+                  <button onClick={handleLogout} className="w-full flex items-center gap-3 px-3 py-3 text-sm text-red-600 hover:bg-red-50/80 transition-colors rounded-xl">
+                    <div className="w-9 h-9 bg-red-50 rounded-xl flex items-center justify-center shadow-sm">
                       <LogOut className="w-4 h-4 text-red-500" />
                     </div>
-                    <p className="font-medium">Đăng xuất</p>
+                    <p className="font-semibold">Đăng xuất</p>
                   </button>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Mobile menu button */}
           <button
-            className="md:hidden p-2 text-gray-600 hover:text-navy-700 hover:bg-navy-50 rounded-lg transition-colors"
+            className="rounded-xl p-2 text-gray-600 transition-colors hover:bg-indigo-50/50 hover:text-indigo-700 md:hidden"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
           >
             {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
@@ -184,24 +188,24 @@ export default function EmployerHeader() {
       </div>
 
       {/* Mobile Menu */}
-      <div className={`md:hidden overflow-hidden transition-all duration-300 ease-in-out ${mobileMenuOpen ? 'max-h-[500px] opacity-100' : 'max-h-0 opacity-0'}`}>
-        <div className="px-4 pb-4 pt-2 space-y-1 bg-white border-t border-gray-50">
+      <div className={`md:hidden overflow-hidden transition-all duration-300 ease-in-out ${mobileMenuOpen ? 'max-h-[600px] opacity-100' : 'max-h-0 opacity-0'}`}>
+        <div className="px-4 pb-4 pt-2 space-y-1 bg-white border-t border-indigo-50">
           {navLinks.map((link) => (
             <Link
               key={link.name}
-              to={link.to}
-              state={link.tab ? { activeTab: link.tab } : undefined}
-              className={`flex items-center gap-2 px-4 py-3 text-sm font-medium rounded-lg transition-colors ${
-                isHeaderLinkActive(link) ? 'text-navy-700 bg-navy-50' : 'text-gray-600 hover:text-navy-700 hover:bg-navy-50'
+              to={getEmployerDashboardPath(link.tab)}
+              state={getEmployerDashboardState(link.tab)}
+              className={`flex items-center gap-2.5 px-4 py-3 text-sm font-medium rounded-xl transition-all duration-200 ${
+                isHeaderLinkActive(link) ? 'bg-gradient-to-r from-indigo-50 to-violet-50 text-indigo-700 shadow-sm shadow-indigo-100/50' : 'text-gray-600 hover:bg-indigo-50/50 hover:text-indigo-700'
               }`}
               onClick={() => setMobileMenuOpen(false)}
             >
-              <span className="flex items-center gap-2">
+              <span className="flex items-center gap-2.5">
                 <link.icon className="w-4 h-4" />
                 {link.name}
               </span>
               {link.tab === 'notifications' && unreadCount > 0 ? (
-                <span className="ml-auto rounded-full bg-red-500 px-2 py-0.5 text-[10px] font-bold text-white">
+                <span className="ml-auto rounded-full bg-gradient-to-r from-rose-500 to-pink-500 px-2 py-0.5 text-[10px] font-bold text-white">
                   {Math.min(unreadCount, 9)}
                 </span>
               ) : null}
@@ -209,12 +213,12 @@ export default function EmployerHeader() {
           ))}
           <button
             onClick={() => { navigate('/employer/post-job'); setMobileMenuOpen(false); }}
-            className="w-full flex items-center gap-2 px-4 py-3 text-sm font-semibold text-white bg-gradient-to-r from-navy-600 to-navy-800 rounded-lg"
+            className="flex w-full items-center gap-2 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 px-4 py-3 text-sm font-semibold text-white shadow-md shadow-indigo-200"
           >
             <Plus className="w-4 h-4" /> Đăng tin mới
           </button>
           <div className="pt-3 border-t border-gray-100">
-            <button onClick={() => { handleLogout(); setMobileMenuOpen(false); }} className="w-full flex items-center gap-2 px-4 py-3 text-sm text-red-600 rounded-lg hover:bg-red-50">
+            <button onClick={() => { handleLogout(); setMobileMenuOpen(false); }} className="w-full flex items-center gap-2 px-4 py-3 text-sm text-red-600 rounded-xl hover:bg-red-50">
               <LogOut className="w-4 h-4" /> Đăng xuất
             </button>
           </div>

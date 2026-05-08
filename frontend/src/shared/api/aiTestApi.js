@@ -73,6 +73,10 @@ export const aiTestApi = {
     body: JSON.stringify(payload),
   }),
   speechToText: () => request('/speech-to-text', { method: 'POST' }),
+  createLiveAvatarSessionToken: (payload = {}) => request('/liveavatar/session-token', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  }),
   submitAnswer: (payload) => request('/submit-answer', {
     method: 'POST',
     body: JSON.stringify(payload),

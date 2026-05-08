@@ -21,7 +21,7 @@ function resolvePublicUrl(publicUrl, verificationCode) {
 
 function StatusRow({ label, ok }) {
   return (
-    <div className="flex items-center justify-between rounded-2xl border border-gray-100 bg-gray-50 px-4 py-3">
+    <div className="flex items-center justify-between rounded-lg border border-indigo-50 bg-indigo-50/50 px-4 py-3">
       <span className="text-sm text-gray-600">{label}</span>
       <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold ${ok ? 'bg-emerald-50 text-emerald-700' : 'bg-red-50 text-red-700'}`}>
         {ok ? <CheckCircle2 className="h-3.5 w-3.5" /> : <ShieldX className="h-3.5 w-3.5" />}
@@ -83,25 +83,25 @@ export default function VerificationPublicPage() {
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-10">
-      <Link to="/" className="mb-6 inline-flex items-center gap-1.5 text-sm text-gray-500 transition-colors hover:text-navy-700">
+      <Link to="/" className="mb-6 inline-flex items-center gap-1.5 text-sm text-gray-500 transition-colors hover:text-indigo-700">
         <ArrowLeft className="h-4 w-4" /> Quay lại trang chủ
       </Link>
 
       {loading ? (
         <div className="flex justify-center py-24">
-          <Loader2 className="h-10 w-10 animate-spin text-navy-600" />
+          <Loader2 className="h-10 w-10 animate-spin text-indigo-600" />
         </div>
       ) : error ? (
-        <div className="rounded-3xl border border-red-200 bg-red-50 px-6 py-10 text-center text-red-600">
+        <div className="rounded-lg rounded-xl border border-rose-200 bg-gradient-to-r from-rose-50 to-pink-50 px-6 py-10 text-center text-red-600">
           <ShieldAlert className="mx-auto h-10 w-10" />
           <p className="mt-4 text-base font-semibold">{error}</p>
         </div>
       ) : payload ? (
         <div className="space-y-6">
-          <div className="rounded-3xl border border-gray-100 bg-white p-6 shadow-sm">
+          <div className="rounded-lg border border-indigo-50 bg-white p-6 shadow-sm">
             <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
               <div className="flex items-center gap-4">
-                <div className={`flex h-14 w-14 items-center justify-center rounded-2xl ${payload.is_block_valid && payload.is_linked_to_previous ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}>
+                <div className={`flex h-14 w-14 items-center justify-center rounded-lg ${payload.is_block_valid && payload.is_linked_to_previous ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}>
                   {payload.is_block_valid && payload.is_linked_to_previous ? <ShieldCheck className="h-7 w-7" /> : <ShieldX className="h-7 w-7" />}
                 </div>
                 <div>
@@ -120,7 +120,7 @@ export default function VerificationPublicPage() {
                 <button
                   type="button"
                   onClick={() => handleCopy(resolvePublicUrl(payload.public_url, payload.verification_code))}
-                  className="inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-50"
+                  className="inline-flex items-center gap-2 rounded-lg border border-indigo-100/60 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 transition-colors hover:bg-indigo-50/30"
                 >
                   <Copy className="h-4 w-4" /> Sao chép link
                 </button>
@@ -128,7 +128,7 @@ export default function VerificationPublicPage() {
                   href={resolvePublicUrl(payload.public_url, payload.verification_code)}
                   target="_blank"
                   rel="noreferrer"
-                  className="inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-50"
+                  className="inline-flex items-center gap-2 rounded-lg border border-indigo-100/60 bg-white px-4 py-2.5 text-sm font-semibold text-gray-700 transition-colors hover:bg-indigo-50/30"
                 >
                   <ExternalLink className="h-4 w-4" /> Link public
                 </a>
@@ -136,7 +136,7 @@ export default function VerificationPublicPage() {
             </div>
 
             {notice ? (
-              <div className="mt-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">{notice}</div>
+              <div className="mt-4 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">{notice}</div>
             ) : null}
 
             <div className="mt-6 grid gap-4 md:grid-cols-2">
@@ -148,7 +148,7 @@ export default function VerificationPublicPage() {
           </div>
 
           <div className="grid gap-6 lg:grid-cols-[1fr,1fr]">
-            <div className="rounded-3xl border border-gray-100 bg-white p-6 shadow-sm">
+            <div className="rounded-lg border border-indigo-50 bg-white p-6 shadow-sm">
               <h2 className="text-lg font-bold text-gray-800">Thông tin tài sản</h2>
               <div className="mt-4 space-y-3 text-sm text-gray-600">
                 <p><span className="font-semibold text-gray-800">Loại:</span> {payload.asset_type}</p>
@@ -167,20 +167,20 @@ export default function VerificationPublicPage() {
               </div>
             </div>
 
-            <div className="rounded-3xl border border-gray-100 bg-white p-6 shadow-sm">
+            <div className="rounded-lg border border-indigo-50 bg-white p-6 shadow-sm">
               <h2 className="text-lg font-bold text-gray-800">Dấu vết chuỗi</h2>
               <div className="mt-4 space-y-4">
                 <div>
                   <p className="text-xs uppercase tracking-[0.18em] text-gray-400">Block hash</p>
-                  <p className="mt-2 break-all rounded-2xl bg-gray-50 px-4 py-3 font-mono text-xs text-gray-600">{payload.block_hash}</p>
+                  <p className="mt-2 break-all rounded-lg bg-indigo-50/50 px-4 py-3 font-mono text-xs text-gray-600">{payload.block_hash}</p>
                 </div>
                 <div>
                   <p className="text-xs uppercase tracking-[0.18em] text-gray-400">Previous hash</p>
-                  <p className="mt-2 break-all rounded-2xl bg-gray-50 px-4 py-3 font-mono text-xs text-gray-600">{payload.previous_hash || 'Genesis block'}</p>
+                  <p className="mt-2 break-all rounded-lg bg-indigo-50/50 px-4 py-3 font-mono text-xs text-gray-600">{payload.previous_hash || 'Genesis block'}</p>
                 </div>
                 <div>
                   <p className="text-xs uppercase tracking-[0.18em] text-gray-400">Payload hash</p>
-                  <p className="mt-2 break-all rounded-2xl bg-gray-50 px-4 py-3 font-mono text-xs text-gray-600">{payload.payload_hash}</p>
+                  <p className="mt-2 break-all rounded-lg bg-indigo-50/50 px-4 py-3 font-mono text-xs text-gray-600">{payload.payload_hash}</p>
                 </div>
                 <div>
                   <p className="text-xs uppercase tracking-[0.18em] text-gray-400">Block index</p>

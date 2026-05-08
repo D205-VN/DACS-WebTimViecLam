@@ -165,7 +165,7 @@ export default function ForgotPasswordPage() {
   };
 
   const inputClass =
-    'w-full pl-12 pr-12 py-3 bg-white border border-gray-200 rounded-xl text-sm text-gray-700 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-navy-200 focus:border-navy-400 transition-all';
+    'w-full pl-12 pr-12 py-3 bg-white border border-indigo-100/60 rounded-md text-sm text-gray-700 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-violet-200 focus:border-indigo-400 transition-all';
 
   const stepMeta = {
     [STEPS.EMAIL]: { icon: Mail, title: 'Quên mật khẩu', desc: 'Nhập email đã đăng ký để nhận mã xác thực' },
@@ -181,25 +181,22 @@ export default function ForgotPasswordPage() {
 
   return (
     <div className="min-h-screen flex">
-      {/* Left Side - Decorative */}
-      <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-navy-800 via-navy-700 to-navy-900 relative overflow-hidden">
-        <div className="absolute -top-40 -right-40 w-96 h-96 bg-navy-600/30 rounded-full blur-3xl"></div>
-        <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-amber-500/10 rounded-full blur-3xl"></div>
-        <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: 'radial-gradient(circle, white 1px, transparent 1px)', backgroundSize: '30px 30px' }}></div>
+      {/* Left Side */}
+      <div className="relative hidden overflow-hidden bg-gradient-to-br from-indigo-600 via-violet-600 to-purple-700 lg:flex lg:w-1/2">
         <div className="relative z-10 flex flex-col justify-center px-16 xl:px-24">
           <div className="flex items-center gap-2 mb-12">
-            <div className="w-11 h-11 bg-white/10 backdrop-blur-sm rounded-xl flex items-center justify-center border border-white/10">
+            <div className="flex h-11 w-11 items-center justify-center rounded-md border border-white/10 bg-white/10">
               <Briefcase className="w-6 h-6 text-white" />
             </div>
             <span className="text-2xl font-extrabold">
-              <span className="text-white">Aptertek</span><span className="text-emerald-400">Work</span><span className="text-navy-300">.vn</span>
+              <span className="text-white">Aptertek</span><span className="text-emerald-400">Work</span><span className="text-indigo-300">.vn</span>
             </span>
           </div>
           <h2 className="text-4xl xl:text-5xl font-extrabold text-white leading-tight mb-6">
             Đặt lại<br />
-            <span className="bg-gradient-to-r from-amber-400 to-orange-400 bg-clip-text text-transparent">mật khẩu</span>
+            <span className="text-amber-300">mật khẩu</span>
           </h2>
-          <p className="text-lg text-navy-200 leading-relaxed max-w-md">
+          <p className="text-lg text-indigo-200 leading-relaxed max-w-md">
             Chúng tôi sẽ gửi mã xác thực đến email của bạn để giúp bạn lấy lại quyền truy cập tài khoản.
           </p>
 
@@ -215,7 +212,7 @@ export default function ForgotPasswordPage() {
                   stepNumber > s.num
                     ? 'bg-emerald-500 text-white'
                     : stepNumber === s.num
-                      ? 'bg-white text-navy-800'
+                      ? 'bg-white text-indigo-800'
                       : 'bg-white/10 text-white/50'
                 }`}>
                   {stepNumber > s.num ? '✓' : s.num}
@@ -232,14 +229,14 @@ export default function ForgotPasswordPage() {
       </div>
 
       {/* Right Side - Form */}
-      <div className="w-full lg:w-1/2 flex items-center justify-center px-6 py-12 bg-gray-50">
+      <div className="flex w-full items-center justify-center bg-gradient-to-br from-indigo-50/40 via-white to-violet-50/30 px-6 py-12 lg:w-1/2">
         <div className="w-full max-w-md">
           {/* Mobile logo */}
           <div className="flex items-center gap-2 mb-8 lg:hidden">
-            <div className="w-9 h-9 bg-gradient-to-br from-navy-600 to-navy-800 rounded-xl flex items-center justify-center shadow-lg shadow-navy-700/20">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600">
               <Briefcase className="w-5 h-5 text-white" />
             </div>
-            <span className="text-xl font-extrabold"><span className="text-navy-700">Aptertek</span><span className="text-emerald-500">Work</span><span className="text-navy-400">.vn</span></span>
+            <span className="text-xl font-extrabold"><span className="text-indigo-700">Aptertek</span><span className="text-emerald-500">Work</span><span className="text-indigo-400">.vn</span></span>
           </div>
 
           {/* Progress bar (mobile) */}
@@ -247,27 +244,27 @@ export default function ForgotPasswordPage() {
             <div className="flex gap-2">
               {[1, 2, 3].map((s) => (
                 <div key={s} className={`h-1.5 flex-1 rounded-full transition-all duration-300 ${
-                  stepNumber >= s ? 'bg-navy-600' : 'bg-gray-200'
+                  stepNumber >= s ? 'bg-indigo-600' : 'bg-gray-200'
                 }`} />
               ))}
             </div>
           </div>
 
           {error && (
-            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-600 animate-in fade-in duration-200">
+            <div className="mb-4 rounded-md rounded-xl border border-rose-200 bg-gradient-to-r from-rose-50 to-pink-50 p-3 text-sm text-red-600 animate-in fade-in duration-200">
               {error}
             </div>
           )}
 
           {/* Header */}
           <div className="mb-8">
-            <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mb-5 ${
+            <div className={`mb-5 flex h-14 w-14 items-center justify-center rounded-md ${
               step === STEPS.SUCCESS
-                ? 'bg-gradient-to-br from-emerald-100 to-emerald-50'
-                : 'bg-gradient-to-br from-navy-100 to-navy-50'
+                ? 'bg-emerald-50'
+                : 'bg-indigo-50'
             }`}>
               <currentMeta.icon className={`w-7 h-7 ${
-                step === STEPS.SUCCESS ? 'text-emerald-600' : 'text-navy-600'
+                step === STEPS.SUCCESS ? 'text-emerald-600' : 'text-indigo-600'
               }`} />
             </div>
             <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-800 mb-2">{currentMeta.title}</h1>
@@ -295,7 +292,7 @@ export default function ForgotPasswordPage() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full flex items-center justify-center gap-2 py-3.5 bg-gradient-to-r from-navy-600 to-navy-800 text-white font-semibold rounded-xl hover:shadow-lg hover:shadow-navy-700/25 hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200 disabled:opacity-60"
+                className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 py-3.5 font-semibold text-white transition-colors hover:from-indigo-700 hover:to-violet-700 disabled:opacity-60"
               >
                 {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <><span>Gửi mã xác thực</span><ArrowRight className="w-4 h-4" /></>}
               </button>
@@ -318,7 +315,7 @@ export default function ForgotPasswordPage() {
                       value={digit}
                       onChange={(e) => handleOtpChange(idx, e.target.value)}
                       onKeyDown={(e) => handleOtpKeyDown(idx, e)}
-                      className="w-12 h-14 sm:w-14 sm:h-16 text-center text-2xl font-bold text-navy-800 bg-white border-2 border-gray-200 rounded-xl focus:border-navy-500 focus:ring-2 focus:ring-navy-100 outline-none transition-all"
+                      className="h-14 w-12 rounded-md border-2 border-indigo-100/60 bg-white text-center text-2xl font-bold text-indigo-800 outline-none transition-all focus:border-indigo-500 focus:ring-2 focus:ring-violet-200 sm:h-16 sm:w-14"
                     />
                   ))}
                 </div>
@@ -334,7 +331,7 @@ export default function ForgotPasswordPage() {
                       type="button"
                       onClick={handleResendOTP}
                       disabled={loading}
-                      className="text-navy-600 font-semibold hover:text-navy-800 transition-colors"
+                      className="text-indigo-600 font-semibold hover:text-indigo-800 transition-colors"
                     >
                       Gửi lại mã
                     </button>
@@ -345,7 +342,7 @@ export default function ForgotPasswordPage() {
               <button
                 type="submit"
                 disabled={loading || otp.join('').length !== 6}
-                className="w-full flex items-center justify-center gap-2 py-3.5 bg-gradient-to-r from-navy-600 to-navy-800 text-white font-semibold rounded-xl hover:shadow-lg hover:shadow-navy-700/25 hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200 disabled:opacity-60"
+                className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 py-3.5 font-semibold text-white transition-colors hover:from-indigo-700 hover:to-violet-700 disabled:opacity-60"
               >
                 {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <><span>Xác thực</span><ArrowRight className="w-4 h-4" /></>}
               </button>
@@ -353,7 +350,7 @@ export default function ForgotPasswordPage() {
               <button
                 type="button"
                 onClick={() => { setStep(STEPS.EMAIL); setError(''); setOtp(['', '', '', '', '', '']); }}
-                className="w-full text-center text-sm text-gray-500 hover:text-navy-700 transition-colors"
+                className="w-full text-center text-sm text-gray-500 hover:text-indigo-700 transition-colors"
               >
                 ← Quay lại nhập email
               </button>
@@ -403,8 +400,8 @@ export default function ForgotPasswordPage() {
               </div>
 
               {/* Password strength hint */}
-              <div className="p-3 bg-navy-50 rounded-xl">
-                <p className="text-xs font-semibold text-navy-700 mb-2">Yêu cầu mật khẩu:</p>
+              <div className="rounded-md bg-indigo-50 p-3">
+                <p className="text-xs font-semibold text-indigo-700 mb-2">Yêu cầu mật khẩu:</p>
                 <div className="space-y-1">
                   <p className={`text-xs flex items-center gap-1.5 ${newPassword.length >= 8 ? 'text-emerald-600' : 'text-gray-400'}`}>
                     <span className={`w-1.5 h-1.5 rounded-full ${newPassword.length >= 8 ? 'bg-emerald-500' : 'bg-gray-300'}`} />
@@ -420,7 +417,7 @@ export default function ForgotPasswordPage() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full flex items-center justify-center gap-2 py-3.5 bg-gradient-to-r from-navy-600 to-navy-800 text-white font-semibold rounded-xl hover:shadow-lg hover:shadow-navy-700/25 hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200 disabled:opacity-60"
+                className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 py-3.5 font-semibold text-white transition-colors hover:from-indigo-700 hover:to-violet-700 disabled:opacity-60"
               >
                 {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Đặt lại mật khẩu'}
               </button>
@@ -430,13 +427,13 @@ export default function ForgotPasswordPage() {
           {/* =============== STEP 4: SUCCESS =============== */}
           {step === STEPS.SUCCESS && (
             <div className="space-y-6">
-              <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-xl text-sm text-emerald-700 flex items-center gap-3">
+              <div className="flex items-center gap-3 rounded-md border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-700">
                 <CheckCircle2 className="w-5 h-5 shrink-0" />
                 <span>Mật khẩu đã được đặt lại thành công. Bạn có thể đăng nhập ngay bằng mật khẩu mới.</span>
               </div>
               <button
                 onClick={() => navigate('/login')}
-                className="w-full flex items-center justify-center gap-2 py-3.5 bg-gradient-to-r from-navy-600 to-navy-800 text-white font-semibold rounded-xl hover:shadow-lg hover:shadow-navy-700/25 hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200"
+                className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 py-3.5 font-semibold text-white transition-colors hover:from-indigo-700 hover:to-violet-700"
               >
                 <span>Đi đến đăng nhập</span>
                 <ArrowRight className="w-4 h-4" />
@@ -447,7 +444,7 @@ export default function ForgotPasswordPage() {
           {/* Back to login */}
           {step !== STEPS.SUCCESS && (
             <p className="text-center mt-8">
-              <Link to="/login" className="text-sm text-gray-500 hover:text-navy-700 transition-colors inline-flex items-center gap-1.5">
+              <Link to="/login" className="text-sm text-gray-500 hover:text-indigo-700 transition-colors inline-flex items-center gap-1.5">
                 <ArrowLeft className="w-4 h-4" />
                 Quay lại đăng nhập
               </Link>

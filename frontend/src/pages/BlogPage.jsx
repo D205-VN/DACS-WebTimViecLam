@@ -39,16 +39,15 @@ export default function BlogPage() {
   const visiblePosts = filteredPosts.filter((post) => post.slug !== featuredPost?.slug);
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-8">
-      <section className="relative overflow-hidden rounded-[32px] bg-gradient-to-br from-navy-800 via-navy-700 to-cyan-700 px-6 py-10 text-white shadow-xl shadow-navy-900/15 sm:px-8 lg:px-10">
-        <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'radial-gradient(circle, white 1px, transparent 1px)', backgroundSize: '24px 24px' }}></div>
-        <div className="relative max-w-3xl">
-          <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-4 py-1.5 text-sm text-navy-100">
-            <Sparkles className="w-4 h-4 text-amber-300" />
+    <div className="aw-container py-6">
+      <section className="aw-surface px-6 py-8 sm:px-8 lg:px-10">
+        <div className="max-w-3xl">
+          <div className="inline-flex items-center gap-2 rounded-md border border-indigo-100 bg-indigo-50 px-4 py-1.5 text-sm font-semibold text-indigo-700">
+            <Sparkles className="w-4 h-4 text-amber-500" />
             Góc chia sẻ nghề nghiệp
           </div>
-          <h1 className="mt-4 text-3xl font-bold leading-tight sm:text-4xl">Blog tuyển dụng, CV và phỏng vấn dành cho người đang tìm việc</h1>
-          <p className="mt-4 max-w-2xl text-sm leading-6 text-navy-100 sm:text-base">
+          <h1 className="mt-4 text-3xl font-bold leading-tight text-gray-950 sm:text-4xl">Blog tuyển dụng, CV và phỏng vấn dành cho người đang tìm việc</h1>
+          <p className="mt-4 max-w-2xl text-sm leading-6 text-gray-600 sm:text-base">
             Nội dung ngắn gọn, thực dụng và bám sát quá trình ứng tuyển thực tế: tối ưu CV, đọc JD, chuẩn bị phỏng vấn và xây dựng hồ sơ nghề nghiệp.
           </p>
         </div>
@@ -58,7 +57,7 @@ export default function BlogPage() {
         {featuredPost ? (
           <Link
             to={getBlogDetailRoute(user?.role_code, featuredPost.slug)}
-            className="group overflow-hidden rounded-3xl border border-gray-100 bg-white shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-xl hover:shadow-navy-100/40"
+            className="group overflow-hidden rounded-lg border border-indigo-50 bg-white shadow-sm transition-all   hover:shadow-indigo-100/40"
           >
             <div className={`h-56 bg-gradient-to-br ${featuredPost.color} p-6 text-white sm:h-64`}>
               <div className="inline-flex rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs font-medium">
@@ -82,7 +81,7 @@ export default function BlogPage() {
                   {featuredPost.readTime}
                 </span>
               </div>
-              <div className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-navy-700">
+              <div className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-indigo-700">
                 Đọc bài viết
                 <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
               </div>
@@ -90,7 +89,7 @@ export default function BlogPage() {
           </Link>
         ) : null}
 
-        <div className="rounded-3xl border border-gray-100 bg-white p-6 shadow-sm">
+        <div className="aw-surface p-6">
           <h2 className="text-lg font-bold text-gray-800">Tìm bài viết</h2>
           <div className="relative mt-4">
             <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
@@ -99,7 +98,7 @@ export default function BlogPage() {
               value={query}
               onChange={(event) => setQuery(event.target.value)}
               placeholder="Tìm theo chủ đề, kỹ năng, CV..."
-              className="w-full rounded-2xl border border-gray-200 py-3 pl-11 pr-4 text-sm text-gray-700 outline-none transition-all focus:border-navy-300 focus:ring-2 focus:ring-navy-100"
+              className="w-full rounded-lg border border-indigo-100/60 py-3 pl-11 pr-4 text-sm text-gray-700 outline-none transition-all focus:border-indigo-300 focus:ring-2 focus:ring-violet-200"
             />
           </div>
 
@@ -111,8 +110,8 @@ export default function BlogPage() {
                 onClick={() => setCategory(item)}
                 className={`rounded-full px-3.5 py-2 text-sm font-medium transition-colors ${
                   category === item
-                    ? 'bg-navy-700 text-white'
-                    : 'bg-gray-100 text-gray-600 hover:bg-navy-50 hover:text-navy-700'
+                    ? 'bg-gradient-to-r from-indigo-600 to-violet-600 text-white'
+                    : 'bg-gradient-to-r from-indigo-50 to-violet-50 text-gray-600 hover:bg-indigo-50 hover:text-indigo-700'
                 }`}
               >
                 {item}
@@ -120,8 +119,8 @@ export default function BlogPage() {
             ))}
           </div>
 
-          <div className="mt-6 rounded-2xl bg-gray-50 px-4 py-3 text-sm text-gray-600">
-            Hiển thị <span className="font-semibold text-navy-700">{filteredPosts.length}</span> bài viết phù hợp.
+          <div className="mt-6 rounded-lg bg-indigo-50/50 px-4 py-3 text-sm text-gray-600">
+            Hiển thị <span className="font-semibold text-indigo-700">{filteredPosts.length}</span> bài viết phù hợp.
           </div>
         </div>
       </section>
@@ -135,7 +134,7 @@ export default function BlogPage() {
         </div>
 
         {filteredPosts.length === 0 ? (
-          <div className="rounded-2xl border border-gray-100 bg-white p-10 text-center text-gray-500 shadow-sm">
+          <div className="aw-surface p-10 text-center text-gray-500">
             Không tìm thấy bài viết phù hợp với bộ lọc hiện tại.
           </div>
         ) : visiblePosts.length > 0 ? (
@@ -144,7 +143,7 @@ export default function BlogPage() {
               <Link
                 key={post.slug}
                 to={getBlogDetailRoute(user?.role_code, post.slug)}
-                className="group overflow-hidden rounded-3xl border border-gray-100 bg-white shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-xl hover:shadow-navy-100/40"
+                className="group overflow-hidden rounded-lg border border-indigo-50 bg-white shadow-sm transition-all   hover:shadow-indigo-100/40"
               >
                 <div className={`h-40 bg-gradient-to-br ${post.color} p-5 text-white`}>
                   <div className="inline-flex rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs font-medium">
@@ -164,7 +163,7 @@ export default function BlogPage() {
                       {post.readTime}
                     </span>
                   </div>
-                  <div className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-navy-700">
+                  <div className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-indigo-700">
                     Xem chi tiết
                     <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
                   </div>

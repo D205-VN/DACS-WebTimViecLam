@@ -55,25 +55,25 @@ export default function ChangePasswordPage() {
     } finally { setLoading(false); }
   };
 
-  const inputClass = 'w-full pl-12 pr-12 py-3 bg-white border border-gray-200 rounded-xl text-sm text-gray-700 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-navy-200 focus:border-navy-400 transition-all';
+  const inputClass = 'w-full pl-12 pr-12 py-3 bg-white border border-indigo-100/60 rounded-md text-sm text-gray-700 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-violet-200 focus:border-indigo-400 transition-all';
 
   return (
-    <div className="min-h-screen bg-gray-50 py-12 px-4">
+    <div className="min-h-screen bg-gradient-to-br from-indigo-50/40 via-white to-violet-50/30 py-12 px-4">
       <div className="max-w-md mx-auto">
         {/* Back link */}
         <button 
           onClick={handleBackHome}
-          className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-navy-700 mb-6 transition-colors"
+          className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-indigo-700 mb-6 transition-colors"
         >
           <ArrowLeft className="w-4 h-4" /> {backLabel}
         </button>
 
         {/* Card */}
-        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+        <div className="overflow-hidden rounded-lg border border-indigo-100/60 bg-white">
           {/* Header */}
-          <div className="px-6 py-6 bg-gradient-to-r from-navy-50 to-gray-50 border-b border-gray-100">
+          <div className="border-b border-indigo-50 bg-indigo-50/50 px-6 py-6">
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 bg-gradient-to-br from-amber-100 to-orange-100 rounded-xl flex items-center justify-center">
+              <div className="flex h-12 w-12 items-center justify-center rounded-md bg-amber-50">
                 <Shield className="w-6 h-6 text-amber-600" />
               </div>
               <div>
@@ -85,9 +85,9 @@ export default function ChangePasswordPage() {
 
           {/* Form */}
           <form onSubmit={handleSubmit} className="p-6 space-y-5">
-            {error && <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-600">{error}</div>}
+            {error && <div className="rounded-md rounded-xl border border-rose-200 bg-gradient-to-r from-rose-50 to-pink-50 p-3 text-sm text-red-600">{error}</div>}
             {success && (
-              <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-sm text-emerald-600 flex items-center gap-2">
+              <div className="flex items-center gap-2 rounded-md border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-600">
                 <CheckCircle2 className="w-4 h-4" /> {success}
               </div>
             )}
@@ -128,7 +128,7 @@ export default function ChangePasswordPage() {
               </div>
             </div>
 
-            <button type="submit" disabled={loading} className="w-full flex items-center justify-center gap-2 py-3.5 bg-gradient-to-r from-navy-600 to-navy-800 text-white font-semibold rounded-xl hover:shadow-lg hover:shadow-navy-700/25 hover:-translate-y-0.5 active:translate-y-0 transition-all duration-200 disabled:opacity-60">
+            <button type="submit" disabled={loading} className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 py-3.5 font-semibold text-white transition-colors hover:from-indigo-700 hover:to-violet-700 disabled:opacity-60">
               {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Đổi mật khẩu'}
             </button>
           </form>

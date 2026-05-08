@@ -105,14 +105,14 @@ export default function JobAlertsPage() {
   };
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-8">
-      <Link to={backRoute} className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-navy-700 mb-6 transition-colors">
+    <div className="aw-container py-6">
+      <Link to={backRoute} className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-indigo-700 mb-6 transition-colors">
         <ArrowLeft className="w-4 h-4" /> {backLabel}
       </Link>
 
-      <div className="flex flex-col gap-4 mb-8 lg:flex-row lg:items-center lg:justify-between">
+      <div className="aw-surface mb-5 flex flex-col gap-4 p-4 lg:flex-row lg:items-center lg:justify-between">
         <div className="flex items-center gap-3">
-          <div className="w-14 h-14 bg-cyan-50 rounded-2xl flex items-center justify-center">
+          <div className="w-14 h-14 bg-cyan-50 rounded-lg flex items-center justify-center">
             <Bell className="w-7 h-7 text-cyan-600" />
           </div>
           <div>
@@ -120,7 +120,7 @@ export default function JobAlertsPage() {
             <p className="text-sm text-gray-500">Quản lý các tin bạn đã bấm “Gửi cho tôi việc tương tự”.</p>
           </div>
         </div>
-        <div className="rounded-2xl border border-cyan-100 bg-cyan-50 px-4 py-3 text-sm text-cyan-800">
+        <div className="rounded-lg border border-cyan-100 bg-cyan-50 px-4 py-3 text-sm text-cyan-800">
           <b>{activeCount}</b> tin đang theo dõi
         </div>
       </div>
@@ -128,14 +128,14 @@ export default function JobAlertsPage() {
       <SeekerToolsNav />
 
       {notice ? (
-        <div className="mb-4 flex items-center gap-2 rounded-xl border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+        <div className="mb-4 flex items-center gap-2 rounded-lg border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
           <CheckCircle2 className="h-4 w-4" />
           {notice}
         </div>
       ) : null}
 
       {error ? (
-        <div className="mb-4 flex items-center gap-2 rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-700">
+        <div className="mb-4 flex items-center gap-2 rounded-lg border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-700">
           <AlertCircle className="h-4 w-4" />
           {error}
         </div>
@@ -143,10 +143,10 @@ export default function JobAlertsPage() {
 
       {loading ? (
         <div className="flex justify-center py-16">
-          <Loader2 className="h-8 w-8 animate-spin text-navy-600" />
+          <Loader2 className="h-8 w-8 animate-spin text-indigo-600" />
         </div>
       ) : alerts.length === 0 ? (
-        <div className="rounded-2xl border border-gray-100 bg-white p-12 text-center shadow-sm">
+        <div className="aw-surface p-12 text-center">
           <Bell className="mx-auto mb-4 h-12 w-12 text-gray-300" />
           <h3 className="mb-2 text-lg font-bold text-gray-800">Chưa theo dõi việc tương tự</h3>
           <p className="mx-auto max-w-xl text-sm text-gray-500">
@@ -154,7 +154,7 @@ export default function JobAlertsPage() {
           </p>
           <Link
             to={backRoute}
-            className="mt-5 inline-flex items-center gap-2 rounded-xl bg-navy-700 px-5 py-3 text-sm font-semibold text-white transition hover:bg-navy-800"
+            className="mt-5 inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-indigo-600 to-violet-600 px-5 py-3 text-sm font-semibold text-white transition hover:from-indigo-700 hover:to-violet-700"
           >
             <Search className="h-4 w-4" />
             Tìm việc phù hợp
@@ -167,21 +167,21 @@ export default function JobAlertsPage() {
             const sourceJobRoute = getJobDetailRoute(user?.role_code, sourceJob.id);
 
             return (
-              <div key={alert.id} className="rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
+              <div key={alert.id} className="aw-surface p-5">
                 <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                   <div className="flex min-w-0 gap-4">
-                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-cyan-50 text-cyan-600">
+                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-cyan-50 text-cyan-600">
                       <Bell className="h-6 w-6" />
                     </div>
                     <div className="min-w-0">
                       <p className="mb-1 text-xs font-semibold uppercase tracking-[0.18em] text-cyan-600">Đang nhận việc tương tự</p>
-                      <Link to={sourceJobRoute} className="line-clamp-2 text-lg font-bold text-gray-800 transition hover:text-navy-700">
+                      <Link to={sourceJobRoute} className="line-clamp-2 text-lg font-bold text-gray-800 transition hover:text-indigo-700">
                         {sourceJob.title}
                       </Link>
                       <p className="mt-1 line-clamp-1 text-sm text-gray-500">{sourceJob.companyName}</p>
                       <div className="mt-3 flex flex-wrap gap-2 text-xs font-semibold text-gray-600">
                         {sourceJob.location ? (
-                          <span className="inline-flex items-center gap-1 rounded-full bg-gray-50 px-3 py-1">
+                          <span className="inline-flex items-center gap-1 rounded-full bg-indigo-50/50 px-3 py-1">
                             <MapPin className="h-3.5 w-3.5 text-gray-400" />
                             {sourceJob.location}
                           </span>
@@ -193,12 +193,12 @@ export default function JobAlertsPage() {
                           </span>
                         ) : null}
                         {sourceJob.industry ? (
-                          <span className="inline-flex items-center gap-1 rounded-full bg-navy-50 px-3 py-1 text-navy-700">
+                          <span className="inline-flex items-center gap-1 rounded-full bg-indigo-50 px-3 py-1 text-indigo-700">
                             <Briefcase className="h-3.5 w-3.5" />
                             {sourceJob.industry}
                           </span>
                         ) : null}
-                        <span className="inline-flex items-center gap-1 rounded-full bg-gray-50 px-3 py-1 text-gray-500">
+                        <span className="inline-flex items-center gap-1 rounded-full bg-indigo-50/50 px-3 py-1 text-gray-500">
                           <Clock className="h-3.5 w-3.5" />
                           Digest gần nhất: {formatDateTime(alert.last_digest_sent_at)}
                         </span>
@@ -210,14 +210,14 @@ export default function JobAlertsPage() {
                     type="button"
                     onClick={() => handleDelete(alert.id)}
                     disabled={actionId === alert.id}
-                    className="inline-flex items-center justify-center gap-2 rounded-xl border border-red-100 bg-red-50 px-4 py-2 text-sm font-semibold text-red-600 transition hover:bg-red-100 disabled:opacity-60"
+                    className="inline-flex items-center justify-center gap-2 rounded-lg border border-red-100 bg-red-50 px-4 py-2 text-sm font-semibold text-red-600 transition hover:bg-red-100 disabled:opacity-60"
                   >
                     {actionId === alert.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
                     Hủy nhận
                   </button>
                 </div>
 
-                <div className="mt-5 border-t border-gray-100 pt-5">
+                <div className="mt-5 border-t border-indigo-50 pt-5">
                   <div className="mb-3 flex items-center justify-between">
                     <h4 className="text-sm font-bold text-gray-800">Việc tương tự đang có</h4>
                     <span className="text-xs text-gray-400">{alert.preview_count || 0} tin</span>
@@ -229,10 +229,10 @@ export default function JobAlertsPage() {
                         <Link
                           key={job.id}
                           to={getJobDetailRoute(user?.role_code, job.id)}
-                          className="rounded-xl border border-gray-100 bg-gray-50/70 p-4 transition hover:border-navy-200 hover:bg-white hover:shadow-sm"
+                          className="rounded-lg border border-indigo-50 bg-indigo-50/50/70 p-4 transition hover:border-indigo-200 hover:bg-white hover:shadow-sm"
                         >
                           <div className="mb-3 flex items-center justify-between gap-3">
-                            <Briefcase className="h-5 w-5 text-navy-600" />
+                            <Briefcase className="h-5 w-5 text-indigo-600" />
                             <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-bold text-emerald-700">{job.match_score}%</span>
                           </div>
                           <h5 className="line-clamp-2 text-sm font-bold text-gray-800">{job.title}</h5>
@@ -242,7 +242,7 @@ export default function JobAlertsPage() {
                       ))}
                     </div>
                   ) : (
-                    <div className="rounded-xl border border-dashed border-gray-200 p-6 text-center text-sm text-gray-400">
+                    <div className="rounded-lg border border-dashed border-indigo-100/60 p-6 text-center text-sm text-gray-400">
                       Chưa có tin tương tự ngay lúc này.
                     </div>
                   )}

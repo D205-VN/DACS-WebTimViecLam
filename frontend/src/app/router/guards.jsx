@@ -5,7 +5,7 @@ import { getDefaultRouteByRole } from '@shared/utils/roleRedirect';
 function RouteLoader() {
   return (
     <div className="flex justify-center py-20">
-      <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-navy-700"></div>
+      <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-indigo-500"></div>
     </div>
   );
 }

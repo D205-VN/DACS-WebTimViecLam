@@ -340,53 +340,50 @@ export default function JobDetailPage() {
   };
 
   return (
-    <div className="max-w-5xl mx-auto px-4 py-8">
+    <div className="aw-container py-6">
       <Link to={backRoute} className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-slate-900 mb-6 transition-colors">
         <ArrowLeft className="w-4 h-4" /> Quay lại danh sách
       </Link>
 
-      <div className="space-y-6">
-        <div className="relative overflow-hidden rounded-[2rem] bg-gradient-to-br from-slate-950 via-slate-900 to-cyan-700 text-white shadow-2xl shadow-slate-900/20">
-          <div className="absolute inset-x-0 top-0 h-40 bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.18),transparent_30%)]" />
-          <div className="absolute -left-16 top-8 h-44 w-44 rounded-full bg-white/10 blur-3xl" />
-          <div className="absolute -right-16 bottom-8 h-56 w-56 rounded-full bg-cyan-300/20 blur-3xl" />
+      <div className="space-y-5">
+        <div className="aw-surface overflow-hidden">
           <div className="relative px-6 py-8 sm:px-10">
             <div className="grid gap-6 lg:grid-cols-[1.4fr_0.9fr] lg:items-center">
               <div className="space-y-4">
-                <div className="flex flex-wrap items-center gap-3 text-sm uppercase tracking-[0.3em] text-cyan-100">
+                <div className="flex flex-wrap items-center gap-3 text-sm uppercase tracking-[0.18em] text-gray-500">
                   <span>Việc làm</span>
-                  <span className="rounded-full bg-white/10 px-3 py-1 text-xs font-semibold text-cyan-100 border border-white/15">{job.job_type || 'Chính thức'}</span>
+                  <span className="rounded-md border border-indigo-100 bg-indigo-50 px-3 py-1 text-xs font-semibold text-indigo-700">{job.job_type || 'Chính thức'}</span>
                 </div>
-                <h1 className="text-3xl md:text-4xl font-black tracking-tight leading-tight text-white">{jobTitle}</h1>
+                <h1 className="max-w-4xl text-3xl font-black leading-tight tracking-tight text-gray-950 md:text-4xl">{jobTitle}</h1>
                 {companyName ? (
-                  <button type="button" onClick={handleCompanyClick} className="text-left text-base text-slate-200 transition hover:text-white">
+                  <button type="button" onClick={handleCompanyClick} className="text-left text-base font-semibold text-indigo-700 transition hover:text-indigo-900">
                     {companyName}
                   </button>
                 ) : (
-                  <p className="text-base text-slate-200">Đang cập nhật</p>
+                  <p className="text-base text-gray-500">Đang cập nhật</p>
                 )}
-                <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4 text-sm text-slate-100">
-                  <div className="flex items-center gap-2 rounded-3xl bg-white/10 px-4 py-3 shadow-sm shadow-white/5">
-                    <MapPin className="w-4 h-4 text-cyan-200" />{jobLocation || 'Chưa rõ'}
+                <div className="mt-5 grid gap-3 text-sm text-gray-700 sm:grid-cols-2 xl:grid-cols-4">
+                  <div className="flex items-center gap-2 rounded-lg bg-indigo-50/50 px-4 py-3">
+                    <MapPin className="w-4 h-4 text-indigo-600" />{jobLocation || 'Chưa rõ'}
                   </div>
-                  <div className="flex items-center gap-2 rounded-3xl bg-white/10 px-4 py-3 shadow-sm shadow-white/5">
-                    <DollarSign className="w-4 h-4 text-cyan-200" />{job.salary || 'Thỏa thuận'}
+                  <div className="flex items-center gap-2 rounded-lg bg-emerald-50 px-4 py-3 font-semibold text-emerald-700">
+                    <DollarSign className="w-4 h-4" />{job.salary || 'Thỏa thuận'}
                   </div>
-                  <div className="flex items-center gap-2 rounded-3xl bg-white/10 px-4 py-3 shadow-sm shadow-white/5">
-                    <GraduationCap className="w-4 h-4 text-cyan-200" />{jobExperience || 'Không yêu cầu'}
+                  <div className="flex items-center gap-2 rounded-lg bg-indigo-50/50 px-4 py-3">
+                    <GraduationCap className="w-4 h-4 text-indigo-600" />{jobExperience || 'Không yêu cầu'}
                   </div>
-                  <div className="flex items-center gap-2 rounded-3xl bg-white/10 px-4 py-3 shadow-sm shadow-white/5">
-                    <Clock className="w-4 h-4 text-cyan-200" />{job.job_type || 'Chính thức'}
+                  <div className="flex items-center gap-2 rounded-lg bg-indigo-50/50 px-4 py-3">
+                    <Clock className="w-4 h-4 text-indigo-600" />{job.job_type || 'Chính thức'}
                   </div>
                 </div>
-                <div className="mt-5 flex flex-wrap gap-3 text-sm text-slate-300">
-                  <span className="inline-flex items-center gap-2"><Calendar className="w-4 h-4 text-slate-300" />Ngày đăng tuyển {postedOn}</span>
+                <div className="mt-5 flex flex-wrap gap-3 text-sm text-gray-500">
+                  <span className="inline-flex items-center gap-2"><Calendar className="w-4 h-4 text-gray-400" />Ngày đăng tuyển {postedOn}</span>
                   {remainingDays !== null && <span className="inline-flex items-center gap-2">Hết hạn trong: {remainingDays} ngày</span>}
                 </div>
                 {tags.length > 0 && (
                   <div className="flex flex-wrap gap-2">
                     {tags.slice(0, 5).map((tag, index) => (
-                      <span key={index} className="rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs font-semibold text-cyan-50">
+                      <span key={index} className="rounded-md border border-indigo-100/60 bg-indigo-50/50 px-3 py-1 text-xs font-semibold text-gray-700">
                         {tag}
                       </span>
                     ))}
@@ -394,20 +391,20 @@ export default function JobDetailPage() {
                 )}
               </div>
 
-              <div className="rounded-[1.75rem] border border-white/15 bg-white/10 p-5 text-slate-100 shadow-lg shadow-white/10 backdrop-blur-xl">
-                <div className="text-xs uppercase tracking-[0.24em] text-slate-200">Thông tin nhanh</div>
+              <div className="rounded-lg border border-indigo-100/60 bg-indigo-50/50 p-5 text-gray-700">
+                <div className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">Thông tin nhanh</div>
                 <div className="mt-4 grid gap-3">
-                  <div className="rounded-3xl bg-white/10 p-4">
-                    <p className="text-xs uppercase tracking-[0.24em] text-slate-300">Loại hình</p>
-                    <p className="mt-2 text-base font-semibold">{job.job_type || 'Chính thức'}</p>
+                  <div className="rounded-lg bg-white p-4">
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">Loại hình</p>
+                    <p className="mt-2 text-base font-semibold text-gray-950">{job.job_type || 'Chính thức'}</p>
                   </div>
-                  <div className="rounded-3xl bg-white/10 p-4">
-                    <p className="text-xs uppercase tracking-[0.24em] text-slate-300">Ngành nghề</p>
-                    <p className="mt-2 text-base font-semibold">{job.industry || 'Đang cập nhật'}</p>
+                  <div className="rounded-lg bg-white p-4">
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">Ngành nghề</p>
+                    <p className="mt-2 text-base font-semibold text-gray-950">{job.industry || 'Đang cập nhật'}</p>
                   </div>
-                  <div className="rounded-3xl bg-white/10 p-4">
-                    <p className="text-xs uppercase tracking-[0.24em] text-slate-300">Địa điểm</p>
-                    <p className="mt-2 text-base font-semibold">{jobLocation || 'Đang cập nhật'}</p>
+                  <div className="rounded-lg bg-white p-4">
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">Địa điểm</p>
+                    <p className="mt-2 text-base font-semibold text-gray-950">{jobLocation || 'Đang cập nhật'}</p>
                   </div>
                 </div>
               </div>
@@ -417,10 +414,10 @@ export default function JobDetailPage() {
               <button
                 onClick={handleApply}
                 disabled={applied || actionLoading === 'apply'}
-                className={`inline-flex flex-1 items-center justify-center gap-2 rounded-2xl px-5 py-3 text-sm font-semibold transition ${
+                className={`inline-flex flex-1 items-center justify-center gap-2 rounded-lg px-5 py-3 text-sm font-semibold transition ${
                   applied
                     ? 'border border-emerald-200 bg-emerald-50 text-emerald-700'
-                    : 'bg-white text-slate-900 hover:-translate-y-0.5 hover:shadow-lg'
+                    : 'bg-gradient-to-r from-indigo-600 to-violet-600 text-white hover:from-indigo-700 hover:to-violet-700'
                 } disabled:cursor-not-allowed disabled:opacity-70`}
               >
                 {actionLoading === 'apply' ? <Loader2 className="w-4 h-4 animate-spin" /> : applied ? <><CheckCircle2 className="w-4 h-4" />Đã ứng tuyển</> : <><Send className="w-4 h-4" />Ứng tuyển ngay</>}
@@ -428,10 +425,10 @@ export default function JobDetailPage() {
               <button
                 onClick={handleSave}
                 disabled={actionLoading === 'save'}
-                className={`inline-flex items-center justify-center gap-2 rounded-2xl border px-4 py-3 text-sm font-semibold transition ${
+                className={`inline-flex items-center justify-center gap-2 rounded-lg border px-4 py-3 text-sm font-semibold transition ${
                   saved
                     ? 'border-red-200 bg-red-50 text-red-600'
-                    : 'border-white/30 bg-white/10 text-white hover:bg-white/20'
+                    : 'border-indigo-100/60 bg-white text-gray-700 hover:bg-indigo-50/30'
                 } disabled:cursor-not-allowed disabled:opacity-70`}
               >
                 {actionLoading === 'save' ? <Loader2 className="w-4 h-4 animate-spin" /> : saved ? <BookmarkCheck className="w-4 h-4" /> : <Bookmark className="w-4 h-4" />}
@@ -441,10 +438,10 @@ export default function JobDetailPage() {
                 type="button"
                 onClick={handleSubscribeAlert}
                 disabled={actionLoading === 'alert'}
-                className={`inline-flex items-center justify-center gap-2 rounded-2xl border px-4 py-3 text-sm font-semibold transition ${
+                className={`inline-flex items-center justify-center gap-2 rounded-lg border px-4 py-3 text-sm font-semibold transition ${
                   alertSubscribed
                     ? 'border-cyan-200 bg-cyan-50 text-cyan-700'
-                    : 'border-white/30 bg-white/10 text-white hover:bg-white/20'
+                    : 'border-indigo-100/60 bg-white text-gray-700 hover:bg-indigo-50/30'
                 } disabled:cursor-not-allowed disabled:opacity-70`}
               >
                 {actionLoading === 'alert' ? <Loader2 className="w-4 h-4 animate-spin" /> : alertSubscribed ? <CheckCircle2 className="w-4 h-4" /> : <Bell className="w-4 h-4" />}
@@ -455,24 +452,24 @@ export default function JobDetailPage() {
                   type="button"
                   onClick={() => {
                     if (!isAuthenticated) { navigate('/login'); return; }
-                    navigate(`/test/${job.ai_test.id}`);
+                    navigate(`/seeker/ai-tests/${job.ai_test.id}`);
                   }}
-                  className="inline-flex items-center justify-center gap-2 rounded-2xl border border-white/30 bg-gradient-to-r from-purple-500/20 to-indigo-500/20 px-4 py-3 text-sm font-semibold text-white transition hover:from-purple-500/30 hover:to-indigo-500/30 hover:shadow-lg hover:shadow-purple-500/10"
+                  className="inline-flex items-center justify-center gap-2 rounded-lg border border-indigo-200 bg-indigo-50 px-4 py-3 text-sm font-semibold text-indigo-700 transition hover:bg-indigo-100"
                 >
                   <BrainCircuit className="w-4 h-4" />
                   Làm bài Test AI
                 </button>
               )}
             </div>
-            <div className="mt-3 rounded-3xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-slate-200">
+            <div className="mt-3 rounded-lg border border-indigo-100/60 bg-indigo-50/50 px-4 py-3 text-sm text-gray-600">
               Nhận thông báo phù hợp khi có việc tương tự.
             </div>
             {isAuthenticated && user?.role_code === 'seeker' ? (
-              <div className="mt-3 rounded-3xl border border-cyan-200/20 bg-cyan-300/10 px-4 py-3 text-sm text-cyan-50">
+              <div className="mt-3 rounded-lg border border-cyan-100 bg-cyan-50 px-4 py-3 text-sm text-cyan-800">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <div>
                     <p className="font-semibold">Điểm phù hợp CV/job</p>
-                    <p className="mt-1 text-cyan-50/80">
+                    <p className="mt-1 text-cyan-700/80">
                       {selectedCv ? `Đang dùng ${selectedCv.title}` : 'Chọn CV khi ứng tuyển để tính điểm chi tiết.'}
                     </p>
                   </div>
@@ -484,8 +481,8 @@ export default function JobDetailPage() {
               </div>
             ) : null}
 
-            <div className="mt-6 border-t border-white/15 pt-4">
-              <div className="rounded-3xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-slate-200">
+            <div className="mt-6 border-t border-indigo-50 pt-4">
+              <div className="rounded-lg border border-indigo-100/60 bg-indigo-50/50 px-4 py-3 text-sm text-gray-600">
                 Theo dõi nhanh các phần quan trọng của tin tuyển dụng ngay bên dưới.
               </div>
             </div>
@@ -495,7 +492,7 @@ export default function JobDetailPage() {
                   key={tab.id}
                   type="button"
                   onClick={() => scrollToSection(tab.id)}
-                  className={`rounded-full px-4 py-2 text-sm font-semibold transition ${activeTab === tab.id ? 'bg-white text-slate-900 shadow-sm' : 'bg-slate-100/20 text-slate-200 hover:bg-white/10'}`}
+                  className={`rounded-md px-4 py-2 text-sm font-semibold transition ${activeTab === tab.id ? 'bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow-sm' : 'bg-gradient-to-r from-indigo-50 to-violet-50 text-gray-600 hover:bg-gray-200'}`}
                 >
                   {tab.label}
                 </button>
@@ -506,72 +503,72 @@ export default function JobDetailPage() {
 
 
         <div className="space-y-6">
-          <section id="description" className="scroll-mt-28 bg-white rounded-[2rem] border border-slate-200 p-6 shadow-lg shadow-slate-200/40">
+          <section id="description" className="aw-surface scroll-mt-28 p-6">
             <div className="flex items-center justify-between gap-3 mb-5">
               <div>
                 <h2 className="text-xl font-bold text-slate-900">Mô tả công việc</h2>
                 <p className="text-sm text-slate-500">Thông tin chi tiết về nhiệm vụ và yêu cầu công việc.</p>
               </div>
-              <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-slate-600">Mục 1</span>
+              <span className="rounded-md bg-gray-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-slate-600">Mục 1</span>
             </div>
-            {renderContentText(jobDescription) || <div className="rounded-3xl border border-dashed border-slate-200 bg-slate-50 p-6 text-sm text-slate-500 text-center">Mô tả công việc đang được cập nhật.</div>}
+            {renderContentText(jobDescription) || <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 p-6 text-sm text-slate-500 text-center">Mô tả công việc đang được cập nhật.</div>}
           </section>
 
-          <section id="benefits" className="scroll-mt-28 bg-white rounded-[2rem] border border-slate-200 p-6 shadow-lg shadow-slate-200/40">
+          <section id="benefits" className="aw-surface scroll-mt-28 p-6">
             <div className="flex items-center justify-between gap-3 mb-5">
               <div>
                 <h2 className="text-xl font-bold text-slate-900">Quyền lợi</h2>
                 <p className="text-sm text-slate-500">Những lợi ích bạn nhận được khi ứng tuyển công việc này.</p>
               </div>
-              <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-slate-600">Mục 2</span>
+              <span className="rounded-md bg-gray-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-slate-600">Mục 2</span>
             </div>
-            {renderContentText(job.benefits) || <div className="rounded-3xl border border-dashed border-slate-200 bg-slate-50 p-6 text-sm text-slate-500 text-center">Quyền lợi đang được cập nhật.</div>}
+            {renderContentText(job.benefits) || <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 p-6 text-sm text-slate-500 text-center">Quyền lợi đang được cập nhật.</div>}
           </section>
 
-          <section id="requirements" className="scroll-mt-28 bg-white rounded-[2rem] border border-slate-200 p-6 shadow-lg shadow-slate-200/40">
+          <section id="requirements" className="aw-surface scroll-mt-28 p-6">
             <div className="flex items-center justify-between gap-3 mb-5">
               <div>
                 <h2 className="text-xl font-bold text-slate-900">Kỹ năng yêu cầu</h2>
                 <p className="text-sm text-slate-500">Yêu cầu chuyên môn và kỹ năng cần thiết cho vị trí này.</p>
               </div>
-              <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-slate-600">Mục 3</span>
+              <span className="rounded-md bg-gray-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-slate-600">Mục 3</span>
             </div>
-            {renderContentText(jobRequirements) || <div className="rounded-3xl border border-dashed border-slate-200 bg-slate-50 p-6 text-sm text-slate-500 text-center">Yêu cầu ứng viên đang được cập nhật.</div>}
+            {renderContentText(jobRequirements) || <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 p-6 text-sm text-slate-500 text-center">Yêu cầu ứng viên đang được cập nhật.</div>}
           </section>
 
-          <section id="details" className="scroll-mt-28 bg-white rounded-[2rem] border border-slate-200 p-6 shadow-lg shadow-slate-200/40">
+          <section id="details" className="aw-surface scroll-mt-28 p-6">
             <div className="flex items-center justify-between gap-3 mb-5">
               <div>
                 <h2 className="text-xl font-bold text-slate-900">Chi tiết công việc</h2>
                 <p className="text-sm text-slate-500">Tổng hợp các thông tin quan trọng của công việc.</p>
               </div>
-              <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-slate-600">Mục 4</span>
+              <span className="rounded-md bg-gray-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-slate-600">Mục 4</span>
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-4 text-sm text-slate-600">
-                <div className="rounded-3xl bg-slate-50 p-4"><p className="text-slate-500">Loại hình</p><p className="font-medium text-slate-900">{job.job_type || 'Chính thức'}</p></div>
-                <div className="rounded-3xl bg-slate-50 p-4"><p className="text-slate-500">Ngành nghề</p><p className="font-medium text-slate-900">{job.industry || 'Đang cập nhật'}</p></div>
-                <div className="rounded-3xl bg-slate-50 p-4"><p className="text-slate-500">Địa điểm</p><p className="font-medium text-slate-900">{jobLocation || 'Đang cập nhật'}</p></div>
+                <div className="rounded-lg bg-slate-50 p-4"><p className="text-slate-500">Loại hình</p><p className="font-medium text-slate-900">{job.job_type || 'Chính thức'}</p></div>
+                <div className="rounded-lg bg-slate-50 p-4"><p className="text-slate-500">Ngành nghề</p><p className="font-medium text-slate-900">{job.industry || 'Đang cập nhật'}</p></div>
+                <div className="rounded-lg bg-slate-50 p-4"><p className="text-slate-500">Địa điểm</p><p className="font-medium text-slate-900">{jobLocation || 'Đang cập nhật'}</p></div>
               </div>
               <div className="space-y-4 text-sm text-slate-600">
-                <div className="rounded-3xl bg-slate-50 p-4"><p className="text-slate-500">Kinh nghiệm</p><p className="font-medium text-slate-900">{jobExperience || 'Không yêu cầu'}</p></div>
-                <div className="rounded-3xl bg-slate-50 p-4"><p className="text-slate-500">Số lượng tuyển</p><p className="font-medium text-slate-900">{job.number_candidate || 'Không giới hạn'}</p></div>
-                <div className="rounded-3xl bg-slate-50 p-4"><p className="text-slate-500">Hạn nộp</p><p className="font-medium text-slate-900">{jobDeadline || 'Đang cập nhật'}</p></div>
-                <div className="rounded-3xl bg-slate-50 p-4"><p className="text-slate-500">Mức lương</p><p className="font-medium text-slate-900">{job.salary || 'Thỏa thuận'}</p></div>
+                <div className="rounded-lg bg-slate-50 p-4"><p className="text-slate-500">Kinh nghiệm</p><p className="font-medium text-slate-900">{jobExperience || 'Không yêu cầu'}</p></div>
+                <div className="rounded-lg bg-slate-50 p-4"><p className="text-slate-500">Số lượng tuyển</p><p className="font-medium text-slate-900">{job.number_candidate || 'Không giới hạn'}</p></div>
+                <div className="rounded-lg bg-slate-50 p-4"><p className="text-slate-500">Hạn nộp</p><p className="font-medium text-slate-900">{jobDeadline || 'Đang cập nhật'}</p></div>
+                <div className="rounded-lg bg-slate-50 p-4"><p className="text-slate-500">Mức lương</p><p className="font-medium text-slate-900">{job.salary || 'Thỏa thuận'}</p></div>
               </div>
             </div>
           </section>
 
-          <section id="contact" className="scroll-mt-28 bg-white rounded-[2rem] border border-slate-200 p-6 shadow-lg shadow-slate-200/40">
+          <section id="contact" className="aw-surface scroll-mt-28 p-6">
             <div className="flex items-center justify-between gap-3 mb-5">
               <div>
                 <h2 className="text-xl font-bold text-slate-900">Liên hệ</h2>
                 <p className="text-sm text-slate-500">Thông tin liên hệ với nhà tuyển dụng.</p>
               </div>
-              <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-slate-600">Mục 5</span>
+              <span className="rounded-md bg-gray-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-slate-600">Mục 5</span>
             </div>
             <div className="space-y-4 text-sm text-slate-600">
-              <div className="rounded-3xl bg-slate-50 p-4">
+              <div className="rounded-lg bg-slate-50 p-4">
                 <p className="text-slate-500">Công ty</p>
                 {companyName ? (
                   <button type="button" onClick={handleCompanyClick} className="font-medium text-slate-900 transition hover:text-blue-700">
@@ -581,52 +578,52 @@ export default function JobDetailPage() {
                   <p className="font-medium text-slate-900">Đang cập nhật</p>
                 )}
               </div>
-              <div className="rounded-3xl bg-slate-50 p-4"><p className="text-slate-500">Địa chỉ</p><p className="font-medium text-slate-900">{companyAddress || 'Đang cập nhật'}</p></div>
-              <div className="rounded-3xl bg-slate-50 p-4"><p className="text-slate-500">Khu vực làm việc</p><p className="font-medium text-slate-900">{jobLocation || 'Đang cập nhật'}</p></div>
+              <div className="rounded-lg bg-slate-50 p-4"><p className="text-slate-500">Địa chỉ</p><p className="font-medium text-slate-900">{companyAddress || 'Đang cập nhật'}</p></div>
+              <div className="rounded-lg bg-slate-50 p-4"><p className="text-slate-500">Khu vực làm việc</p><p className="font-medium text-slate-900">{jobLocation || 'Đang cập nhật'}</p></div>
               {job.url_job && (
-                <div className="rounded-3xl bg-slate-50 p-4"><p className="text-slate-500">Trang tuyển dụng</p><p className="font-medium text-blue-600"><a href={job.url_job} target="_blank" rel="noreferrer">Xem chi tiết</a></p></div>
+                <div className="rounded-lg bg-slate-50 p-4"><p className="text-slate-500">Trang tuyển dụng</p><p className="font-medium text-blue-600"><a href={job.url_job} target="_blank" rel="noreferrer">Xem chi tiết</a></p></div>
               )}
             </div>
           </section>
 
-          <section id="company" className="scroll-mt-28 bg-white rounded-[2rem] border border-slate-200 p-6 shadow-lg shadow-slate-200/40">
+          <section id="company" className="aw-surface scroll-mt-28 p-6">
             <div className="flex items-center justify-between gap-3 mb-5">
               <div>
                 <h2 className="text-xl font-bold text-slate-900">Về công ty</h2>
                 <p className="text-sm text-slate-500">Thông tin tổng quan về nhà tuyển dụng.</p>
               </div>
-              <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-slate-600">Mục 6</span>
+              <span className="rounded-md bg-gray-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-slate-600">Mục 6</span>
             </div>
             {companyOverview ? (
               <div className="text-sm text-slate-600 leading-relaxed">{companyOverview}</div>
             ) : (
-              <div className="rounded-3xl border border-dashed border-slate-200 bg-slate-50 p-6 text-sm text-slate-500 text-center">Thông tin về công ty đang được cập nhật.</div>
+              <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 p-6 text-sm text-slate-500 text-center">Thông tin về công ty đang được cập nhật.</div>
             )}
           </section>
 
-          <section className="bg-white rounded-[2rem] border border-slate-200 p-6 shadow-lg shadow-slate-200/40">
+          <section className="aw-surface p-6">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-5">
               <div>
                 <h2 className="text-xl font-bold text-slate-900">Việc làm phù hợp</h2>
                 <p className="mt-2 text-sm text-slate-500">Gợi ý công việc phù hợp dựa trên vị trí và ngành nghề hiện tại.</p>
               </div>
-              <span className="inline-flex items-center rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-slate-600">{similarJobs.length} gợi ý</span>
+              <span className="inline-flex items-center rounded-md bg-gray-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-slate-600">{similarJobs.length} gợi ý</span>
             </div>
 
             {similarLoading ? (
               <div className="grid gap-4 sm:grid-cols-2">
                 {[...Array(2)].map((_, idx) => (
-                  <div key={idx} className="animate-pulse rounded-[1.75rem] bg-slate-100 h-36" />
+                  <div key={idx} className="animate-pulse rounded-lg bg-slate-100 h-36" />
                 ))}
               </div>
             ) : similarJobs.length === 0 ? (
-              <div className="rounded-3xl border border-dashed border-slate-200 bg-slate-50 p-6 text-sm text-slate-500 text-center">Chưa có gợi ý phù hợp. Hãy thử tìm kiếm việc làm khác.</div>
+              <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 p-6 text-sm text-slate-500 text-center">Chưa có gợi ý phù hợp. Hãy thử tìm kiếm việc làm khác.</div>
             ) : (
               <div className="grid gap-4 sm:grid-cols-2">
                 {similarJobs.map(similar => (
-                  <Link key={similar.id} to={getJobDetailRoute(user?.role_code, similar.id)} className="group overflow-hidden rounded-[1.75rem] border border-slate-200 bg-white p-5 transition duration-200 hover:-translate-y-0.5 hover:shadow-lg">
+                  <Link key={similar.id} to={getJobDetailRoute(user?.role_code, similar.id)} className="group overflow-hidden rounded-lg border border-slate-200 bg-white p-5 transition duration-200  ">
                     <div className="flex items-start gap-4">
-                      <div className="flex h-12 w-12 items-center justify-center rounded-3xl bg-slate-100 text-slate-700">
+                      <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-slate-100 text-slate-700">
                         <Briefcase className="w-5 h-5" />
                       </div>
                       <div className="min-w-0">
@@ -635,8 +632,8 @@ export default function JobDetailPage() {
                       </div>
                     </div>
                     <div className="mt-4 flex flex-wrap gap-2 text-[11px] text-slate-500">
-                      <span className="inline-flex items-center gap-1 rounded-full bg-slate-50 px-2 py-1 shadow-sm"><MapPin className="w-3 h-3" />{similar.location || similar.job_address || 'Chưa rõ'}</span>
-                      <span className="inline-flex items-center gap-1 rounded-full bg-slate-50 px-2 py-1 shadow-sm"><DollarSign className="w-3 h-3" />{similar.salary || 'Thỏa thuận'}</span>
+                      <span className="inline-flex items-center gap-1 rounded-md bg-indigo-50/50 px-2 py-1 shadow-sm"><MapPin className="w-3 h-3" />{similar.location || similar.job_address || 'Chưa rõ'}</span>
+                      <span className="inline-flex items-center gap-1 rounded-md bg-indigo-50/50 px-2 py-1 shadow-sm"><DollarSign className="w-3 h-3" />{similar.salary || 'Thỏa thuận'}</span>
                     </div>
                   </Link>
                 ))}
@@ -648,7 +645,7 @@ export default function JobDetailPage() {
 
       {applyModalOpen ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 px-4 py-6">
-          <div className="max-h-[92vh] w-full max-w-5xl overflow-hidden rounded-[2rem] bg-white shadow-2xl">
+          <div className="max-h-[92vh] w-full max-w-5xl overflow-hidden rounded-lg bg-white shadow-lg">
             <div className="flex items-start justify-between gap-4 border-b border-slate-200 px-6 py-5">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-400">Ứng tuyển</p>
@@ -658,7 +655,7 @@ export default function JobDetailPage() {
               <button
                 type="button"
                 onClick={() => setApplyModalOpen(false)}
-                className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-100 text-slate-500 transition hover:bg-slate-200"
+                className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-r from-indigo-50 to-violet-50 text-slate-500 transition hover:bg-slate-200"
               >
                 <X className="h-5 w-5" />
               </button>
@@ -669,11 +666,11 @@ export default function JobDetailPage() {
                 <div>
                   <label className="mb-2 block text-sm font-semibold text-slate-700">Chọn CV nộp hồ sơ</label>
                   {cvsLoading ? (
-                    <div className="flex items-center gap-2 rounded-2xl border border-slate-200 px-4 py-3 text-sm text-slate-500">
+                    <div className="flex items-center gap-2 rounded-lg border border-slate-200 px-4 py-3 text-sm text-slate-500">
                       <Loader2 className="h-4 w-4 animate-spin" /> Đang tải CV...
                     </div>
                   ) : cvs.length === 0 ? (
-                    <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-700">
+                    <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-700">
                       Bạn chưa có CV. Hãy tạo hoặc import CV trước khi ứng tuyển.
                       <Link to="/seeker/cv-builder" className="ml-1 font-semibold underline underline-offset-2">Tạo CV ngay</Link>
                     </div>
@@ -686,11 +683,11 @@ export default function JobDetailPage() {
                             key={cv.id}
                             type="button"
                             onClick={() => setSelectedCvId(String(cv.id))}
-                            className={`flex items-start gap-3 rounded-2xl border p-4 text-left transition ${
-                              active ? 'border-navy-500 bg-navy-50' : 'border-slate-200 bg-white hover:bg-slate-50'
+                            className={`flex items-start gap-3 rounded-lg border p-4 text-left transition ${
+                              active ? 'border-indigo-400 bg-indigo-50' : 'border-slate-200 bg-white hover:bg-slate-50'
                             }`}
                           >
-                            <div className={`mt-0.5 flex h-10 w-10 items-center justify-center rounded-xl ${active ? 'bg-navy-700 text-white' : 'bg-slate-100 text-slate-500'}`}>
+                            <div className={`mt-0.5 flex h-10 w-10 items-center justify-center rounded-lg ${active ? 'bg-gradient-to-r from-indigo-600 to-violet-600 text-white' : 'bg-slate-100 text-slate-500'}`}>
                               <FileText className="h-5 w-5" />
                             </div>
                             <div className="min-w-0">
@@ -715,24 +712,24 @@ export default function JobDetailPage() {
                     onChange={(event) => setCoverLetter(event.target.value.slice(0, 2000))}
                     rows={7}
                     placeholder="Nêu 2-3 điểm mạnh liên quan trực tiếp tới vị trí này..."
-                    className="w-full resize-y rounded-2xl border border-slate-200 px-4 py-3 text-sm outline-none transition focus:border-navy-400 focus:ring-2 focus:ring-navy-100"
+                    className="w-full resize-y rounded-lg border border-slate-200 px-4 py-3 text-sm outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-violet-200"
                   />
                   <p className="mt-1 text-right text-xs text-slate-400">{coverLetter.length}/2000</p>
                 </div>
 
                 {applyError ? (
-                  <div className="rounded-2xl border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-600">{applyError}</div>
+                  <div className="rounded-lg border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-600">{applyError}</div>
                 ) : null}
               </div>
 
               <div className="border-t border-slate-200 bg-slate-50 p-6 lg:border-l lg:border-t-0">
-                <div className="rounded-[1.75rem] border border-slate-200 bg-white p-5 shadow-sm">
+                <div className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
                   <div className="flex items-center justify-between gap-3">
                     <div>
                       <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Phù hợp</p>
                       <h4 className={`mt-2 text-4xl font-black ${cvFit.tone}`}>{selectedCv ? `${cvFit.score}%` : '--'}</h4>
                     </div>
-                    <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-cyan-50 text-cyan-700">
+                    <div className="flex h-14 w-14 items-center justify-center rounded-lg bg-cyan-50 text-cyan-700">
                       <Sparkles className="h-7 w-7" />
                     </div>
                   </div>
@@ -748,7 +745,7 @@ export default function JobDetailPage() {
                   <div className="mt-5">
                     <p className="text-sm font-semibold text-slate-700">Gợi ý trước khi nộp</p>
                     <ul className="mt-2 space-y-2 text-sm text-slate-600">
-                      {cvFit.tips.map(tip => <li key={tip} className="rounded-2xl bg-slate-50 px-3 py-2">{tip}</li>)}
+                      {cvFit.tips.map(tip => <li key={tip} className="rounded-lg bg-slate-50 px-3 py-2">{tip}</li>)}
                     </ul>
                   </div>
                 </div>
@@ -757,7 +754,7 @@ export default function JobDetailPage() {
                   <button
                     type="button"
                     onClick={() => setApplyModalOpen(false)}
-                    className="rounded-2xl border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-600 transition hover:bg-slate-100"
+                    className="rounded-lg border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-600 transition hover:bg-slate-100"
                   >
                     Hủy
                   </button>
@@ -765,7 +762,7 @@ export default function JobDetailPage() {
                     type="button"
                     onClick={handleConfirmApply}
                     disabled={actionLoading === 'apply' || cvsLoading || cvs.length === 0}
-                    className="inline-flex flex-1 items-center justify-center gap-2 rounded-2xl bg-navy-700 px-5 py-3 text-sm font-semibold text-white transition hover:bg-navy-800 disabled:cursor-not-allowed disabled:opacity-60"
+                    className="inline-flex flex-1 items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-indigo-600 to-violet-600 px-5 py-3 text-sm font-semibold text-white transition hover:from-indigo-700 hover:to-violet-700 disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     {actionLoading === 'apply' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
                     Nộp hồ sơ

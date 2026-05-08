@@ -166,7 +166,7 @@ export default function OnboardingPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen flex items-center justify-center bg-indigo-50/50">
         <Loader2 className="w-10 h-10 animate-spin text-emerald-600" />
       </div>
     );
@@ -181,7 +181,7 @@ export default function OnboardingPage() {
 
       {/* ══════ DARK HERO — QUY TRÌNH ONBOARDING ══════ */}
       <div
-        className="rounded-3xl overflow-hidden shadow-2xl"
+        className="rounded-lg overflow-hidden shadow-lg"
         style={{ background: 'linear-gradient(145deg, #1e1e1e 0%, #2d2d2d 40%, #333 100%)' }}
       >
         {/* Header */}
@@ -208,7 +208,7 @@ export default function OnboardingPage() {
                 <div key={idx} className="flex items-start gap-5 group">
                   {/* Step indicator */}
                   <div className="flex flex-col items-center shrink-0">
-                    <div className={`w-11 h-11 rounded-xl flex items-center justify-center transition-all ${
+                    <div className={`w-11 h-11 rounded-lg flex items-center justify-center transition-all ${
                       isDone
                         ? 'bg-emerald-500 shadow-lg shadow-emerald-500/30'
                         : isActive
@@ -252,7 +252,7 @@ export default function OnboardingPage() {
           </div>
           <div className="w-full bg-white/10 rounded-full h-2.5 overflow-hidden">
             <div
-              className="h-full bg-gradient-to-r from-emerald-400 to-teal-400 transition-all duration-700"
+              className="h-full bg-emerald-500 transition-all duration-700"
               style={{ width: `${calculateProgress()}%` }}
             />
           </div>
@@ -260,9 +260,9 @@ export default function OnboardingPage() {
       </div>
 
       {/* ══════ LIGHT CARD — UPLOAD HỒ SƠ ══════ */}
-      <div className="bg-white rounded-3xl border border-gray-100 shadow-lg overflow-hidden">
-        <div className="px-8 py-6 border-b border-gray-50 bg-gray-50/50 flex items-center gap-3">
-          <div className="w-10 h-10 bg-emerald-100 rounded-xl flex items-center justify-center">
+      <div className="bg-white rounded-lg border border-indigo-50 shadow-lg overflow-hidden">
+        <div className="px-8 py-6 border-b border-gray-50 bg-indigo-50/50/50 flex items-center gap-3">
+          <div className="w-10 h-10 bg-emerald-100 rounded-lg flex items-center justify-center">
             <FileText className="w-5 h-5 text-emerald-700" />
           </div>
           <div>
@@ -275,19 +275,19 @@ export default function OnboardingPage() {
           {documents.map((doc) => (
             <div
               key={doc.id}
-              className={`rounded-2xl border-2 transition-all p-5 ${
+              className={`rounded-lg border-2 transition-all p-5 ${
                 doc.status === 'rejected'  ? 'border-red-200 bg-red-50/40' :
                 doc.status === 'approved'  ? 'border-emerald-200 bg-emerald-50/30' :
-                                             'border-gray-100 bg-white hover:border-emerald-100'
+                                             'border-indigo-50 bg-white hover:border-emerald-100'
               }`}
             >
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 {/* Info */}
                 <div className="flex gap-4 items-center">
-                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${
+                  <div className={`w-12 h-12 rounded-lg flex items-center justify-center shrink-0 ${
                     doc.status === 'approved'  ? 'bg-emerald-100 text-emerald-600' :
                     doc.status === 'rejected'  ? 'bg-red-100 text-red-600' :
-                                                 'bg-gray-100 text-gray-400'
+                                                 'bg-gradient-to-r from-indigo-50 to-violet-50 text-gray-400'
                   }`}>
                     {doc.status === 'approved' ? <CheckCircle className="w-6 h-6" /> : <FileText className="w-6 h-6" />}
                   </div>
@@ -307,23 +307,23 @@ export default function OnboardingPage() {
                 {/* Actions */}
                 <div className="flex items-center gap-2 shrink-0">
                   {doc.status === 'pending' || doc.status === 'rejected' ? (
-                    <label className="cursor-pointer bg-gray-900 hover:bg-gray-700 text-white px-5 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 transition-all shadow-md active:scale-95">
+                    <label className="cursor-pointer bg-gray-900 hover:bg-gray-700 text-white px-5 py-2.5 rounded-lg text-sm font-bold flex items-center gap-2 transition-all  ">
                       <Upload className="w-4 h-4" /> Tải lên
                       <input type="file" className="hidden" onChange={(e) => handleFileUpload(doc.id, e)} accept="image/*,application/pdf" />
                     </label>
                   ) : doc.status === 'uploaded' ? (
                     <>
-                      <span className="px-4 py-2 rounded-xl text-sm font-bold bg-amber-50 text-amber-700">Đang chờ duyệt</span>
+                      <span className="px-4 py-2 rounded-lg text-sm font-bold bg-amber-50 text-amber-700">Đang chờ duyệt</span>
                       {!aiResults[doc.id] && scanning !== doc.id && (
                         <button
                           onClick={() => runAIScan(doc.id)}
-                          className="px-4 py-2 rounded-xl text-sm font-bold bg-blue-50 text-blue-700 hover:bg-blue-100 transition-colors flex items-center gap-1.5"
+                          className="px-4 py-2 rounded-lg text-sm font-bold bg-blue-50 text-blue-700 hover:bg-blue-100 transition-colors flex items-center gap-1.5"
                         >
                           <ScanLine className="w-4 h-4" /> AI Scan
                         </button>
                       )}
                       {scanning === doc.id && (
-                        <span className="px-4 py-2 rounded-xl text-sm font-bold bg-blue-50 text-blue-700 flex items-center gap-1.5">
+                        <span className="px-4 py-2 rounded-lg text-sm font-bold bg-blue-50 text-blue-700 flex items-center gap-1.5">
                           <Loader2 className="w-4 h-4 animate-spin" /> Đang quét...
                         </span>
                       )}
@@ -332,7 +332,7 @@ export default function OnboardingPage() {
                       </button>
                     </>
                   ) : (
-                    <span className="px-4 py-2 rounded-xl text-sm font-bold bg-emerald-50 text-emerald-700 flex items-center gap-2">
+                    <span className="px-4 py-2 rounded-lg text-sm font-bold bg-emerald-50 text-emerald-700 flex items-center gap-2">
                       <CheckCircle className="w-4 h-4" /> Đã được duyệt
                     </span>
                   )}
@@ -342,7 +342,7 @@ export default function OnboardingPage() {
               {/* Preview ảnh */}
               {previews[doc.id] && (doc.status === 'uploaded' || doc.status === 'approved') && (
                 <div className="mt-4 ml-0 md:ml-16">
-                  <div className="inline-block rounded-xl overflow-hidden border-2 border-gray-100 shadow-sm">
+                  <div className="inline-block rounded-lg overflow-hidden border-2 border-indigo-50 shadow-sm">
                     <img src={previews[doc.id]} alt={doc.name} className="max-h-48 object-contain" />
                   </div>
                 </div>
@@ -350,7 +350,7 @@ export default function OnboardingPage() {
 
               {/* AI Scan Results */}
               {aiResults[doc.id] && (
-                <div className="mt-4 ml-0 md:ml-16 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl border border-blue-100">
+                <div className="mt-4 ml-0 md:ml-16 p-4 bg-blue-50 rounded-lg border border-blue-100">
                   <div className="flex items-center gap-2 mb-3">
                     <ScanLine className="w-4 h-4 text-blue-600" />
                     <span className="text-sm font-bold text-blue-800">Kết quả AI Scan</span>
@@ -378,7 +378,7 @@ export default function OnboardingPage() {
 
               {/* Feedback từ NTD */}
               {doc.status === 'rejected' && doc.feedback && (
-                <div className="mt-4 p-4 bg-red-100/60 rounded-xl border border-red-200 flex items-start gap-3">
+                <div className="mt-4 p-4 bg-red-100/60 rounded-lg border border-red-200 flex items-start gap-3">
                   <AlertCircle className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
                   <div>
                     <p className="text-sm font-bold text-red-800">Phản hồi từ Nhà tuyển dụng:</p>
@@ -392,7 +392,7 @@ export default function OnboardingPage() {
 
         {/* Submit */}
         <div className="px-8 pb-8">
-          <button className="w-full py-4 rounded-2xl bg-gradient-to-r from-gray-800 to-gray-900 text-white font-black text-base hover:from-gray-700 hover:to-gray-800 transition-all shadow-xl active:scale-[0.99] flex items-center justify-center gap-3">
+          <button className="w-full py-4 rounded-lg bg-gray-900 text-white font-black text-base hover:from-gray-700 hover:to-gray-800 transition-all   flex items-center justify-center gap-3">
             <ShieldCheck className="w-5 h-5" />
             Gửi Hồ Sơ Cho Nhà Tuyển Dụng Xét Duyệt
           </button>
@@ -403,8 +403,8 @@ export default function OnboardingPage() {
       </div>
 
       {/* Support */}
-      <div className="bg-white rounded-2xl border border-gray-100 p-6 flex flex-col md:flex-row items-center gap-5 shadow-sm">
-        <div className="w-14 h-14 bg-gray-100 rounded-2xl flex items-center justify-center text-gray-500 shrink-0">
+      <div className="bg-white rounded-lg border border-indigo-50 p-6 flex flex-col md:flex-row items-center gap-5 shadow-sm">
+        <div className="w-14 h-14 bg-gray-100 rounded-lg flex items-center justify-center text-gray-500 shrink-0">
           <Info className="w-7 h-7" />
         </div>
         <div className="flex-1 text-center md:text-left">
@@ -415,7 +415,7 @@ export default function OnboardingPage() {
         </div>
         <button
           onClick={() => setChatOpen(true)}
-          className="bg-gray-900 text-white px-6 py-3 rounded-xl font-bold text-sm hover:bg-gray-700 transition-all shadow-md"
+          className="bg-gray-900 text-white px-6 py-3 rounded-lg font-bold text-sm hover:bg-gray-700 transition-all "
         >
           Nhắn tin cho Nhà tuyển dụng
         </button>

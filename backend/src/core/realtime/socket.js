@@ -59,6 +59,11 @@ function init(httpServer, allowedOrigins) {
       socket.to(room).emit('webrtc:peer-left', { peerId: socket.id });
       socket.leave(room);
     });
+
+    socket.on('webrtc:interview-completed', (roomId) => {
+      const room = `interview_${roomId}`;
+      socket.to(room).emit('webrtc:interview-completed', { peerId: socket.id });
+    });
     // ──────────────────────────────────────────────────────────────
 
     socket.on('disconnect', () => {

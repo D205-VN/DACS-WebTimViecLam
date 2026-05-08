@@ -204,8 +204,8 @@ export default function CompanyProfileTab() {
   }, [lightboxIdx, previewImage, profile?.company_gallery?.length]);
 
   if (loading) return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-20 flex flex-col items-center justify-center">
-      <Loader2 className="w-10 h-10 text-navy-700 animate-spin mb-4" />
+    <div className="rounded-2xl border border-indigo-100/60 bg-white/90 backdrop-blur-sm shadow-sm flex flex-col items-center justify-center p-20">
+      <Loader2 className="w-10 h-10 text-indigo-700 animate-spin mb-4" />
       <p className="text-gray-500 font-medium">Đang tải hồ sơ công ty...</p>
     </div>
   );
@@ -215,8 +215,8 @@ export default function CompanyProfileTab() {
   return (
     <div className="space-y-6">
       {/* Cover + Avatar */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-        <div className="h-64 sm:h-72 bg-gradient-to-r from-navy-800 to-navy-600 relative overflow-hidden">
+      <div className="rounded-2xl border border-indigo-100/60 bg-white/90 backdrop-blur-sm shadow-sm overflow-hidden">
+        <div className="relative h-64 overflow-hidden bg-gradient-to-r from-indigo-600 to-violet-600 sm:h-72">
           {profile?.company_cover_url && (
             <>
               <img src={profile.company_cover_url} alt="Ảnh bìa" className="absolute inset-0 h-full w-full object-cover" />
@@ -228,7 +228,7 @@ export default function CompanyProfileTab() {
               />
             </>
           )}
-          <div className="pointer-events-none absolute inset-0 z-[2] bg-gradient-to-t from-black/30 via-black/5 to-black/10" />
+          <div className="pointer-events-none absolute inset-0 z-[2] bg-black/20" />
           <input ref={coverInputRef} type="file" accept="image/*" className="hidden"
             onChange={e => handleImageChange(e, 'company_cover_url', 'cover')} />
           <button type="button" onClick={() => coverInputRef.current?.click()} disabled={imageLoading === 'cover'}
@@ -241,26 +241,26 @@ export default function CompanyProfileTab() {
         <div className="px-6 sm:px-10 pb-6 relative z-20">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end -mt-16 mb-4 gap-4">
             <div className="flex items-end gap-5">
-              <div className="relative z-20 w-32 h-32 bg-white p-2 rounded-2xl shadow-lg border-2 border-white group">
+              <div className="relative z-20 w-32 h-32 bg-white p-2 rounded-2xl shadow-xl shadow-indigo-100/40 border-2 border-white ring-4 ring-indigo-50 group">
                 {profile?.avatar_url
                   ? (
                     <button
                       type="button"
                       onClick={() => setPreviewImage({ src: profile.avatar_url, alt: 'Logo công ty' })}
                       aria-label="Xem logo công ty"
-                      className="block h-full w-full cursor-zoom-in overflow-hidden rounded-xl focus:outline-none focus:ring-2 focus:ring-navy-300"
+                      className="block h-full w-full cursor-zoom-in overflow-hidden rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-300"
                     >
                       <img src={profile.avatar_url} alt="Logo" className="w-full h-full object-cover" />
                     </button>
                   )
-                  : <div className="w-full h-full bg-gray-100 rounded-xl flex items-center justify-center text-4xl text-gray-400 font-bold uppercase">
+                  : <div className="w-full h-full bg-gradient-to-br from-indigo-50 to-violet-50 rounded-xl flex items-center justify-center text-4xl text-indigo-300 font-bold uppercase">
                       {profile?.company_name?.charAt(0) || 'C'}
                     </div>
                 }
                 <input ref={avatarInputRef} type="file" accept="image/*" className="hidden"
                   onChange={e => handleImageChange(e, 'avatar_url', 'avatar')} />
                 <button type="button" onClick={() => avatarInputRef.current?.click()} disabled={imageLoading === 'avatar'}
-                  className="absolute inset-x-3 bottom-3 z-10 flex items-center justify-center gap-1.5 rounded-lg bg-gray-900/75 px-2 py-1.5 text-[11px] font-semibold text-white opacity-0 group-hover:opacity-100 backdrop-blur-sm transition-all">
+                  className="absolute inset-x-3 bottom-3 z-10 flex items-center justify-center gap-1.5 rounded-xl bg-gray-900/75 px-2 py-1.5 text-[11px] font-semibold text-white opacity-0 group-hover:opacity-100 backdrop-blur-sm transition-all">
                   {imageLoading === 'avatar' ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Camera className="w-3.5 h-3.5" />}
                   Đổi logo
                 </button>
@@ -273,7 +273,7 @@ export default function CompanyProfileTab() {
               </div>
             </div>
             <button onClick={handleSave} disabled={saving}
-              className="px-6 py-2.5 bg-navy-700 hover:bg-navy-800 text-white rounded-xl font-semibold transition-colors flex items-center gap-2 disabled:opacity-50">
+              className="px-6 py-2.5 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-700 hover:to-violet-700 text-white rounded-xl font-semibold transition-all duration-300 flex items-center gap-2 disabled:opacity-50 shadow-lg shadow-indigo-200/60 hover:shadow-xl hover:shadow-indigo-300/60 hover:-translate-y-0.5">
               {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
               Lưu thay đổi
             </button>
@@ -285,14 +285,17 @@ export default function CompanyProfileTab() {
       </div>
 
       {/* Tabs */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-        <div className="flex border-b border-gray-100">
-          {TABS.map(tab => (
-            <button key={tab.key} onClick={() => setActiveTab(tab.key)}
-              className={`flex items-center gap-2 px-6 py-4 text-sm font-semibold transition-colors border-b-2 -mb-px ${activeTab === tab.key ? 'border-navy-700 text-navy-700' : 'border-transparent text-gray-500 hover:text-gray-700'}`}>
-              <tab.icon className="w-4 h-4" /> {tab.label}
-            </button>
-          ))}
+      <div className="rounded-2xl border border-indigo-100/60 bg-white/90 backdrop-blur-sm shadow-sm overflow-hidden">
+        <div className="relative">
+          <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-indigo-500 via-violet-500 to-purple-500 rounded-t-2xl"></div>
+          <div className="flex border-b border-indigo-50 pt-1">
+            {TABS.map(tab => (
+              <button key={tab.key} onClick={() => setActiveTab(tab.key)}
+                className={`flex items-center gap-2 px-6 py-4 text-sm font-semibold transition-all duration-300 border-b-2 -mb-px ${activeTab === tab.key ? 'border-indigo-500 text-indigo-700 bg-indigo-50/30' : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-indigo-50/20'}`}>
+                <tab.icon className="w-4 h-4" /> {tab.label}
+              </button>
+            ))}
+          </div>
         </div>
 
         <div className="p-6 sm:p-8">
@@ -303,7 +306,7 @@ export default function CompanyProfileTab() {
                 <div>
                   <label className="block text-xs font-bold text-gray-400 uppercase mb-2">Giới thiệu công ty</label>
                   <textarea name="company_description" value={profile?.company_description || ''} onChange={handleChange}
-                    className="w-full h-44 p-4 border border-gray-200 rounded-xl focus:ring-2 focus:ring-navy-200 outline-none transition-all resize-none"
+                    className="w-full h-44 p-4 border border-indigo-100/60 rounded-xl focus:ring-2 focus:ring-violet-200 outline-none transition-all resize-none"
                     placeholder="Mô tả về công ty, văn hóa, sứ mệnh..." />
                 </div>
               </div>
@@ -322,7 +325,7 @@ export default function CompanyProfileTab() {
                     <label className="block text-xs font-bold text-gray-400 uppercase mb-1">{field.label}</label>
                     <input name={field.name} value={profile?.[field.name] || ''} onChange={handleChange}
                       placeholder={field.placeholder}
-                      className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-navy-200 outline-none" />
+                      className="w-full p-2.5 bg-indigo-50/30 border border-indigo-100/60 rounded-xl text-sm focus:ring-2 focus:ring-violet-200 outline-none transition-all" />
                   </div>
                 ))}
               </div>
@@ -344,7 +347,7 @@ export default function CompanyProfileTab() {
                       <input ref={galleryInputRef} type="file" accept="image/*" className="hidden"
                         onChange={e => handleImageChange(e, 'company_gallery', 'gallery')} />
                       <button onClick={() => galleryInputRef.current?.click()} disabled={imageLoading === 'gallery'}
-                        className="flex items-center gap-2 px-4 py-2 bg-navy-700 text-white rounded-xl text-sm font-semibold hover:bg-navy-800 transition-colors disabled:opacity-50">
+                        className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-indigo-600 to-violet-600 text-white rounded-xl text-sm font-semibold hover:from-indigo-700 hover:to-violet-700 transition-all duration-300 shadow-lg shadow-indigo-200/60 disabled:opacity-50">
                         {imageLoading === 'gallery' ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
                         Thêm ảnh
                       </button>
@@ -353,7 +356,7 @@ export default function CompanyProfileTab() {
                 </div>
 
                 {gallery.length === 0 ? (
-                  <div className="border-2 border-dashed border-gray-200 rounded-2xl p-12 text-center cursor-pointer hover:border-navy-300 transition-colors"
+                  <div className="border-2 border-dashed border-indigo-200/60 rounded-2xl p-12 text-center cursor-pointer hover:border-indigo-400 hover:bg-indigo-50/20 transition-all duration-300"
                     onClick={() => galleryInputRef.current?.click()}>
                     <ImageIcon className="w-10 h-10 text-gray-300 mx-auto mb-3" />
                     <p className="text-gray-400 font-medium">Chưa có ảnh nào. Nhấn để thêm ảnh văn phòng.</p>
@@ -361,8 +364,8 @@ export default function CompanyProfileTab() {
                 ) : (
                   <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
                     {gallery.map((url, idx) => (
-                      <div key={idx} className="group relative aspect-video rounded-xl overflow-hidden bg-gray-100 shadow-sm">
-                        <img src={url} alt={`Ảnh ${idx + 1}`} className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" />
+                      <div key={idx} className="group relative aspect-video rounded-xl overflow-hidden bg-gray-100 shadow-sm hover:shadow-lg transition-all duration-300">
+                        <img src={url} alt={`Ảnh ${idx + 1}`} className="w-full h-full object-cover transition-transform duration-300 " />
                         <button
                           type="button"
                           onClick={() => setLightboxIdx(idx)}
@@ -373,14 +376,14 @@ export default function CompanyProfileTab() {
                           type="button"
                           onClick={(event) => { event.stopPropagation(); removeGalleryImage(idx); }}
                           aria-label={`Xóa ảnh ${idx + 1}`}
-                          className="absolute top-2 right-2 z-20 w-7 h-7 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-lg">
+                          className="absolute top-2 right-2 z-20 w-7 h-7 bg-gradient-to-r from-rose-500 to-pink-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-lg">
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>
                       </div>
                     ))}
                     {gallery.length < 8 && (
                       <button onClick={() => galleryInputRef.current?.click()}
-                        className="aspect-video rounded-xl border-2 border-dashed border-gray-200 flex flex-col items-center justify-center gap-2 hover:border-navy-300 text-gray-400 hover:text-navy-600 transition-colors">
+                        className="aspect-video rounded-xl border-2 border-dashed border-indigo-200/60 flex flex-col items-center justify-center gap-2 hover:border-indigo-400 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50/20 transition-all duration-300">
                         <Plus className="w-5 h-5" />
                         <span className="text-xs font-medium">Thêm ảnh</span>
                       </button>
@@ -398,11 +401,11 @@ export default function CompanyProfileTab() {
                     <Video className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
                     <input name="company_video_url" value={profile?.company_video_url || ''} onChange={handleChange}
                       placeholder="https://www.youtube.com/watch?v=..."
-                      className="w-full pl-9 pr-3 py-2.5 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-navy-200 outline-none" />
+                      className="w-full pl-9 pr-3 py-2.5 border border-indigo-100/60 rounded-xl text-sm focus:ring-2 focus:ring-violet-200 outline-none transition-all" />
                   </div>
                 </div>
                 {embedUrl && (
-                  <div className="mt-4 rounded-2xl overflow-hidden shadow-md aspect-video">
+                  <div className="mt-4 rounded-xl overflow-hidden aspect-video">
                     <iframe src={embedUrl} className="w-full h-full" allowFullScreen title="Company Video" />
                   </div>
                 )}
@@ -424,7 +427,7 @@ export default function CompanyProfileTab() {
                     const already = (profile?.company_perks || []).some(perk => perk.title === p.label);
                     return (
                       <button key={p.label} onClick={() => !already && addPerk(p.icon, p.label)} disabled={already}
-                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium border transition-all ${already ? 'border-navy-200 bg-navy-50 text-navy-700 opacity-60 cursor-default' : 'border-gray-200 bg-white hover:border-navy-300 hover:bg-navy-50 text-gray-700'}`}>
+                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm font-medium border transition-all ${already ? 'border-indigo-200 bg-indigo-50 text-indigo-700 opacity-60 cursor-default' : 'border-indigo-100/60 bg-white hover:border-indigo-300 hover:bg-indigo-50 text-gray-700'}`}>
                         <span>{p.icon}</span> {p.label}
                         {!already && <Plus className="w-3 h-3" />}
                       </button>
@@ -434,28 +437,28 @@ export default function CompanyProfileTab() {
               </div>
 
               {/* Custom perk form */}
-              <div className="bg-gray-50 rounded-2xl p-5 border border-gray-100">
+              <div className="bg-gradient-to-br from-indigo-50/40 to-violet-50/30 rounded-2xl p-5 border border-indigo-100/60">
                 <h3 className="text-sm font-bold text-gray-700 mb-4">Thêm phúc lợi tùy chỉnh</h3>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <div>
                     <label className="text-xs font-bold text-gray-400 uppercase mb-1 block">Icon (emoji)</label>
                     <input value={newPerk.icon} onChange={e => setNewPerk(p => ({ ...p, icon: e.target.value }))}
-                      className="w-full p-2.5 border border-gray-200 rounded-lg text-sm bg-white focus:ring-2 focus:ring-navy-200 outline-none" maxLength={5} />
+                      className="w-full p-2.5 border border-indigo-100/60 rounded-xl text-sm bg-white focus:ring-2 focus:ring-violet-200 outline-none transition-all" maxLength={5} />
                   </div>
                   <div>
                     <label className="text-xs font-bold text-gray-400 uppercase mb-1 block">Tiêu đề *</label>
                     <input value={newPerk.title} onChange={e => setNewPerk(p => ({ ...p, title: e.target.value }))}
                       placeholder="VD: Thưởng KPI" maxLength={100}
-                      className="w-full p-2.5 border border-gray-200 rounded-lg text-sm bg-white focus:ring-2 focus:ring-navy-200 outline-none" />
+                      className="w-full p-2.5 border border-indigo-100/60 rounded-xl text-sm bg-white focus:ring-2 focus:ring-violet-200 outline-none transition-all" />
                   </div>
                   <div>
                     <label className="text-xs font-bold text-gray-400 uppercase mb-1 block">Mô tả ngắn</label>
                     <input value={newPerk.description} onChange={e => setNewPerk(p => ({ ...p, description: e.target.value }))}
                       placeholder="Chi tiết thêm..." maxLength={300}
-                      className="w-full p-2.5 border border-gray-200 rounded-lg text-sm bg-white focus:ring-2 focus:ring-navy-200 outline-none" />
+                      className="w-full p-2.5 border border-indigo-100/60 rounded-xl text-sm bg-white focus:ring-2 focus:ring-violet-200 outline-none transition-all" />
                   </div>
                 </div>
-                <button onClick={() => addPerk()} className="mt-3 flex items-center gap-2 px-4 py-2 bg-navy-700 text-white rounded-xl text-sm font-semibold hover:bg-navy-800 transition-colors">
+                <button onClick={() => addPerk()} className="mt-3 flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-indigo-600 to-violet-600 text-white rounded-xl text-sm font-semibold hover:from-indigo-700 hover:to-violet-700 transition-all duration-300 shadow-lg shadow-indigo-200/60">
                   <Plus className="w-4 h-4" /> Thêm phúc lợi
                 </button>
               </div>
@@ -466,8 +469,8 @@ export default function CompanyProfileTab() {
                   <h3 className="text-sm font-bold text-gray-700 mb-3">Danh sách phúc lợi ({(profile.company_perks || []).length}/12)</h3>
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                     {(profile.company_perks || []).map((perk, idx) => (
-                      <div key={idx} className="group flex items-start gap-3 bg-white border border-gray-100 rounded-2xl p-4 shadow-sm hover:shadow-md transition-shadow">
-                        <div className="w-10 h-10 rounded-xl bg-navy-50 flex items-center justify-center text-xl shrink-0">{perk.icon}</div>
+                      <div key={idx} className="group flex items-start gap-3 bg-white border border-indigo-100/60 rounded-xl p-4 shadow-sm hover:shadow-md transition-all duration-300">
+                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-50 to-violet-50 flex items-center justify-center text-xl shrink-0">{perk.icon}</div>
                         <div className="flex-1 min-w-0">
                           <p className="font-semibold text-gray-800 text-sm">{perk.title}</p>
                           {perk.description && <p className="text-xs text-gray-500 mt-0.5 line-clamp-2">{perk.description}</p>}

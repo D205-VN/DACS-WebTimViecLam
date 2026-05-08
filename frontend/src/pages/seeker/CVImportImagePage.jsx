@@ -167,13 +167,13 @@ export default function CVImportImagePage() {
   };
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-8">
-      <Link to="/seeker/my-cvs" className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-navy-700 mb-6 transition-colors">
+    <div className="aw-container py-6">
+      <Link to="/seeker/my-cvs" className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-indigo-700 mb-6 transition-colors">
         <ArrowLeft className="w-4 h-4" /> Quay lại quản lý CV
       </Link>
 
-      <div className="flex items-center gap-3 mb-8">
-        <div className="w-14 h-14 bg-gradient-to-br from-indigo-100 to-blue-100 rounded-2xl flex items-center justify-center">
+      <div className="aw-surface mb-5 flex items-center gap-3 p-4">
+        <div className="flex h-14 w-14 items-center justify-center rounded-lg bg-indigo-50">
           <ImageUp className="w-7 h-7 text-indigo-600" />
         </div>
         <div>
@@ -184,10 +184,10 @@ export default function CVImportImagePage() {
 
       <SeekerToolsNav />
 
-      {error && <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-600">{error}</div>}
-      {saveMessage && <div className="mb-4 p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-sm text-emerald-700">{saveMessage}</div>}
+      {error && <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-600">{error}</div>}
+      {saveMessage && <div className="mb-4 p-3 bg-emerald-50 border border-emerald-200 rounded-lg text-sm text-emerald-700">{saveMessage}</div>}
 
-      <div className="mb-6 rounded-2xl border border-gray-100 bg-white p-5 shadow-sm">
+      <div className="aw-surface mb-5 p-5">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
           <div className="flex-1">
             <label className="mb-1.5 flex items-center gap-1.5 text-sm font-semibold text-gray-700">
@@ -198,7 +198,7 @@ export default function CVImportImagePage() {
               value={currentLocation}
               readOnly
               placeholder="Bắt buộc lấy vị trí hiện tại trước khi lưu CV"
-              className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-700 placeholder:text-gray-400 transition-all focus:border-navy-400 focus:outline-none focus:ring-2 focus:ring-navy-200"
+              className="w-full rounded-lg border border-indigo-100/60 bg-white px-4 py-3 text-sm text-gray-700 placeholder:text-gray-400 transition-all focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-violet-200"
             />
             {locationNotice ? (
               <p className={`mt-2 text-xs ${locationNotice.type === 'error' ? 'text-red-600' : 'text-emerald-700'}`}>
@@ -210,7 +210,7 @@ export default function CVImportImagePage() {
             type="button"
             onClick={handleDetectCurrentLocation}
             disabled={detectingLocation}
-            className="inline-flex items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm font-semibold text-navy-700 transition-colors hover:bg-navy-50 disabled:opacity-70"
+            className="inline-flex items-center justify-center gap-2 rounded-lg border border-indigo-100/60 bg-white px-4 py-3 text-sm font-semibold text-indigo-700 transition-colors hover:bg-indigo-50 disabled:opacity-70"
           >
             {detectingLocation ? <Loader2 className="w-4 h-4 animate-spin" /> : <LocateFixed className="w-4 h-4" />}
             {detectingLocation ? 'Đang lấy vị trí...' : currentLocation ? 'Lấy lại vị trí' : 'Lấy vị trí hiện tại'}
@@ -218,19 +218,19 @@ export default function CVImportImagePage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm">
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+        <div className="aw-surface p-6">
           <div className="flex items-center justify-between gap-3 mb-4">
             <h2 className="text-base font-bold text-gray-800">Ảnh CV</h2>
             <div className="flex gap-2">
               <input ref={fileInputRef} type="file" accept="image/*" onChange={onFileChange} className="hidden" />
-              <button onClick={pickFile} className="px-4 py-2 text-sm font-semibold text-navy-700 bg-navy-50 rounded-lg hover:bg-navy-100 transition-colors">
+              <button onClick={pickFile} className="px-4 py-2 text-sm font-semibold text-indigo-700 bg-indigo-50 rounded-lg hover:bg-indigo-100 transition-colors">
                 Chọn ảnh
               </button>
               <button
                 onClick={handleImport}
                 disabled={!file || loading}
-                className="px-4 py-2 text-sm font-semibold text-white bg-gradient-to-r from-indigo-600 to-blue-700 rounded-lg hover:shadow-lg transition-all disabled:opacity-60"
+                className="aw-btn-primary px-4 py-2 text-sm disabled:opacity-60"
               >
                 {loading ? <span className="inline-flex items-center gap-2"><Loader2 className="w-4 h-4 animate-spin" /> Đang đọc...</span> : 'Import'}
               </button>
@@ -238,11 +238,11 @@ export default function CVImportImagePage() {
           </div>
 
           {file ? (
-            <div className="rounded-xl border border-gray-100 overflow-hidden bg-gray-50">
+            <div className="rounded-lg border border-indigo-50 overflow-hidden bg-indigo-50/50">
               <img src={previewUrl} alt="CV upload preview" className="w-full max-h-[520px] object-contain" />
             </div>
           ) : (
-            <div className="rounded-xl border border-dashed border-gray-200 bg-gray-50 p-10 text-center text-gray-500">
+            <div className="rounded-lg border border-dashed border-indigo-100/60 bg-indigo-50/50 p-10 text-center text-gray-500">
               Chọn một ảnh CV rõ nét (PNG/JPG). Hệ thống sẽ scan nội dung và dựng lại thành một bản CV HTML gần với bố cục gốc.
             </div>
           )}
@@ -276,18 +276,18 @@ export default function CVImportImagePage() {
                   <button
                     onClick={handleSave}
                     disabled={saving || saveSuccess || !hasCurrentLocation}
-                    className="flex items-center gap-1.5 px-4 py-2 text-sm font-semibold text-white bg-navy-600 rounded-lg hover:bg-navy-700 transition-colors disabled:opacity-70"
+                    className="flex items-center gap-1.5 px-4 py-2 text-sm font-semibold text-white bg-indigo-600 rounded-lg hover:bg-gradient-to-r from-indigo-600 to-violet-600 transition-colors disabled:opacity-70"
                   >
                     {saveSuccess ? <><CheckCircle className="w-4 h-4" /> Đã lưu</> : saving ? <><Loader2 className="w-4 h-4 animate-spin" /> Đang lưu...</> : <><Save className="w-4 h-4" /> Lưu</>}
                   </button>
-                  <button onClick={handleDownload} className="flex items-center gap-1.5 px-4 py-2 text-sm font-semibold text-navy-700 bg-navy-50 rounded-lg hover:bg-navy-100 transition-colors">
+                  <button onClick={handleDownload} className="flex items-center gap-1.5 px-4 py-2 text-sm font-semibold text-indigo-700 bg-indigo-50 rounded-lg hover:bg-indigo-100 transition-colors">
                     <Download className="w-4 h-4" /> Tải PDF
                   </button>
                 </div>
               )}
             </div>
 
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-x-auto min-h-[600px] flex flex-col">
+            <div className="aw-surface flex min-h-[600px] flex-col overflow-x-auto">
               {cvHtml ? (
                 <div ref={cvRef} className="p-6 flex-1 min-w-[800px]" dangerouslySetInnerHTML={{ __html: cvHtml }} />
               ) : (

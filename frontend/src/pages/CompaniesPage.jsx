@@ -76,40 +76,45 @@ export default function CompaniesPage() {
   if (loading) {
     return (
       <div className="flex justify-center py-20">
-        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-navy-700"></div>
+        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-indigo-600"></div>
       </div>
     );
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 py-8">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-800">Danh sách công ty</h1>
-        <p className="text-sm text-gray-500 mt-1">
-          Chọn một công ty để xem toàn bộ tin tuyển dụng đang hiển thị.
-        </p>
+    <div className="mx-auto max-w-[1440px] px-4 py-4 sm:px-6 lg:px-8">
+      <div className="mb-4 overflow-hidden rounded-xl border border-indigo-100/60 bg-white/90 backdrop-blur-sm shadow-sm">
+        <div className="h-1 bg-gradient-to-r from-indigo-500 via-violet-500 to-purple-500"></div>
+        <div className="px-4 py-3">
+          <h1 className="text-2xl font-bold bg-gradient-to-r from-indigo-700 to-violet-700 bg-clip-text text-transparent">Danh sách công ty</h1>
+          <p className="text-sm text-gray-500 mt-1">
+            Chọn một công ty để xem toàn bộ tin tuyển dụng đang hiển thị.
+          </p>
+        </div>
       </div>
 
       {!companies.length ? (
-        <div className="bg-white rounded-2xl border border-gray-100 p-10 text-center text-gray-500">
+        <div className="rounded-xl border border-indigo-100/60 bg-white/90 p-10 text-center text-gray-500 backdrop-blur-sm">
           Chưa có công ty nào đang đăng tuyển.
         </div>
       ) : (
-        <div className="grid grid-cols-1 xl:grid-cols-[320px_minmax(0,1fr)] gap-6">
-          <aside className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 h-fit xl:sticky xl:top-20">
+        <div className="grid grid-cols-1 gap-4 xl:grid-cols-[320px_minmax(0,1fr)]">
+          <aside className="h-fit overflow-hidden rounded-xl border border-indigo-100/60 bg-white/90 p-4 backdrop-blur-sm shadow-sm xl:sticky xl:top-16">
             <div className="flex items-center gap-2 mb-4">
-              <Building2 className="w-5 h-5 text-navy-700" />
+              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-100 to-violet-100">
+                <Building2 className="w-4 h-4 text-indigo-700" />
+              </div>
               <h2 className="text-base font-bold text-gray-800">Công ty</h2>
             </div>
 
             <div className="relative mb-4">
-              <Search className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+              <Search className="w-4 h-4 text-indigo-400 absolute left-3 top-1/2 -translate-y-1/2" />
               <input
                 type="text"
                 value={keyword}
                 onChange={(e) => setKeyword(e.target.value)}
                 placeholder="Tìm công ty..."
-                className="w-full pl-9 pr-3 py-2.5 text-sm border border-gray-200 rounded-xl outline-none focus:ring-2 focus:ring-navy-100"
+                className="w-full rounded-xl border border-indigo-100 py-2.5 pl-9 pr-3 text-sm outline-none focus:ring-2 focus:ring-indigo-100 focus:border-indigo-300 transition-all"
               />
             </div>
 
@@ -122,21 +127,21 @@ export default function CompaniesPage() {
                     key={company.company_name}
                     type="button"
                     onClick={() => handleSelectCompany(company.company_name)}
-                    className={`w-full text-left p-3 rounded-xl border transition-all ${
+                    className={`w-full rounded-xl border p-3 text-left transition-all duration-200 ${
                       isActive
-                        ? 'border-navy-200 bg-navy-50'
-                        : 'border-transparent hover:border-gray-200 hover:bg-gray-50'
+                        ? 'border-indigo-200 bg-gradient-to-r from-indigo-50 to-violet-50 shadow-sm shadow-indigo-100/50'
+                        : 'border-transparent hover:border-indigo-100 hover:bg-indigo-50/50'
                     }`}
                   >
-                    <p className="text-sm font-semibold text-gray-800">{company.company_name}</p>
+                    <p className={`text-sm font-semibold ${isActive ? 'text-indigo-700' : 'text-gray-800'}`}>{company.company_name}</p>
                     <div className="flex items-center gap-3 mt-1 text-xs text-gray-500">
                       <span className="inline-flex items-center gap-1">
-                        <Briefcase className="w-3.5 h-3.5" />
+                        <Briefcase className="w-3.5 h-3.5 text-violet-400" />
                         {company.job_count} tin
                       </span>
                       {company.company_size ? (
                         <span className="inline-flex items-center gap-1">
-                          <Users className="w-3.5 h-3.5" />
+                          <Users className="w-3.5 h-3.5 text-amber-400" />
                           {company.company_size}
                         </span>
                       ) : null}
@@ -156,17 +161,17 @@ export default function CompaniesPage() {
           <div className="space-y-5">
             {selectedCompany ? (
               <>
-                <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+                <div className="overflow-hidden rounded-xl border border-indigo-100/60 bg-white/90 p-5 backdrop-blur-sm shadow-sm">
                   <div className="flex items-start gap-4">
-                    <div className="w-14 h-14 bg-gradient-to-br from-navy-500 to-cyan-500 rounded-2xl flex items-center justify-center text-white shadow-sm shrink-0">
+                    <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-100 to-violet-100 text-indigo-700">
                       <Building2 className="w-7 h-7" />
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="flex items-start justify-between gap-3">
-                        <h2 className="text-xl font-bold text-gray-800">{selectedCompany}</h2>
+                        <h2 className="text-xl font-bold bg-gradient-to-r from-indigo-700 to-violet-700 bg-clip-text text-transparent">{selectedCompany}</h2>
                         <Link
                           to={`/company?name=${encodeURIComponent(selectedCompany)}`}
-                          className="flex items-center gap-1.5 px-3 py-1.5 bg-navy-700 text-white rounded-lg text-xs font-semibold hover:bg-navy-800 transition-colors shrink-0"
+                          className="flex shrink-0 items-center gap-1.5 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 px-3 py-1.5 text-xs font-semibold text-white shadow-md shadow-indigo-200/50 transition-all duration-200 hover:shadow-lg hover:from-indigo-700 hover:to-violet-700"
                         >
                           <ExternalLink className="w-3.5 h-3.5" />
                           Trang công ty
@@ -174,18 +179,18 @@ export default function CompaniesPage() {
                       </div>
                       <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-2 text-sm text-gray-500">
                         <span className="inline-flex items-center gap-1.5">
-                          <Briefcase className="w-4 h-4" />
+                          <Briefcase className="w-4 h-4 text-violet-400" />
                           {activeCompany?.job_count || 0} tin đang tuyển
                         </span>
                         {activeCompany?.company_size ? (
                           <span className="inline-flex items-center gap-1.5">
-                            <Users className="w-4 h-4" />
+                            <Users className="w-4 h-4 text-amber-400" />
                             {activeCompany.company_size}
                           </span>
                         ) : null}
                         {activeCompany?.company_address ? (
                           <span className="inline-flex items-center gap-1.5">
-                            <MapPin className="w-4 h-4" />
+                            <MapPin className="w-4 h-4 text-rose-400" />
                             {activeCompany.company_address}
                           </span>
                         ) : null}
@@ -210,7 +215,7 @@ export default function CompaniesPage() {
                 />
               </>
             ) : (
-              <div className="bg-white rounded-2xl border border-gray-100 p-10 text-center text-gray-500">
+              <div className="rounded-xl border border-indigo-100/60 bg-white/90 p-10 text-center text-gray-500 backdrop-blur-sm">
                 Chọn một công ty ở bên trái để xem tin tuyển dụng.
               </div>
             )}

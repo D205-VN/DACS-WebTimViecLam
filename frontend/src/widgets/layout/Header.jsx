@@ -282,18 +282,18 @@ function getDefaultNotificationDestination(roleCode) {
 }
 
 function getTopNavClass(isActive) {
-  return `flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-medium transition-all duration-200 ${
+  return `flex items-center gap-1.5 rounded-lg px-3.5 py-2 text-sm font-medium transition-all duration-200 ${
     isActive
-      ? 'bg-navy-50 text-navy-700 shadow-sm'
-      : 'text-gray-600 hover:bg-navy-50 hover:text-navy-700'
+      ? 'bg-gradient-to-r from-indigo-50 to-violet-50 text-indigo-700 shadow-sm shadow-indigo-100'
+      : 'text-gray-600 hover:bg-indigo-50/60 hover:text-indigo-700'
   }`;
 }
 
 function getMenuItemClass(isActive) {
-  return `flex items-center gap-3 px-4 py-2.5 text-sm transition-colors ${
+  return `flex items-center gap-3 px-4 py-2.5 text-sm transition-all duration-200 ${
     isActive
-      ? 'bg-navy-50 text-navy-700'
-      : 'text-gray-700 hover:bg-navy-50 hover:text-navy-700'
+      ? 'bg-gradient-to-r from-indigo-50 to-violet-50 text-indigo-700'
+      : 'text-gray-700 hover:bg-indigo-50/50 hover:text-indigo-700'
   }`;
 }
 
@@ -369,16 +369,16 @@ export default function Header() {
   };
 
   return (
-    <header className="sticky top-0 z-50 border-b border-gray-100 bg-white shadow-sm">
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="flex h-16 items-center justify-between">
+    <header className="sticky top-0 z-50 border-b border-indigo-100/50 bg-white/80 backdrop-blur-xl shadow-sm shadow-indigo-50">
+      <div className="mx-auto max-w-[1440px] px-4 sm:px-6 lg:px-8">
+        <div className="flex h-14 items-center justify-between">
           <Link to={homeRoute} className="flex shrink-0 items-center gap-2">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-navy-600 to-navy-800 shadow-lg shadow-navy-700/20">
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-600 to-violet-600 shadow-md shadow-indigo-200">
               <Briefcase className="h-5 w-5 text-white" />
             </div>
-            <span className="text-xl font-extrabold tracking-tight">
-              <span className="text-navy-700">Aptertek</span>
-              <span className="text-success-500">Work</span>
+            <span className="text-lg font-extrabold tracking-tight">
+              <span className="bg-gradient-to-r from-indigo-700 to-violet-700 bg-clip-text text-transparent">Aptertek</span>
+              <span className="bg-gradient-to-r from-emerald-500 to-teal-500 bg-clip-text text-transparent">Work</span>
             </span>
           </Link>
 
@@ -408,18 +408,18 @@ export default function Header() {
                         handleMarkAllRead();
                       }
                     }}
-                    className="relative rounded-lg p-2 text-gray-500 transition-colors hover:bg-navy-50 hover:text-navy-700"
+                    className="relative rounded-lg p-2 text-gray-500 transition-all duration-200 hover:bg-indigo-50 hover:text-indigo-700"
                   >
                     <Bell className="h-5 w-5" />
                     {unreadCount > 0 ? (
-                      <span className="absolute right-1.5 top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white">
+                      <span className="absolute right-1.5 top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-gradient-to-r from-rose-500 to-pink-500 px-1 text-[10px] font-bold text-white animate-pulse shadow-sm shadow-rose-200">
                         {Math.min(unreadCount, 99)}
                       </span>
                     ) : null}
                   </button>
 
                   <div
-                    className={`absolute right-0 top-full mt-2 w-80 origin-top-right overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-xl shadow-gray-200/50 transition-all duration-200 ${
+                    className={`absolute right-0 top-full mt-2 w-80 origin-top-right overflow-hidden rounded-xl border border-indigo-100/60 bg-white/95 backdrop-blur-xl shadow-xl shadow-indigo-100/40 transition-all duration-200 ${
                       notificationOpen ? 'translate-y-0 scale-100 opacity-100' : 'pointer-events-none -translate-y-2 scale-95 opacity-0'
                     }`}
                   >
@@ -443,9 +443,9 @@ export default function Header() {
                             to={item.to}
                             state={item.state}
                             onClick={() => setNotificationOpen(false)}
-                            className="flex gap-3 px-4 py-3 transition-colors hover:bg-navy-50"
+                            className="flex gap-3 px-4 py-3 transition-colors hover:bg-gray-50"
                           >
-                            <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${item.iconClass}`}>
+                            <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${item.iconClass}`}>
                               <item.icon className="h-4 w-4" />
                             </div>
                             <div className="min-w-0 flex-1">
@@ -473,13 +473,13 @@ export default function Header() {
                       setDropdownOpen((prev) => !prev);
                       setNotificationOpen(false);
                     }}
-                    className="flex cursor-pointer items-center gap-2.5 rounded-xl px-2 py-1.5 transition-all duration-200 hover:bg-gray-50"
+                    className="flex cursor-pointer items-center gap-2.5 rounded-lg px-2 py-1.5 transition-all duration-200 hover:bg-indigo-50/60"
                   >
                     <UserAvatar
                       src={user?.avatar_url}
                       alt={user?.full_name}
-                      className="h-9 w-9 rounded-full object-cover ring-2 ring-navy-100"
-                      fallbackClassName="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-navy-500 to-navy-700 ring-2 ring-navy-100"
+                      className="h-9 w-9 rounded-full object-cover ring-2 ring-violet-200"
+                      fallbackClassName="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-indigo-600 to-violet-600 ring-2 ring-violet-200"
                       iconClassName="h-4 w-4 text-white"
                     />
                     <div className="hidden text-left lg:block">
@@ -492,17 +492,17 @@ export default function Header() {
                   </button>
 
                   <div
-                    className={`absolute right-0 top-full mt-2 w-72 origin-top-right overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-xl shadow-gray-200/50 transition-all duration-200 ${
+                    className={`absolute right-0 top-full mt-2 w-72 origin-top-right overflow-hidden rounded-xl border border-indigo-100/60 bg-white/95 backdrop-blur-xl shadow-xl shadow-indigo-100/40 transition-all duration-200 ${
                       dropdownOpen ? 'translate-y-0 scale-100 opacity-100' : 'pointer-events-none -translate-y-2 scale-95 opacity-0'
                     }`}
                   >
-                    <div className="border-b border-gray-100 bg-gradient-to-r from-navy-50 to-gray-50 px-4 py-4">
+                    <div className="border-b border-indigo-50 bg-gradient-to-r from-indigo-50/80 to-violet-50/80 px-4 py-4">
                       <div className="flex items-center gap-3">
                         <UserAvatar
                           src={user?.avatar_url}
                           alt={user?.full_name}
                           className="h-11 w-11 rounded-full object-cover ring-2 ring-white shadow-sm"
-                          fallbackClassName="flex h-11 w-11 items-center justify-center rounded-full bg-gradient-to-br from-navy-500 to-navy-700 ring-2 ring-white shadow-sm"
+                          fallbackClassName="flex h-11 w-11 items-center justify-center rounded-full bg-gradient-to-br from-indigo-600 to-violet-600 ring-2 ring-white shadow-sm"
                           iconClassName="h-5 w-5 text-white"
                         />
                         <div className="min-w-0 flex-1">
@@ -511,8 +511,8 @@ export default function Header() {
                         </div>
                       </div>
                       <div className="mt-3 flex w-fit items-center gap-1.5 rounded-lg bg-white/80 px-2.5 py-1">
-                        <Hash className="h-3 w-3 text-navy-400" />
-                        <span className="font-mono text-[11px] text-navy-600">ID: {user?.id}</span>
+                        <Hash className="h-3 w-3 text-indigo-400" />
+                        <span className="font-mono text-[11px] text-indigo-600">ID: {user?.id}</span>
                       </div>
                     </div>
 
@@ -528,7 +528,7 @@ export default function Header() {
                             onClick={() => setDropdownOpen(false)}
                             className={getMenuItemClass(isActive)}
                           >
-                            <div className={`flex h-8 w-8 items-center justify-center rounded-lg ${isActive ? 'bg-navy-100 text-navy-700' : link.iconClass}`}>
+                            <div className={`flex h-8 w-8 items-center justify-center rounded-lg transition-all duration-200 ${isActive ? 'bg-indigo-100 text-indigo-700' : link.iconClass}`}>
                               <link.icon className="h-4 w-4" />
                             </div>
                             <div>
@@ -558,13 +558,13 @@ export default function Header() {
               <>
                 <Link
                   to="/login"
-                  className="rounded-lg px-4 py-2 text-sm font-semibold text-navy-700 transition-all duration-200 hover:bg-navy-50 hover:text-navy-800"
+                  className="rounded-lg px-4 py-2 text-sm font-semibold text-indigo-700 transition-all duration-200 hover:bg-indigo-50 hover:text-indigo-800"
                 >
                   Đăng nhập
                 </Link>
                 <Link
                   to="/register"
-                  className="rounded-lg bg-gradient-to-r from-navy-600 to-navy-800 px-5 py-2 text-sm font-semibold text-white transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-navy-700/25"
+                  className="rounded-lg bg-gradient-to-r from-indigo-600 to-violet-600 px-5 py-2 text-sm font-semibold text-white shadow-md shadow-indigo-200 transition-all duration-200 hover:shadow-lg hover:shadow-indigo-300 hover:from-indigo-700 hover:to-violet-700"
                 >
                   Đăng ký
                 </Link>
@@ -573,7 +573,7 @@ export default function Header() {
           </div>
 
           <button
-            className="rounded-lg p-2 text-gray-600 transition-colors hover:bg-navy-50 hover:text-navy-700 md:hidden"
+            className="rounded-md p-2 text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-950 md:hidden"
             onClick={() => setMobileMenuOpen((prev) => !prev)}
           >
             {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
@@ -605,8 +605,8 @@ export default function Header() {
                 <UserAvatar
                   src={user?.avatar_url}
                   alt={user?.full_name}
-                  className="h-10 w-10 rounded-full object-cover ring-2 ring-navy-100"
-                  fallbackClassName="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-navy-500 to-navy-700 ring-2 ring-navy-100"
+                  className="h-10 w-10 rounded-full object-cover ring-2 ring-violet-200"
+                  fallbackClassName="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-indigo-600 to-violet-600 ring-2 ring-violet-200"
                   iconClassName="h-4 w-4 text-white"
                 />
                 <div>
@@ -615,9 +615,9 @@ export default function Header() {
                 </div>
               </div>
 
-              <div className="rounded-2xl border border-gray-100 bg-gray-50 px-4 py-3">
+              <div className="rounded-lg border border-gray-100 bg-gray-50 px-4 py-3">
                 <div className="flex items-center gap-2 text-sm font-semibold text-gray-800">
-                  <Bell className="h-4 w-4 text-navy-600" />
+                  <Bell className="h-4 w-4 text-indigo-600" />
                   Thông báo gần đây
                 </div>
                 <div className="mt-3 space-y-3">
@@ -627,7 +627,7 @@ export default function Header() {
                       to={item.to}
                       state={item.state}
                       onClick={() => setMobileMenuOpen(false)}
-                      className="block rounded-xl bg-white px-3 py-2.5"
+                      className="block rounded-lg bg-white px-3 py-2.5"
                     >
                       <p className="text-sm font-medium text-gray-800">{item.title}</p>
                       <p className="mt-1 text-xs leading-5 text-gray-500">{item.description}</p>
@@ -650,7 +650,7 @@ export default function Header() {
                     onClick={() => setMobileMenuOpen(false)}
                     className={getMenuItemClass(isActive)}
                   >
-                    <div className={`flex h-8 w-8 items-center justify-center rounded-lg ${isActive ? 'bg-navy-100 text-navy-700' : link.iconClass}`}>
+                    <div className={`flex h-8 w-8 items-center justify-center rounded-lg transition-all duration-200 ${isActive ? 'bg-indigo-100 text-indigo-700' : link.iconClass}`}>
                       <link.icon className="h-4 w-4" />
                     </div>
                     <div>
@@ -675,14 +675,14 @@ export default function Header() {
             <div className="flex gap-2 border-t border-gray-100 pt-3">
               <Link
                 to="/login"
-                className="flex-1 rounded-lg border border-navy-200 px-4 py-2.5 text-center text-sm font-semibold text-navy-700 transition-colors hover:bg-navy-50"
+                className="flex-1 rounded-lg border border-indigo-200 px-4 py-2.5 text-center text-sm font-semibold text-indigo-700 transition-all duration-200 hover:bg-indigo-50"
                 onClick={() => setMobileMenuOpen(false)}
               >
                 Đăng nhập
               </Link>
               <Link
                 to="/register"
-                className="flex-1 rounded-lg bg-gradient-to-r from-navy-600 to-navy-800 px-4 py-2.5 text-center text-sm font-semibold text-white transition-colors"
+                className="flex-1 rounded-lg bg-gradient-to-r from-indigo-600 to-violet-600 px-4 py-2.5 text-center text-sm font-semibold text-white shadow-md shadow-indigo-200 transition-all duration-200 hover:from-indigo-700 hover:to-violet-700"
                 onClick={() => setMobileMenuOpen(false)}
               >
                 Đăng ký

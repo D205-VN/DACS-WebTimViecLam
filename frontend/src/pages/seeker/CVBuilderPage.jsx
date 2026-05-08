@@ -279,7 +279,7 @@ export default function CVBuilderPage() {
     }
   };
 
-  const inputClass = 'w-full px-4 py-3 bg-white border border-gray-200 rounded-xl text-sm text-gray-700 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-navy-200 focus:border-navy-400 transition-all';
+  const inputClass = 'w-full px-4 py-3 bg-white border border-indigo-100/60 rounded-lg text-sm text-gray-700 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-violet-200 focus:border-indigo-400 transition-all';
   const textareaClass = `${inputClass} resize-none`;
 
   const SuggestionPills = ({ items, field }) => {
@@ -291,7 +291,7 @@ export default function CVBuilderPage() {
           <button 
             key={idx} 
             onClick={() => appendToField(field, item)}
-            className="flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-navy-600 bg-navy-50 hover:bg-navy-100 rounded-lg transition-colors text-left max-w-full"
+            className="flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded-lg transition-colors text-left max-w-full"
             title={item}
           >
             <Plus className="w-3 h-3 shrink-0" />
@@ -303,13 +303,13 @@ export default function CVBuilderPage() {
   };
 
   return (
-    <div className="max-w-6xl mx-auto px-4 py-8">
-      <Link to={backRoute} className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-navy-700 mb-6 transition-colors">
+    <div className="aw-container py-6">
+      <Link to={backRoute} className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-indigo-700 mb-6 transition-colors">
         <ArrowLeft className="w-4 h-4" /> {backLabel}
       </Link>
 
-      <div className="flex items-center gap-3 mb-8">
-        <div className="w-14 h-14 bg-gradient-to-br from-purple-100 to-indigo-100 rounded-2xl flex items-center justify-center">
+      <div className="aw-surface mb-5 flex items-center gap-3 p-4">
+        <div className="flex h-14 w-14 items-center justify-center rounded-lg bg-fuchsia-50">
           <Sparkles className="w-7 h-7 text-purple-600" />
         </div>
         <div>
@@ -320,13 +320,13 @@ export default function CVBuilderPage() {
 
       <SeekerToolsNav />
 
-      {error && <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-600">{error}</div>}
-      {saveMessage && <div className="mb-4 p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-sm text-emerald-700">{saveMessage}</div>}
+      {error && <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-600">{error}</div>}
+      {saveMessage && <div className="mb-4 p-3 bg-emerald-50 border border-emerald-200 rounded-lg text-sm text-emerald-700">{saveMessage}</div>}
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
         {/* Form */}
         <div className="space-y-4">
-          <div className="bg-white rounded-2xl border border-gray-100 p-6 shadow-sm">
+          <div className="aw-surface p-6">
             <h2 className="text-base font-bold text-gray-800 mb-5">Thông tin của bạn</h2>
             <div className="space-y-5">
               
@@ -371,7 +371,7 @@ export default function CVBuilderPage() {
                     type="button"
                     onClick={handleDetectCurrentLocation}
                     disabled={detectingLocation}
-                    className="inline-flex min-w-[210px] items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm font-semibold text-navy-700 transition-colors hover:bg-navy-50 disabled:opacity-70"
+                    className="inline-flex min-w-[210px] items-center justify-center gap-2 rounded-lg border border-indigo-100/60 bg-white px-4 py-3 text-sm font-semibold text-indigo-700 transition-colors hover:bg-indigo-50 disabled:opacity-70"
                   >
                     {detectingLocation ? <Loader2 className="w-4 h-4 animate-spin" /> : <LocateFixed className="w-4 h-4" />}
                     {detectingLocation ? 'Đang lấy vị trí...' : currentLocation ? 'Lấy lại vị trí' : 'Lấy vị trí hiện tại'}
@@ -408,8 +408,8 @@ export default function CVBuilderPage() {
                   className="hidden"
                 />
 
-                <div className="flex flex-col gap-4 rounded-2xl border border-dashed border-gray-200 bg-gray-50 p-4 sm:flex-row sm:items-center">
-                  <div className="flex h-28 w-28 shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-white border border-gray-200">
+                <div className="flex flex-col gap-4 rounded-lg border border-dashed border-indigo-100/60 bg-indigo-50/50 p-4 sm:flex-row sm:items-center">
+                  <div className="flex h-28 w-28 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-white border border-indigo-100/60">
                     {form.portraitDataUrl ? (
                       <img src={form.portraitDataUrl} alt="Ảnh chân dung" className="h-full w-full object-cover" />
                     ) : (
@@ -429,7 +429,7 @@ export default function CVBuilderPage() {
                     <button
                       type="button"
                       onClick={() => portraitInputRef.current?.click()}
-                      className="mt-3 inline-flex items-center gap-2 rounded-xl bg-white px-4 py-2.5 text-sm font-semibold text-navy-700 border border-gray-200 hover:bg-navy-50 hover:border-navy-200 transition-colors"
+                      className="mt-3 inline-flex items-center gap-2 rounded-lg bg-white px-4 py-2.5 text-sm font-semibold text-indigo-700 border border-indigo-100/60 hover:bg-indigo-50 hover:border-indigo-200 transition-colors"
                     >
                       <ImageUp className="w-4 h-4" />
                       {form.portraitDataUrl ? 'Đổi ảnh chân dung' : 'Tải ảnh chân dung'}
@@ -473,7 +473,7 @@ export default function CVBuilderPage() {
               </div>
             </div>
 
-            <button onClick={handleGenerate} disabled={loading || detectingLocation || !hasCurrentLocation} className="w-full mt-6 flex items-center justify-center gap-2 py-3.5 bg-gradient-to-r from-purple-600 to-indigo-700 text-white font-semibold rounded-xl hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0 transition-all disabled:opacity-60">
+            <button onClick={handleGenerate} disabled={loading || detectingLocation || !hasCurrentLocation} className="aw-btn-primary mt-6 w-full py-3.5 disabled:opacity-60">
               {loading ? <><Loader2 className="w-5 h-5 animate-spin" /> Đang tạo CV...</> : <><Sparkles className="w-5 h-5" /> Tạo CV bằng AI</>}
             </button>
           </div>
@@ -489,16 +489,16 @@ export default function CVBuilderPage() {
                   <button onClick={handleReviewCurrentCv} disabled={reviewLoading} className="flex items-center gap-1.5 px-4 py-2 text-sm font-semibold text-amber-700 bg-amber-50 rounded-lg hover:bg-amber-100 transition-colors disabled:opacity-70">
                     {reviewLoading ? <><Loader2 className="w-4 h-4 animate-spin" /> Đang phân tích...</> : <><ClipboardCheck className="w-4 h-4" /> Gợi ý sửa</>}
                   </button>
-                  <button onClick={handleSave} disabled={saving || saveSuccess || !hasCurrentLocation} className="flex items-center gap-1.5 px-4 py-2 text-sm font-semibold text-white bg-navy-600 rounded-lg hover:bg-navy-700 transition-colors disabled:opacity-70">
+                  <button onClick={handleSave} disabled={saving || saveSuccess || !hasCurrentLocation} className="flex items-center gap-1.5 px-4 py-2 text-sm font-semibold text-white bg-indigo-600 rounded-lg hover:bg-gradient-to-r from-indigo-600 to-violet-600 transition-colors disabled:opacity-70">
                     {saveSuccess ? <><CheckCircle className="w-4 h-4" /> Đã lưu</> : saving ? <><Loader2 className="w-4 h-4 animate-spin" /> Đang lưu...</> : <><Save className="w-4 h-4" /> Lưu hồ sơ</>}
                   </button>
-                  <button onClick={handleDownload} className="flex items-center gap-1.5 px-4 py-2 text-sm font-semibold text-navy-700 bg-navy-50 rounded-lg hover:bg-navy-100 transition-colors">
+                  <button onClick={handleDownload} className="flex items-center gap-1.5 px-4 py-2 text-sm font-semibold text-indigo-700 bg-indigo-50 rounded-lg hover:bg-indigo-100 transition-colors">
                     <Download className="w-4 h-4" /> Tải PDF
                   </button>
                 </div>
               )}
             </div>
-            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-x-auto min-h-[600px] flex flex-col">
+            <div className="aw-surface flex min-h-[600px] flex-col overflow-x-auto">
               {cvHtml ? (
                 <div ref={cvRef} className="p-6 flex-1 min-w-[800px]" dangerouslySetInnerHTML={{ __html: cvHtml }} />
               ) : (

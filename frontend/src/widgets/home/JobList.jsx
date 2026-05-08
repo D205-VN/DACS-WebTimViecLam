@@ -7,6 +7,38 @@ import API_BASE_URL from '@shared/api/baseUrl';
 
 const API = `${API_BASE_URL}/api/jobs`;
 
+const accentColors = [
+  { border: 'border-l-indigo-500', initials: 'bg-gradient-to-br from-indigo-100 to-indigo-50 text-indigo-700 ring-indigo-200' },
+  { border: 'border-l-violet-500', initials: 'bg-gradient-to-br from-violet-100 to-violet-50 text-violet-700 ring-violet-200' },
+  { border: 'border-l-rose-500', initials: 'bg-gradient-to-br from-rose-100 to-rose-50 text-rose-700 ring-rose-200' },
+  { border: 'border-l-amber-500', initials: 'bg-gradient-to-br from-amber-100 to-amber-50 text-amber-700 ring-amber-200' },
+  { border: 'border-l-teal-500', initials: 'bg-gradient-to-br from-teal-100 to-teal-50 text-teal-700 ring-teal-200' },
+  { border: 'border-l-cyan-500', initials: 'bg-gradient-to-br from-cyan-100 to-cyan-50 text-cyan-700 ring-cyan-200' },
+  { border: 'border-l-pink-500', initials: 'bg-gradient-to-br from-pink-100 to-pink-50 text-pink-700 ring-pink-200' },
+  { border: 'border-l-emerald-500', initials: 'bg-gradient-to-br from-emerald-100 to-emerald-50 text-emerald-700 ring-emerald-200' },
+];
+
+const tagColors = [
+  'bg-indigo-50 text-indigo-700',
+  'bg-violet-50 text-violet-700',
+  'bg-rose-50 text-rose-700',
+  'bg-cyan-50 text-cyan-700',
+  'bg-teal-50 text-teal-700',
+  'bg-amber-50 text-amber-700',
+];
+
+function getCompanyInitials(name = '') {
+  const initials = name
+    .split(' ')
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0])
+    .join('')
+    .toUpperCase();
+
+  return initials || 'AW';
+}
+
 export default function JobList({ searchParams, title, emptyMessage }) {
   const navigate = useNavigate();
   const { token, isAuthenticated, user } = useAuth();
@@ -136,88 +168,90 @@ export default function JobList({ searchParams, title, emptyMessage }) {
       : `Tìm thấy ${loading && page === 1 ? '...' : totalJobs.toLocaleString()} việc làm`;
 
   return (
-    <div>
-      <div className="flex items-center justify-between mb-5">
+    <div className="space-y-3">
+      <div className="flex items-center justify-between overflow-hidden rounded-xl border border-indigo-100/60 bg-white/90 px-4 py-3 backdrop-blur-sm shadow-sm">
         <div>
-          <h2 className="text-lg font-bold text-gray-800">{heading}</h2>
+          <h2 className="text-lg font-bold bg-gradient-to-r from-indigo-700 to-violet-700 bg-clip-text text-transparent">{heading}</h2>
           <p className="text-sm text-gray-500 mt-0.5">{description}</p>
         </div>
       </div>
 
       {loading && page === 1 ? (
-        <div className="flex justify-center items-center py-12">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-navy-700"></div>
+        <div className="flex items-center justify-center rounded-xl border border-indigo-100/60 bg-white/90 py-12 backdrop-blur-sm">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
         </div>
       ) : (
         <>
-          <div className="space-y-3">
-            {jobsData?.map((job) => {
+          <div className="space-y-2">
+            {jobsData?.map((job, jobIndex) => {
               const tags = job.industry && typeof job.industry === 'string'
                 ? job.industry.split(/[,/]/).map((t) => t.trim()).filter(Boolean).slice(0, 3)
                 : [];
               const isSaved = savedIds.has(job.id);
+              const accent = accentColors[jobIndex % accentColors.length];
 
               return (
                 <div
                   key={job.id}
                   onClick={() => navigate(getJobDetailRoute(user?.role_code, job.id))}
-                  className="group bg-white rounded-2xl border border-gray-100 p-5 cursor-pointer transition-all duration-300 hover:shadow-xl hover:shadow-navy-100/40 hover:-translate-y-0.5 hover:border-navy-100"
+                  className={`group cursor-pointer rounded-xl border border-indigo-100/50 border-l-[3px] ${accent.border} bg-white/90 p-4 backdrop-blur-sm transition-all duration-200 hover:border-indigo-200/80 hover:bg-white hover:shadow-lg hover:shadow-indigo-100/40 hover:-translate-y-0.5`}
                 >
                   <div className="flex gap-4">
-                    <div className="w-12 h-12 bg-gradient-to-br from-navy-500 to-cyan-500 rounded-xl flex items-center justify-center text-white shrink-0 shadow-sm">
-                      <Briefcase className="w-6 h-6" />
+                    <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl text-sm font-bold ring-1 ${accent.initials}`}>
+                      {job.company_name ? getCompanyInitials(job.company_name) : <Briefcase className="h-5 w-5" />}
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-start justify-between gap-2">
-                        <div>
-                          <h3 className="text-base font-bold text-gray-800 group-hover:text-navy-700 transition-colors uppercase">{job.title}</h3>
+                        <div className="min-w-0">
+                          <h3 className="line-clamp-2 text-base font-bold leading-snug text-gray-900 transition-colors group-hover:text-indigo-700">{job.title}</h3>
                           {job.company_name ? (
                             <button
                               type="button"
                               onClick={(e) => handleCompanyClick(e, job.company_name)}
-                              className="text-sm text-gray-500 mt-0.5 font-medium hover:text-navy-700 transition-colors"
+                              className="mt-1 max-w-full truncate text-sm font-medium text-gray-500 transition-colors hover:text-indigo-600"
                             >
                               {job.company_name}
                             </button>
                           ) : (
-                            <p className="text-sm text-gray-500 mt-0.5 font-medium">Đang cập nhật</p>
+                            <p className="mt-1 text-sm font-medium text-gray-500">Đang cập nhật</p>
                           )}
                         </div>
                         <button
                           onClick={(e) => handleToggleSave(e, job.id)}
-                          className={`p-1.5 transition-all shrink-0 rounded-lg ${isSaved ? 'text-red-500 hover:text-red-600 opacity-100' : 'text-gray-300 hover:text-red-400 opacity-0 group-hover:opacity-100'}`}
+                          className={`shrink-0 rounded-lg p-2 transition-all duration-200 ${isSaved ? 'bg-rose-50 text-rose-500 hover:text-rose-600 shadow-sm shadow-rose-100' : 'text-gray-400 hover:bg-rose-50 hover:text-rose-500'}`}
+                          title={isSaved ? 'Bỏ lưu việc làm' : 'Lưu việc làm'}
                         >
                           {isSaved ? <BookmarkCheck className="w-5 h-5" /> : <Bookmark className="w-5 h-5" />}
                         </button>
                       </div>
                       <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-3">
                         <span className="flex items-center gap-1 text-sm text-gray-500">
-                          <MapPin className="w-3.5 h-3.5" />
+                          <MapPin className="w-3.5 h-3.5 text-violet-400" />
                           <span className="capitalize">{job.location || 'Chưa rõ'}</span>
                         </span>
-                        <span className="flex items-center gap-1 text-sm font-semibold text-success-600">
+                        <span className="flex items-center gap-1 text-sm font-semibold text-emerald-600">
                           <DollarSign className="w-3.5 h-3.5" />
                           {job.salary || 'Thỏa thuận'}
                         </span>
                         <span className="flex items-center gap-1 text-sm text-gray-500">
-                          <Clock className="w-3.5 h-3.5" />
+                          <Clock className="w-3.5 h-3.5 text-amber-400" />
                           {job.job_type || 'Chính thức'}
                         </span>
                       </div>
                       <div className="flex items-center justify-between mt-3">
                         <div className="flex flex-wrap gap-1.5">
                           {isGeolocationSearch && Number.isFinite(job.distance_km) ? (
-                            <span className="px-2.5 py-1 text-[11px] font-medium text-emerald-700 bg-emerald-50 rounded-lg truncate max-w-[140px]">
+                            <span className="max-w-[140px] truncate rounded-lg bg-gradient-to-r from-emerald-50 to-teal-50 px-2.5 py-1 text-[11px] font-medium text-emerald-700">
                               Cách bạn {job.distance_km} km
                             </span>
                           ) : null}
                           {job.career_level ? (
-                            <span className="px-2.5 py-1 text-[11px] font-medium text-amber-700 bg-amber-50 rounded-lg truncate max-w-[140px]">
+                            <span className="max-w-[140px] truncate rounded-lg bg-gradient-to-r from-amber-50 to-orange-50 px-2.5 py-1 text-[11px] font-medium text-amber-700">
                               {job.career_level}
                             </span>
                           ) : null}
                           {tags.map((tag, idx) => (
-                            <span key={idx} className="px-2.5 py-1 text-[11px] font-medium text-navy-600 bg-navy-50 rounded-lg truncate max-w-[120px]">
+                            <span key={idx} className={`max-w-[120px] truncate rounded-lg px-2.5 py-1 text-[11px] font-medium ${tagColors[idx % tagColors.length]}`}>
                               {tag}
                             </span>
                           ))}
@@ -232,7 +266,7 @@ export default function JobList({ searchParams, title, emptyMessage }) {
           </div>
 
           {!jobsData.length && (
-            <div className="bg-white rounded-2xl border border-gray-100 p-10 text-center text-gray-500">
+            <div className="rounded-xl border border-indigo-100/60 bg-white/90 p-10 text-center text-gray-500 backdrop-blur-sm">
               {emptyMessage || 'Không tìm thấy việc làm phù hợp với bộ lọc hiện tại.'}
             </div>
           )}
@@ -242,7 +276,7 @@ export default function JobList({ searchParams, title, emptyMessage }) {
               <button
                 onClick={handleLoadMore}
                 disabled={loadingMore}
-                className="px-8 py-2.5 text-sm font-semibold text-navy-700 bg-navy-50 rounded-xl hover:bg-navy-100 transition-colors disabled:opacity-50"
+                className="rounded-xl border border-indigo-200 bg-white px-8 py-2.5 text-sm font-semibold text-indigo-700 transition-all duration-200 hover:bg-indigo-50 hover:shadow-md hover:shadow-indigo-100/40 disabled:opacity-50"
               >
                 {loadingMore ? 'Đang tải thêm...' : 'Xem thêm việc làm'}
               </button>

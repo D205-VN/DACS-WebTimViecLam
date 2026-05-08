@@ -1,9 +1,25 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Plus, Save, Video, Trash2, Sparkles, Loader2 } from 'lucide-react';
+import { ArrowLeft, Plus, Save, Video, Trash2, Sparkles, Loader2, Brain, X } from 'lucide-react';
+import EmployerHeader from '@widgets/employer/EmployerHeader';
 import { aiTestApi } from '@shared/api/aiTestApi';
 import { useAuth } from '@features/auth/AuthContext';
 import API_BASE_URL from '@shared/api/baseUrl';
+import { getEmployerDashboardPath, getEmployerDashboardState } from '@shared/utils/employerDashboardRoutes';
+
+const MCQ_KEYS = ['A', 'B', 'C', 'D'];
+
+function parseQuestionOptions(options) {
+  if (!options) return {};
+  if (typeof options === 'string') {
+    try {
+      return JSON.parse(options);
+    } catch {
+      return {};
+    }
+  }
+  return options;
+}
 
 const AITestEditPage = () => {
   const { id } = useParams();
@@ -83,8 +99,18 @@ const AITestEditPage = () => {
       const payload = { ...qForm };
       // For MCQ, send options + correct_answer
       if (qForm.type === 'mcq') {
-        if (!qForm.correct_answer) return alert('Vui lòng chọn đáp án đúng');
-        if (!qForm.options.A || !qForm.options.B) return alert('Cần ít nhất 2 đáp án');
+        const normalizedOptions = MCQ_KEYS.reduce((acc, key) => {
+          const value = String(qForm.options[key] || '').trim();
+          if (value) acc[key] = value;
+          return acc;
+        }, {});
+        const optionKeys = Object.keys(normalizedOptions);
+        if (optionKeys.length < 2) return alert('Cần nhập ít nhất 2 đáp án có nội dung');
+        if (!qForm.correct_answer || !normalizedOptions[qForm.correct_answer]) {
+          return alert('Đáp án đúng phải là một lựa chọn đã có nội dung');
+        }
+        payload.options = normalizedOptions;
+        payload.correct_answer = qForm.correct_answer;
       } else {
         payload.options = null;
         payload.correct_answer = null;
@@ -96,7 +122,10 @@ const AITestEditPage = () => {
       setShowQModal(false);
       setQForm(defaultQForm);
       fetchTestDetails();
-    } catch (err) { console.error(err); }
+    } catch (err) {
+      console.error(err);
+      alert(err.message || 'Không thể tạo câu hỏi');
+    }
   };
 
   const handleDeleteQuestion = async (questionId) => {
@@ -127,38 +156,49 @@ const AITestEditPage = () => {
     }
   };
 
-  const formatTestType = (t) => t === 'normal' ? 'Trắc nghiệm' : t === 'video_ai' ? 'Video AI + Tự luận' : t === 'avatar_live2d' ? 'Avatar Live2D' : t;
+  const formatTestType = (t) => t === 'normal' ? 'Trắc nghiệm' : t === 'video_ai' ? 'Video AI + Tự luận' : ['avatar_live3d', 'avatar_live2d'].includes(t) ? 'Avatar Live3D' : t;
+  const backToTests = () => navigate(getEmployerDashboardPath('ai-tests'), { state: getEmployerDashboardState('ai-tests') });
 
-  if (!test) return <div className="p-8">Loading...</div>;
+  if (!test) return <div className="aw-page"><EmployerHeader /><div className="flex items-center justify-center py-20"><Loader2 className="w-8 h-8 animate-spin text-indigo-600" /></div></div>;
 
   return (
-    <div className="max-w-6xl mx-auto p-6 flex flex-col gap-6">
-      
-      <div className="flex justify-between items-center bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-        <div>
-          <button onClick={() => navigate('/employer/ai-tests')} className="text-gray-500 hover:text-blue-600 mb-2 flex items-center gap-2">
-            <ArrowLeft size={16} /> Quay lại danh sách
-          </button>
-          <h1 className="text-2xl font-bold text-navy-900">Sửa bài test: {test.title}</h1>
-          <p className="text-gray-500 text-sm mt-1">Loại: {formatTestType(test.test_type)} | Thời lượng: {test.duration} phút</p>
+    <div className="aw-page">
+      <EmployerHeader />
+      <div className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8">
+      <div className="relative overflow-hidden rounded-2xl border border-indigo-100/60 bg-white/90 p-6 shadow-sm backdrop-blur-sm">
+        <div className="absolute left-0 right-0 top-0 h-1 rounded-t-2xl bg-gradient-to-r from-indigo-500 via-violet-500 to-purple-500"></div>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center shadow-lg shadow-indigo-200">
+              <Brain className="w-6 h-6 text-white" />
+            </div>
+            <div>
+              <button onClick={backToTests} className="text-xs text-gray-400 hover:text-indigo-600 mb-1 flex items-center gap-1 transition-colors">
+                <ArrowLeft size={12} /> Quay lại danh sách
+              </button>
+              <h1 className="text-xl font-extrabold bg-gradient-to-r from-indigo-700 to-violet-700 bg-clip-text text-transparent">Sửa bài test: {test.title}</h1>
+              <p className="text-gray-500 text-xs mt-0.5">Loại: {formatTestType(test.test_type)} | Thời lượng: {test.duration} phút</p>
+            </div>
+          </div>
         </div>
       </div>
 
-      <div className="flex gap-6">
+      <div className="flex flex-col gap-6 xl:flex-row">
         {/* Left Side: Questions */}
-        <div className="flex-1 bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-          <div className="flex justify-between items-center mb-6">
-            <h2 className="text-xl font-bold text-navy-800">Danh sách câu hỏi ({questions.length})</h2>
-            <div className="flex gap-2">
-              <button 
+        <div className="relative flex-1 overflow-hidden rounded-2xl border border-indigo-100/60 bg-white/90 p-6 shadow-sm backdrop-blur-sm">
+          <div className="absolute left-0 right-0 top-0 h-1 rounded-t-2xl bg-gradient-to-r from-indigo-500 to-violet-500"></div>
+          <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <h2 className="text-lg font-bold text-gray-800">Danh sách câu hỏi ({questions.length})</h2>
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <button
                 onClick={() => setShowGenModal(true)}
-                className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-3 py-1.5 rounded-lg flex items-center gap-1 hover:shadow-lg transition-all text-sm"
+                className="bg-gradient-to-r from-violet-600 to-purple-600 text-white px-3 py-1.5 rounded-xl flex items-center gap-1 shadow-md shadow-violet-200 hover:shadow-lg transition-all text-sm font-semibold"
               >
                 <Sparkles size={16} /> Tạo tự động từ JD
               </button>
-              <button 
+              <button
                 onClick={() => setShowQModal(true)}
-                className="bg-blue-600 text-white px-3 py-1.5 rounded-lg flex items-center gap-1 hover:bg-blue-700"
+                className="bg-gradient-to-r from-indigo-600 to-violet-600 text-white px-3 py-1.5 rounded-xl flex items-center gap-1 shadow-md shadow-indigo-200 hover:shadow-lg transition-all text-sm font-semibold"
               >
                 <Plus size={18} /> Thêm câu hỏi
               </button>
@@ -167,14 +207,15 @@ const AITestEditPage = () => {
 
           <div className="space-y-4">
             {questions.length === 0 ? (
-              <div className="text-center text-gray-500 py-8 border-2 border-dashed rounded-xl">
+              <div className="text-center text-gray-500 py-12 border-2 border-dashed border-indigo-200/60 rounded-xl bg-indigo-50/20">
+                <Sparkles className="w-8 h-8 text-indigo-200 mx-auto mb-3" />
                 Chưa có câu hỏi nào. Hãy thêm thủ công hoặc tạo tự động từ tin tuyển dụng.
               </div>
             ) : (
               questions.map((q, idx) => {
-                const opts = typeof q.options === 'string' ? JSON.parse(q.options) : q.options;
+                const opts = parseQuestionOptions(q.options);
                 return (
-                  <div key={q.id} className="p-4 border border-gray-200 rounded-xl hover:border-blue-600 transition-colors">
+                  <div key={q.id} className="p-4 border border-indigo-100/60 rounded-xl hover:border-indigo-300 hover:shadow-md hover:shadow-indigo-50 transition-all duration-200 bg-white">
                     <div className="flex justify-between items-start mb-2">
                       <h3 className="font-bold text-gray-800">Q{idx + 1}. {q.content}</h3>
                       <div className="flex items-center gap-2 shrink-0">
@@ -193,8 +234,8 @@ const AITestEditPage = () => {
                     {/* Show MCQ options */}
                     {q.type === 'mcq' && opts && (
                       <div className="mt-3 grid grid-cols-2 gap-2">
-                        {['A', 'B', 'C', 'D'].map(key => opts[key] ? (
-                          <div key={key} className={`text-sm px-3 py-2 rounded-lg border ${q.correct_answer === key ? 'bg-emerald-50 border-emerald-300 font-semibold text-emerald-800' : 'bg-gray-50 border-gray-200 text-gray-700'}`}>
+                        {MCQ_KEYS.map(key => opts[key] ? (
+                          <div key={key} className={`text-sm px-3 py-2 rounded-lg border ${q.correct_answer === key ? 'bg-emerald-50 border-emerald-300 font-semibold text-emerald-800' : 'bg-indigo-50/50 border-indigo-100/60 text-gray-700'}`}>
                             <span className="font-bold mr-1">{key}.</span> {opts[key]}
                             {q.correct_answer === key && <span className="ml-1 text-emerald-600">✓</span>}
                           </div>
@@ -208,7 +249,7 @@ const AITestEditPage = () => {
                       </div>
                     )}
                     {q.keywords && (
-                      <div className="mt-3 bg-gray-50 p-2 rounded text-sm text-gray-600">
+                      <div className="mt-3 bg-indigo-50/50 p-2 rounded text-sm text-gray-600">
                         <span className="font-semibold">Từ khóa: </span> {q.keywords}
                       </div>
                     )}
@@ -220,42 +261,35 @@ const AITestEditPage = () => {
         </div>
 
         {/* Right Side: Scoring Config */}
-        <div className="w-80 bg-white p-6 rounded-xl shadow-sm border border-gray-100 h-fit sticky top-24">
-          <h2 className="text-xl font-bold text-navy-800 mb-6 flex items-center gap-2">
-            Cấu hình điểm số
+        <div className="relative h-fit w-full overflow-hidden rounded-2xl border border-indigo-100/60 bg-white/90 p-6 shadow-sm backdrop-blur-sm xl:sticky xl:top-24 xl:w-80">
+          <div className="absolute left-0 right-0 top-0 h-1 rounded-t-2xl bg-gradient-to-r from-violet-500 to-purple-500"></div>
+          <h2 className="text-lg font-bold text-gray-800 mb-6 flex items-center gap-2">
+            <Save className="w-4 h-4 text-violet-500" /> Cấu hình điểm số
           </h2>
           {test.test_type === 'normal' ? (
-            <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4 text-sm text-emerald-800">
+            <div className="bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200/60 rounded-xl p-4 text-sm text-emerald-800">
               <p className="font-semibold mb-1">Bài test trắc nghiệm</p>
               <p>Chấm điểm tự động: Đúng = 10đ, Sai = 0đ. Không cần cấu hình trọng số.</p>
             </div>
           ) : (
             <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Trọng số AI chấm ý (Semantic)</label>
-                <input type="number" step="0.1" max="1" className="w-full border rounded p-2" 
-                  value={config.semantic_weight} onChange={e => setConfig({...config, semantic_weight: e.target.value})} />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Trọng số Từ khóa (Keyword)</label>
-                <input type="number" step="0.1" max="1" className="w-full border rounded p-2" 
-                  value={config.keyword_weight} onChange={e => setConfig({...config, keyword_weight: e.target.value})} />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Trọng số Giọng nói (Voice)</label>
-                <input type="number" step="0.1" max="1" className="w-full border rounded p-2" 
-                  value={config.voice_weight} onChange={e => setConfig({...config, voice_weight: e.target.value})} />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Trọng số Thủ công (Manual)</label>
-                <input type="number" step="0.1" max="1" className="w-full border rounded p-2" 
-                  value={config.manual_weight} onChange={e => setConfig({...config, manual_weight: e.target.value})} />
-              </div>
-              <div className="text-xs text-gray-500 mb-4 bg-yellow-50 p-2 rounded">
+              {[
+                { label: 'Trọng số AI chấm ý (Semantic)', key: 'semantic_weight' },
+                { label: 'Trọng số Từ khóa (Keyword)', key: 'keyword_weight' },
+                { label: 'Trọng số Giọng nói (Voice)', key: 'voice_weight' },
+                { label: 'Trọng số Thủ công (Manual)', key: 'manual_weight' },
+              ].map(item => (
+                <div key={item.key}>
+                  <label className="block text-xs font-semibold text-gray-600 mb-1">{item.label}</label>
+                  <input type="number" step="0.1" max="1" className="w-full border border-indigo-100/60 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-200"
+                    value={config[item.key]} onChange={e => setConfig({...config, [item.key]: e.target.value})} />
+                </div>
+              ))}
+              <div className="text-xs text-amber-700 bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200/60 p-3 rounded-xl">
                 Tổng các trọng số nên bằng 1.0 (100%).
               </div>
-              <button onClick={handleSaveConfig} className="w-full bg-navy-800 text-white py-2 rounded-lg hover:bg-navy-900 flex justify-center items-center gap-2">
-                <Save size={18} /> Lưu cấu hình
+              <button onClick={handleSaveConfig} className="w-full bg-gradient-to-r from-indigo-600 to-violet-600 text-white py-2.5 rounded-xl font-semibold text-sm shadow-md shadow-indigo-200 hover:shadow-lg hover:shadow-indigo-300 transition-all flex justify-center items-center gap-2">
+                <Save size={16} /> Lưu cấu hình
               </button>
             </div>
           )}
@@ -264,26 +298,30 @@ const AITestEditPage = () => {
 
       {/* Add Question Modal */}
       {showQModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-            <h2 className="text-xl font-bold mb-4">Thêm câu hỏi mới</h2>
-            <form onSubmit={handleAddQuestion} className="space-y-4">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 animate-in fade-in duration-200">
+          <div className="relative max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl border border-indigo-100/60 bg-white shadow-2xl shadow-indigo-100/40 animate-in zoom-in-95 duration-200">
+            <div className="absolute left-0 right-0 top-0 h-1 rounded-t-2xl bg-gradient-to-r from-indigo-500 via-violet-500 to-purple-500"></div>
+            <div className="p-6 pt-7 border-b border-indigo-50 flex items-center justify-between">
+              <h2 className="text-lg font-bold text-gray-800">Thêm câu hỏi mới</h2>
+              <button onClick={() => setShowQModal(false)} className="p-2 hover:bg-indigo-50 rounded-full transition-colors"><X className="w-5 h-5 text-gray-400" /></button>
+            </div>
+            <form onSubmit={handleAddQuestion} className="p-6 space-y-4">
               <div>
-                <label className="block text-sm font-medium mb-1">Nội dung câu hỏi</label>
-                <textarea required className="w-full border rounded-lg p-2 h-20" value={qForm.content} onChange={e => setQForm({...qForm, content: e.target.value})}></textarea>
+                <label className="block text-sm font-semibold text-gray-700 mb-1">Nội dung câu hỏi</label>
+                <textarea required className="w-full border border-indigo-100/60 rounded-xl px-4 py-3 h-20 text-sm focus:outline-none focus:ring-2 focus:ring-violet-200" value={qForm.content} onChange={e => setQForm({...qForm, content: e.target.value})}></textarea>
               </div>
               
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium mb-1">Loại</label>
-                  <select className="w-full border rounded-lg p-2" value={qForm.type} onChange={e => setQForm({...qForm, type: e.target.value})}>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1">Loại</label>
+                  <select className="w-full border border-indigo-100/60 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-violet-200" value={qForm.type} onChange={e => setQForm({...qForm, type: e.target.value})}>
                     <option value="mcq">Trắc nghiệm (MCQ)</option>
                     <option value="essay">Tự luận / Giọng nói</option>
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-1">Độ khó</label>
-                  <select className="w-full border rounded-lg p-2" value={qForm.difficulty} onChange={e => setQForm({...qForm, difficulty: e.target.value})}>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1">Độ khó</label>
+                  <select className="w-full border border-indigo-100/60 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-violet-200" value={qForm.difficulty} onChange={e => setQForm({...qForm, difficulty: e.target.value})}>
                     <option value="easy">Dễ</option>
                     <option value="medium">Trung bình</option>
                     <option value="hard">Khó</option>
@@ -293,9 +331,9 @@ const AITestEditPage = () => {
 
               {/* MCQ Options */}
               {qForm.type === 'mcq' && (
-                <div className="border border-emerald-200 bg-emerald-50/50 rounded-lg p-4 space-y-3">
+                <div className="border border-emerald-200/60 bg-gradient-to-r from-emerald-50/50 to-teal-50/50 rounded-xl p-4 space-y-3">
                   <p className="text-sm font-semibold text-emerald-800">Các lựa chọn trắc nghiệm</p>
-                  {['A', 'B', 'C', 'D'].map(key => (
+                  {MCQ_KEYS.map(key => (
                     <div key={key} className="flex items-center gap-2">
                       <input
                         type="radio"
@@ -308,7 +346,7 @@ const AITestEditPage = () => {
                       <span className="font-bold text-sm w-6">{key}.</span>
                       <input
                         type="text"
-                        className="flex-1 border rounded-lg p-2 text-sm"
+                        className="flex-1 border border-indigo-100/60 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-200"
                         placeholder={`Đáp án ${key}`}
                         value={qForm.options[key]}
                         onChange={e => setQForm({...qForm, options: {...qForm.options, [key]: e.target.value}})}
@@ -320,12 +358,12 @@ const AITestEditPage = () => {
               )}
 
               {test.test_type === 'video_ai' && (
-                <div className="bg-blue-50 p-4 rounded-lg border border-blue-100 flex items-end gap-4">
+                <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-xl border border-blue-200/60 flex items-end gap-4">
                   <div className="flex-1">
-                    <label className="block text-sm font-medium text-blue-900 mb-1">Đường dẫn Video AI</label>
-                    <input type="text" readOnly className="w-full border-blue-200 rounded-lg p-2 bg-white/50 text-xs" value={qForm.video_url || 'Chưa có video...'} />
+                    <label className="block text-sm font-semibold text-blue-900 mb-1">Đường dẫn Video AI</label>
+                    <input type="text" readOnly className="w-full border-blue-200/60 rounded-xl p-2 bg-white/50 text-xs" value={qForm.video_url || 'Chưa có video...'} />
                   </div>
-                  <button type="button" onClick={handleGenerateVideo} className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-blue-700 whitespace-nowrap">
+                  <button type="button" onClick={handleGenerateVideo} className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-4 py-2 rounded-xl text-sm font-semibold shadow-md shadow-blue-200 hover:shadow-lg transition-all whitespace-nowrap">
                     Tự động tạo Video AI
                   </button>
                 </div>
@@ -333,19 +371,19 @@ const AITestEditPage = () => {
 
               {qForm.type === 'essay' && (
                 <div>
-                  <label className="block text-sm font-medium mb-1">Câu trả lời mẫu (Dùng để AI chấm điểm)</label>
-                  <textarea className="w-full border rounded-lg p-2 h-20" placeholder="VD: Vòng đời component React bắt đầu với..." value={qForm.expected_answer} onChange={e => setQForm({...qForm, expected_answer: e.target.value})}></textarea>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1">Câu trả lời mẫu (Dùng để AI chấm điểm)</label>
+                  <textarea className="w-full border border-indigo-100/60 rounded-xl px-4 py-3 h-20 text-sm focus:outline-none focus:ring-2 focus:ring-violet-200" placeholder="VD: Vòng đời component React bắt đầu với..." value={qForm.expected_answer} onChange={e => setQForm({...qForm, expected_answer: e.target.value})}></textarea>
                 </div>
               )}
 
               <div>
-                <label className="block text-sm font-medium mb-1">Từ khóa (Cách nhau bằng dấu phẩy)</label>
-                <input type="text" className="w-full border rounded-lg p-2" placeholder="react, hooks, state, useEffect" value={qForm.keywords} onChange={e => setQForm({...qForm, keywords: e.target.value})} />
+                <label className="block text-sm font-semibold text-gray-700 mb-1">Từ khóa (Cách nhau bằng dấu phẩy)</label>
+                <input type="text" className="w-full border border-indigo-100/60 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-violet-200" placeholder="react, hooks, state, useEffect" value={qForm.keywords} onChange={e => setQForm({...qForm, keywords: e.target.value})} />
               </div>
 
-              <div className="flex justify-end gap-3 mt-6 border-t pt-4">
-                <button type="button" onClick={() => setShowQModal(false)} className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg">Hủy</button>
-                <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Thêm vào bài test</button>
+              <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-indigo-50">
+                <button type="button" onClick={() => setShowQModal(false)} className="px-5 py-2.5 text-sm font-semibold text-gray-600 hover:bg-indigo-50 rounded-xl transition-colors">Hủy</button>
+                <button type="submit" className="px-5 py-2.5 bg-gradient-to-r from-indigo-600 to-violet-600 text-white rounded-xl font-semibold text-sm shadow-md shadow-indigo-200 hover:shadow-lg transition-all">Thêm vào bài test</button>
               </div>
             </form>
           </div>
@@ -354,31 +392,34 @@ const AITestEditPage = () => {
 
       {/* Auto-Generate Questions Modal */}
       {showGenModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded-xl w-full max-w-md">
-            <h2 className="text-xl font-bold mb-1 flex items-center gap-2">
-              <Sparkles size={20} className="text-purple-600" /> Tạo câu hỏi tự động
-            </h2>
-            <p className="text-sm text-gray-500 mb-4">Phương pháp Hybrid: AI + NLP + HR Best Practices</p>
-            <form onSubmit={handleGenerateQuestions} className="space-y-4">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 animate-in fade-in duration-200">
+          <div className="relative w-full max-w-md overflow-hidden rounded-2xl border border-indigo-100/60 bg-white shadow-2xl shadow-indigo-100/40 animate-in zoom-in-95 duration-200">
+            <div className="absolute left-0 right-0 top-0 h-1 rounded-t-2xl bg-gradient-to-r from-violet-500 via-purple-500 to-fuchsia-500"></div>
+            <div className="p-6 pt-7 border-b border-indigo-50">
+              <h2 className="text-lg font-bold text-gray-800 flex items-center gap-2">
+                <Sparkles size={18} className="text-purple-600" /> Tạo câu hỏi tự động
+              </h2>
+              <p className="text-sm text-gray-500 mt-1">Phương pháp Hybrid: AI + NLP + HR Best Practices</p>
+            </div>
+            <form onSubmit={handleGenerateQuestions} className="p-6 space-y-4">
               <div>
-                <label className="block text-sm font-medium mb-1">Chủ đề / Kỹ năng cần kiểm tra</label>
+                <label className="block text-sm font-semibold text-gray-700 mb-1">Chủ đề / Kỹ năng cần kiểm tra</label>
                 <input 
                   type="text" 
                   placeholder="VD: Công nghệ phần mềm, NodeJS, Xử lý tình huống..." 
-                  className="w-full border rounded-lg p-2" 
+                  className="w-full border border-indigo-100/60 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-violet-200"
                   value={genForm.topic} 
                   onChange={e => setGenForm({...genForm, topic: e.target.value})} 
                 />
               </div>
               <div className="relative flex items-center py-1">
-                <div className="flex-grow border-t border-gray-200"></div>
+                <div className="flex-grow border-t border-indigo-100/60"></div>
                 <span className="flex-shrink-0 mx-4 text-gray-400 text-xs font-medium tracking-widest">HOẶC DỰA TRÊN JD</span>
-                <div className="flex-grow border-t border-gray-200"></div>
+                <div className="flex-grow border-t border-indigo-100/60"></div>
               </div>
               <div>
-                <label className="block text-sm font-medium mb-1">Chọn tin tuyển dụng</label>
-                <select className={`w-full border rounded-lg p-2 ${genForm.topic ? 'bg-gray-100 text-gray-400' : ''}`} value={genForm.job_id} onChange={e => setGenForm({...genForm, job_id: e.target.value})} disabled={!!genForm.topic}>
+                <label className="block text-sm font-semibold text-gray-700 mb-1">Chọn tin tuyển dụng</label>
+                <select className={`w-full border border-indigo-100/60 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-violet-200 ${genForm.topic ? 'bg-gradient-to-r from-indigo-50 to-violet-50 text-gray-400' : ''}`} value={genForm.job_id} onChange={e => setGenForm({...genForm, job_id: e.target.value})} disabled={!!genForm.topic}>
                   <option value="">-- Chọn tin để phân tích JD --</option>
                   {jobs.map(job => (
                     <option key={job.id} value={job.id}>{job.title || job.job_title}</option>
@@ -387,12 +428,12 @@ const AITestEditPage = () => {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium mb-1">Số câu hỏi</label>
-                  <input type="number" min="1" max="30" className="w-full border rounded-lg p-2" value={genForm.count} onChange={e => setGenForm({...genForm, count: parseInt(e.target.value) || 10})} />
+                  <label className="block text-sm font-semibold text-gray-700 mb-1">Số câu hỏi</label>
+                  <input type="number" min="1" max="30" className="w-full border border-indigo-100/60 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-violet-200" value={genForm.count} onChange={e => setGenForm({...genForm, count: parseInt(e.target.value) || 10})} />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium mb-1">Tỉ lệ trắc nghiệm</label>
-                  <select className="w-full border rounded-lg p-2" value={genForm.mcq_ratio} onChange={e => setGenForm({...genForm, mcq_ratio: parseFloat(e.target.value)})}>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1">Tỉ lệ trắc nghiệm</label>
+                  <select className="w-full border border-indigo-100/60 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-violet-200" value={genForm.mcq_ratio} onChange={e => setGenForm({...genForm, mcq_ratio: parseFloat(e.target.value)})}>
                     <option value="1">100% trắc nghiệm</option>
                     <option value="0.7">70% trắc nghiệm + 30% tự luận</option>
                     <option value="0.5">50% trắc nghiệm + 50% tự luận</option>
@@ -401,14 +442,14 @@ const AITestEditPage = () => {
                   </select>
                 </div>
               </div>
-              <div className="bg-purple-50 border border-purple-200 rounded-lg p-3 text-xs text-purple-800 space-y-1">
+              <div className="bg-gradient-to-r from-purple-50 to-violet-50 border border-purple-200/60 rounded-xl p-3 text-xs text-purple-800 space-y-1">
                 <p><strong>AI</strong>: Gemini phân tích JD → trích xuất kỹ năng cần thiết</p>
                 <p><strong>NLP</strong>: Xác định từ khóa quan trọng từ mô tả & yêu cầu</p>
                 <p><strong>HR</strong>: Áp dụng STAR method, competency-based interviewing</p>
               </div>
-              <div className="flex justify-end gap-3 mt-6 border-t pt-4">
-                <button type="button" onClick={() => setShowGenModal(false)} className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg" disabled={genLoading}>Hủy</button>
-                <button type="submit" disabled={genLoading} className="px-4 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-lg hover:shadow-lg transition-all flex items-center gap-2 disabled:opacity-60">
+              <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-indigo-50">
+                <button type="button" onClick={() => setShowGenModal(false)} className="px-5 py-2.5 text-sm font-semibold text-gray-600 hover:bg-indigo-50 rounded-xl transition-colors" disabled={genLoading}>Hủy</button>
+                <button type="submit" disabled={genLoading} className="px-5 py-2.5 bg-gradient-to-r from-violet-600 to-purple-600 text-white rounded-xl font-semibold text-sm shadow-md shadow-violet-200 hover:shadow-lg transition-all flex items-center gap-2 disabled:opacity-60">
                   {genLoading ? <><Loader2 size={16} className="animate-spin" /> Đang tạo...</> : <><Sparkles size={16} /> Tạo câu hỏi</>}
                 </button>
               </div>
@@ -416,6 +457,7 @@ const AITestEditPage = () => {
           </div>
         </div>
       )}
+    </div>
     </div>
   );
 };

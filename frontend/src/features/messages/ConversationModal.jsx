@@ -149,19 +149,19 @@ export default function ConversationModal({ open, applicationId, initialTitle = 
 
   return (
     <div className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-950/50 px-4 py-6">
-      <div className="flex h-[82vh] w-full max-w-3xl flex-col overflow-hidden rounded-[1.5rem] bg-white shadow-2xl shadow-slate-900/30">
-        <div className="flex items-center justify-between gap-4 border-b border-gray-100 px-5 py-4">
+      <div className="flex h-[82vh] w-full max-w-3xl flex-col overflow-hidden rounded-lg bg-white shadow-lg shadow-slate-900/30">
+        <div className="flex items-center justify-between gap-4 border-b border-indigo-50 px-5 py-4">
           <div className="flex min-w-0 items-center gap-3">
             {conversation ? (
               <UserAvatar
                 src={otherUser.avatar_url}
                 alt={otherUser.name}
                 className="h-11 w-11 rounded-full object-cover ring-2 ring-gray-100"
-                fallbackClassName="flex h-11 w-11 items-center justify-center rounded-full bg-gradient-to-br from-navy-500 to-navy-700 ring-2 ring-gray-100"
+                fallbackClassName="flex h-11 w-11 items-center justify-center rounded-full bg-gradient-to-r from-indigo-600 to-violet-600 ring-2 ring-gray-100"
                 iconClassName="h-5 w-5 text-white"
               />
             ) : (
-              <div className="flex h-11 w-11 items-center justify-center rounded-full bg-navy-50 text-navy-600">
+              <div className="flex h-11 w-11 items-center justify-center rounded-full bg-indigo-50 text-indigo-600">
                 <MessageCircle className="h-5 w-5" />
               </div>
             )}
@@ -177,20 +177,20 @@ export default function ConversationModal({ open, applicationId, initialTitle = 
           <button
             type="button"
             onClick={onClose}
-            className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-gray-100 text-gray-500 transition hover:bg-gray-200"
+            className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-r from-indigo-50 to-violet-50 text-gray-500 transition hover:bg-gray-200"
           >
             <X className="h-5 w-5" />
           </button>
         </div>
 
         {error ? (
-          <div className="mx-5 mt-4 rounded-xl border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>
+          <div className="mx-5 mt-4 rounded-lg border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>
         ) : null}
 
-        <div className="flex-1 overflow-y-auto bg-gray-50 px-5 py-4">
+        <div className="flex-1 overflow-y-auto bg-indigo-50/50 px-5 py-4">
           {loading ? (
             <div className="flex h-full flex-col items-center justify-center text-gray-500">
-              <Loader2 className="h-8 w-8 animate-spin text-navy-600" />
+              <Loader2 className="h-8 w-8 animate-spin text-indigo-600" />
               <p className="mt-3 text-sm font-medium">Đang mở hội thoại...</p>
             </div>
           ) : messages.length ? (
@@ -200,9 +200,9 @@ export default function ConversationModal({ open, applicationId, initialTitle = 
 
                 return (
                   <div key={message.id} className={`flex ${mine ? 'justify-end' : 'justify-start'}`}>
-                    <div className={`max-w-[78%] rounded-2xl px-4 py-3 shadow-sm ${mine ? 'bg-navy-700 text-white' : 'bg-white text-gray-800 border border-gray-100'}`}>
+                    <div className={`max-w-[78%] rounded-lg px-4 py-3 shadow-sm ${mine ? 'bg-gradient-to-r from-indigo-600 to-violet-600 text-white' : 'bg-white text-gray-800 border border-indigo-50'}`}>
                       <p className="whitespace-pre-line text-sm leading-6">{message.body}</p>
-                      <p className={`mt-1 text-[11px] ${mine ? 'text-navy-100' : 'text-gray-400'}`}>
+                      <p className={`mt-1 text-[11px] ${mine ? 'text-indigo-100' : 'text-gray-400'}`}>
                         {formatMessageTime(message.created_at)}
                       </p>
                     </div>
@@ -220,7 +220,7 @@ export default function ConversationModal({ open, applicationId, initialTitle = 
           )}
         </div>
 
-        <form onSubmit={handleSend} className="border-t border-gray-100 bg-white p-4">
+        <form onSubmit={handleSend} className="border-t border-indigo-50 bg-white p-4">
           <div className="flex items-end gap-3">
             <textarea
               value={draft}
@@ -228,7 +228,7 @@ export default function ConversationModal({ open, applicationId, initialTitle = 
               placeholder="Nhập tin nhắn..."
               rows={2}
               maxLength={2000}
-              className="min-h-[48px] flex-1 resize-none rounded-2xl border border-gray-200 px-4 py-3 text-sm outline-none transition focus:border-navy-400 focus:ring-2 focus:ring-navy-100"
+              className="min-h-[48px] flex-1 resize-none rounded-lg border border-indigo-100/60 px-4 py-3 text-sm outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-violet-200"
               onKeyDown={(event) => {
                 if (event.key === 'Enter' && !event.shiftKey) {
                   event.preventDefault();
@@ -239,7 +239,7 @@ export default function ConversationModal({ open, applicationId, initialTitle = 
             <button
               type="submit"
               disabled={sending || !draft.trim() || loading}
-              className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-navy-700 text-white transition hover:bg-navy-800 disabled:cursor-not-allowed disabled:opacity-50"
+              className="inline-flex h-12 w-12 items-center justify-center rounded-lg bg-gradient-to-r from-indigo-600 to-violet-600 text-white transition hover:from-indigo-700 hover:to-violet-700 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {sending ? <Loader2 className="h-5 w-5 animate-spin" /> : <Send className="h-5 w-5" />}
             </button>
