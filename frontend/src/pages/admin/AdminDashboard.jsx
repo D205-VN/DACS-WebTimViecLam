@@ -1,7 +1,13 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
+import {
+  getAdminDashboardPath,
+  getAdminDashboardState,
+  getAdminDashboardTab,
+} from '@shared/utils/adminDashboardRoutes';
 import {
   Activity,
+  Ban,
   Bell,
   Briefcase,
   BriefcaseBusiness,
@@ -14,6 +20,7 @@ import {
   TrendingUp,
   UserCheck,
   Users,
+  ShieldCheck,
 } from 'lucide-react';
 import { useAuth } from '@features/auth/AuthContext';
 import { useNotifications } from '@features/notifications/NotificationContext';
@@ -83,13 +90,26 @@ export default function AdminDashboard() {
   const { user, logout, token } = useAuth();
   const { notifications, unreadCount, markAllAsRead } = useNotifications();
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState('overview');
+  const location = useLocation();
+  const [activeTab, setActiveTab] = useState(() => getAdminDashboardTab(location));
   const [searchTerm, setSearchTerm] = useState('');
   const [stats, setStats] = useState({ users: 0, jobs: 0, pendingJobs: 0, applied: 0 });
   const [users, setUsers] = useState([]);
   const [pendingJobs, setPendingJobs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [jobActionLoading, setJobActionLoading] = useState(null);
+
+  const [suspendLoading, setSuspendLoading] = useState(null);
+
+  // Sync tab from URL
+  useEffect(() => {
+    setActiveTab(getAdminDashboardTab(location));
+  }, [location]);
+
+  const handleTabChange = (tab) => {
+    setActiveTab(tab);
+    navigate(getAdminDashboardPath(tab), { state: getAdminDashboardState(tab) });
+  };
 
   useEffect(() => {
     const fetchData = async () => {
@@ -154,7 +174,7 @@ export default function AdminDashboard() {
   };
 
   const handleOpenNotifications = async () => {
-    setActiveTab('notifications');
+    handleTabChange('notifications');
     await handleMarkNotificationsAsRead();
   };
 
@@ -190,6 +210,39 @@ export default function AdminDashboard() {
       console.error('Lỗi khi cập nhật trạng thái tin:', err);
     } finally {
       setJobActionLoading(null);
+    }
+  };
+
+  const handleToggleSuspend = async (userId, currentSuspended) => {
+    const action = currentSuspended ? 'kích hoạt lại' : 'tạm dừng';
+    if (!window.confirm(`Bạn có chắc muốn ${action} tài khoản này?`)) return;
+
+    try {
+      setSuspendLoading(userId);
+      const res = await fetch(`${API_BASE_URL}/api/admin/users/${userId}/suspend`, {
+        method: 'PUT',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ suspended: !currentSuspended }),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        setUsers((prev) =>
+          prev.map((u) =>
+            u.id === userId ? { ...u, is_suspended: data.data.is_suspended } : u
+          )
+        );
+      } else {
+        const errData = await res.json();
+        alert(errData.error || 'Có lỗi xảy ra');
+      }
+    } catch (err) {
+      console.error('Toggle suspend error:', err);
+    } finally {
+      setSuspendLoading(null);
     }
   };
 
@@ -282,34 +335,35 @@ export default function AdminDashboard() {
   ];
 
   return (
-    <div className="min-h-screen bg-gray-950 text-white">
-      <header className="sticky top-0 z-40 border-b border-white/10 bg-gray-950/85 backdrop-blur-xl">
+    <div className="min-h-screen bg-gradient-to-br from-[#0a0e1a] via-[#0d1225] to-[#080c18] text-white">
+      <div className="fixed inset-0 pointer-events-none z-0"><div className="absolute top-0 right-1/4 w-[500px] h-[500px] bg-indigo-500/[0.04] rounded-full blur-[150px]" /><div className="absolute bottom-0 left-1/4 w-96 h-96 bg-purple-500/[0.03] rounded-full blur-[120px]" /></div>
+      <header className="sticky top-0 z-40 border-b border-white/[0.06] bg-[#0a0e1a]/80 backdrop-blur-xl">
         <div className="mx-auto flex max-w-[1440px] items-center justify-between gap-4 px-4 py-4 sm:px-6 lg:px-8">
           <button
             type="button"
-            onClick={() => setActiveTab('overview')}
+            onClick={() => handleTabChange('overview')}
             className="flex items-center gap-3 rounded-lg transition-transform duration-200 "
           >
-            <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-gradient-to-br from-blue-600 to-indigo-500 shadow-lg shadow-blue-500/20">
+            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 shadow-lg shadow-indigo-500/20">
               <Shield className="h-5 w-5 text-white" />
             </div>
             <div className="text-left">
-              <p className="bg-gradient-to-r from-white to-gray-400 bg-clip-text text-lg font-bold text-transparent">
+              <p className="bg-gradient-to-r from-white to-slate-400 bg-clip-text text-lg font-bold text-transparent">
                 AdminPanel
               </p>
-              <p className="text-xs text-gray-500">Kiểm soát người dùng và nội dung</p>
+              <p className="text-xs text-slate-500">Kiểm soát người dùng và nội dung</p>
             </div>
           </button>
 
           <div className="hidden flex-1 items-center justify-center lg:flex">
-            <div className="flex w-full max-w-xl items-center rounded-lg border border-white/10 bg-white/5 px-4 py-3 shadow-[0_10px_30px_rgba(0,0,0,0.25)]">
-              <Search className="mr-3 h-4 w-4 text-gray-500" />
+            <div className="flex w-full max-w-xl items-center rounded-xl border border-white/[0.08] bg-white/[0.04] px-4 py-2.5">
+              <Search className="mr-3 h-4 w-4 text-slate-500" />
               <input
                 type="text"
                 value={searchTerm}
                 onChange={(event) => setSearchTerm(event.target.value)}
                 placeholder={searchPlaceholderByTab[activeTab]}
-                className="w-full border-none bg-transparent text-sm text-gray-100 outline-none placeholder:text-gray-500"
+                className="w-full border-none bg-transparent text-sm text-slate-200 outline-none placeholder:text-slate-500"
               />
             </div>
           </div>
@@ -317,7 +371,7 @@ export default function AdminDashboard() {
           <div className="flex items-center gap-3">
             <button
               onClick={handleOpenNotifications}
-              className="relative hidden rounded-lg border border-white/10 bg-white/5 p-3 text-gray-400 transition-colors hover:border-blue-500/20 hover:text-white md:flex"
+              className="relative hidden rounded-xl border border-white/[0.08] bg-white/[0.04] p-2.5 text-slate-400 transition-all hover:border-indigo-500/20 hover:text-white md:flex"
               title="Mở thông báo quản trị"
             >
               <Bell className="h-5 w-5" />
@@ -328,7 +382,7 @@ export default function AdminDashboard() {
               )}
             </button>
 
-            <div className="hidden items-center gap-3 rounded-lg border border-white/10 bg-white/5 px-3 py-2 sm:flex">
+            <div className="hidden items-center gap-3 rounded-xl border border-white/[0.08] bg-white/[0.04] px-3 py-2 sm:flex">
               <UserAvatar
                 src={user?.avatar_url}
                 alt={user?.full_name}
@@ -337,10 +391,10 @@ export default function AdminDashboard() {
                 iconClassName="h-4 w-4 text-white"
               />
               <div className="text-left">
-                <p className="max-w-[160px] truncate text-sm font-semibold text-gray-100">
+                <p className="max-w-[160px] truncate text-sm font-semibold text-white/90">
                   {user?.full_name || 'System Admin'}
                 </p>
-                <p className="text-[11px] uppercase tracking-[0.2em] text-blue-300">
+                <p className="text-[11px] uppercase tracking-[0.2em] text-indigo-300">
                   {user?.role_code || 'admin'}
                 </p>
               </div>
@@ -348,7 +402,7 @@ export default function AdminDashboard() {
 
             <button
               onClick={handleLogout}
-              className="inline-flex items-center gap-2 rounded-lg border border-red-500/20 bg-gradient-to-r from-rose-500 to-pink-500/10 px-4 py-3 text-sm font-semibold text-red-300 transition-all hover:border-red-500/30 hover:bg-gradient-to-r from-rose-500 to-pink-500/15 hover:text-white"
+              className="inline-flex items-center gap-2 rounded-xl border border-rose-500/20 bg-rose-500/10 px-4 py-2.5 text-sm font-semibold text-rose-300 transition-all hover:bg-rose-500/20 hover:text-white"
             >
               <LogOut className="h-4 w-4" />
               <span className="hidden sm:inline">Đăng xuất</span>
@@ -357,7 +411,7 @@ export default function AdminDashboard() {
         </div>
 
         <div className="mx-auto max-w-[1440px] px-4 pb-4 sm:px-6 lg:px-8 lg:hidden">
-          <div className="flex items-center rounded-lg border border-white/10 bg-white/5 px-4 py-3">
+          <div className="flex items-center rounded-xl border border-white/[0.08] bg-white/[0.04] px-4 py-2.5">
             <Search className="mr-3 h-4 w-4 text-gray-500" />
             <input
               type="text"
@@ -371,19 +425,19 @@ export default function AdminDashboard() {
       </header>
 
       <div className="mx-auto max-w-[1440px] px-4 py-8 sm:px-6 lg:px-8">
-        <section className="relative overflow-hidden rounded-lg border border-blue-500/20 bg-gradient-to-br from-gray-900 via-slate-900 to-[#0c1527] p-6 shadow-[0_24px_80px_rgba(0,0,0,0.35)] sm:p-8">
-          <div className="absolute -right-20 top-0 h-64 w-64 rounded-full bg-blue-500/15 blur-3xl" />
-          <div className="absolute -left-16 bottom-0 h-52 w-52 rounded-full bg-indigo-500/15 blur-3xl" />
+        <section className="relative overflow-hidden rounded-2xl border border-white/[0.06] bg-white/[0.02] backdrop-blur-sm p-6 sm:p-8">
+          <div className="absolute -right-20 top-0 h-64 w-64 rounded-full bg-indigo-500/10 blur-3xl" />
+          <div className="absolute -left-16 bottom-0 h-52 w-52 rounded-full bg-purple-500/10 blur-3xl" />
 
           <div className="relative z-10 flex flex-col gap-8 xl:flex-row xl:items-end xl:justify-between">
             <div className="max-w-3xl">
-              <div className="inline-flex items-center gap-2 rounded-full border border-blue-400/20 bg-blue-500/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.24em] text-blue-200">
+              <div className="inline-flex items-center gap-2 rounded-full border border-indigo-400/20 bg-indigo-500/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.24em] text-indigo-200">
                 Admin Workspace
               </div>
               <h1 className="mt-4 text-3xl font-bold tracking-tight text-white sm:text-4xl">
                 Đồng bộ kiểm duyệt và vận hành hệ thống
               </h1>
-              <p className="mt-3 max-w-2xl text-sm leading-6 text-gray-300 sm:text-base">
+              <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-400 sm:text-base">
                 Theo dõi đăng ký mới, rà soát tin tuyển dụng chờ duyệt và giữ chất lượng dữ liệu
                 toàn hệ thống trong một luồng làm việc thống nhất.
               </p>
@@ -396,9 +450,9 @@ export default function AdminDashboard() {
                 ].map((item) => (
                   <div
                     key={item.label}
-                    className={`rounded-lg border px-4 py-3 text-sm ${item.tone}`}
+                    className={`rounded-xl border px-4 py-3 text-sm ${item.tone}`}
                   >
-                    <p className="text-[11px] uppercase tracking-[0.2em] text-gray-400">{item.label}</p>
+                    <p className="text-[11px] uppercase tracking-[0.2em] text-slate-500">{item.label}</p>
                     <p className="mt-1 text-lg font-semibold text-white">{item.value.toLocaleString()}</p>
                   </div>
                 ))}
@@ -407,8 +461,8 @@ export default function AdminDashboard() {
 
             <div className="grid gap-3 sm:min-w-[320px] sm:grid-cols-2">
               <button
-                onClick={() => setActiveTab('jobs')}
-                className="rounded-lg border border-amber-500/20 bg-amber-500/10 p-4 text-left transition-transform duration-200 "
+                onClick={() => handleTabChange('jobs')}
+                className="rounded-xl border border-amber-500/20 bg-amber-500/10 p-4 text-left transition-all hover:bg-amber-500/15"
               >
                 <p className="text-xs uppercase tracking-[0.2em] text-amber-300">Hàng chờ</p>
                 <p className="mt-2 text-3xl font-bold text-white">{stats.pendingJobs.toLocaleString()}</p>
@@ -416,12 +470,12 @@ export default function AdminDashboard() {
               </button>
 
               <button
-                onClick={() => setActiveTab('users')}
-                className="rounded-lg border border-blue-500/20 bg-blue-500/10 p-4 text-left transition-transform duration-200 "
+                onClick={() => handleTabChange('users')}
+                className="rounded-xl border border-indigo-500/20 bg-indigo-500/10 p-4 text-left transition-all hover:bg-indigo-500/15"
               >
-                <p className="text-xs uppercase tracking-[0.2em] text-blue-300">Người dùng</p>
+                <p className="text-xs uppercase tracking-[0.2em] text-indigo-300">Người dùng</p>
                 <p className="mt-2 text-3xl font-bold text-white">{stats.users.toLocaleString()}</p>
-                <p className="mt-1 text-sm text-blue-200/80">hồ sơ đang hoạt động</p>
+                <p className="mt-1 text-sm text-indigo-200/80">hồ sơ đang hoạt động</p>
               </button>
             </div>
           </div>
@@ -430,8 +484,8 @@ export default function AdminDashboard() {
         <div className="mt-8 flex flex-col gap-8 lg:flex-row">
           <aside className="w-full shrink-0 lg:w-72">
             <div className="sticky top-28 space-y-4">
-              <div className="rounded-lg border border-white/10 bg-gray-900/90 p-4 shadow-[0_20px_40px_rgba(0,0,0,0.25)]">
-                <p className="mb-4 px-2 text-[11px] font-semibold uppercase tracking-[0.24em] text-gray-500">
+              <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] backdrop-blur-sm p-4">
+                <p className="mb-4 px-2 text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-500">
                   Điều hướng
                 </p>
                 <div className="space-y-1.5">
@@ -447,15 +501,15 @@ export default function AdminDashboard() {
                             handleOpenNotifications();
                             return;
                           }
-                          setActiveTab(item.id);
+                          handleTabChange(item.id);
                         }}
-                        className={`flex w-full items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium transition-all duration-200 ${
+                        className={`flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-medium transition-all duration-200 ${
                           isActive
-                            ? 'bg-blue-500/10 text-blue-300 shadow-[inset_0_0_0_1px_rgba(59,130,246,0.18)]'
-                            : 'text-gray-400 hover:bg-white/5 hover:text-gray-100'
+                            ? 'bg-indigo-500/10 text-indigo-300 border border-indigo-500/15'
+                            : 'text-slate-400 hover:bg-white/[0.04] hover:text-white'
                         }`}
                       >
-                        <Icon className={`h-4 w-4 ${isActive ? 'text-blue-400' : 'text-gray-500'}`} />
+                        <Icon className={`h-4 w-4 ${isActive ? 'text-indigo-400' : 'text-slate-500'}`} />
                         {item.label}
                       </button>
                     );
@@ -470,7 +524,7 @@ export default function AdminDashboard() {
                   đều để luồng tuyển dụng không bị nghẽn.
                 </p>
                 <button
-                  onClick={() => setActiveTab('jobs')}
+                  onClick={() => handleTabChange('jobs')}
                   className="mt-4 inline-flex items-center rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-blue-500"
                 >
                   Mở hàng chờ
@@ -484,19 +538,19 @@ export default function AdminDashboard() {
               {statCards.map((stat) => (
                 <div
                   key={stat.title}
-                  className={`group relative overflow-hidden rounded-lg border ${stat.border} bg-gray-900/90 p-5 shadow-[0_20px_40px_rgba(0,0,0,0.25)] transition-transform duration-300 `}
+                  className={`group relative overflow-hidden rounded-2xl border ${stat.border} bg-white/[0.02] backdrop-blur-sm p-5 transition-all duration-300 hover:bg-white/[0.04]`}
                 >
                   <div className="flex items-start justify-between">
                     <div>
-                      <p className="text-sm font-medium text-gray-400">{stat.title}</p>
+                      <p className="text-sm font-medium text-slate-400">{stat.title}</p>
                       <h3 className="mt-2 text-3xl font-bold tracking-tight text-white">{stat.value}</h3>
-                      <p className="mt-2 text-sm text-gray-500">{stat.helper}</p>
+                      <p className="mt-2 text-sm text-slate-500">{stat.helper}</p>
                     </div>
-                    <div className={`rounded-lg p-3 ${stat.bg} ${stat.color}`}>
+                    <div className={`rounded-xl p-3 ${stat.bg} ${stat.color}`}>
                       <stat.icon className="h-6 w-6" />
                     </div>
                   </div>
-                  <div className="mt-4 flex items-center gap-2 text-xs uppercase tracking-[0.2em] text-gray-500">
+                  <div className="mt-4 flex items-center gap-2 text-xs uppercase tracking-[0.2em] text-slate-500">
                     <TrendingUp className="h-3.5 w-3.5 text-emerald-400" />
                     Ổn định
                   </div>
@@ -506,7 +560,7 @@ export default function AdminDashboard() {
             </section>
 
             {loading ? (
-              <div className="rounded-lg border border-white/10 bg-gray-900/90 p-12 text-center text-gray-400 shadow-[0_20px_40px_rgba(0,0,0,0.25)]">
+              <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-12 text-center text-slate-400">
                 Đang tải dữ liệu quản trị...
               </div>
             ) : (
@@ -514,17 +568,17 @@ export default function AdminDashboard() {
                 {activeTab === 'overview' && (
                   <>
                     <section className="grid grid-cols-1 gap-6 xl:grid-cols-[1.65fr,1fr]">
-                      <div className="rounded-lg border border-white/10 bg-gray-900/90 p-6 shadow-[0_20px_40px_rgba(0,0,0,0.25)]">
+                      <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] backdrop-blur-sm p-6">
                         <div className="mb-6 flex items-center justify-between gap-4">
                           <div>
                             <h2 className="text-xl font-bold text-white">Người dùng đăng ký gần đây</h2>
-                            <p className="mt-1 text-sm text-gray-500">
+                            <p className="mt-1 text-sm text-slate-500">
                               Danh sách cập nhật nhanh để rà soát luồng người dùng mới.
                             </p>
                           </div>
                           <button
-                            onClick={() => setActiveTab('users')}
-                            className="rounded-lg border border-blue-500/20 bg-blue-500/10 px-4 py-2 text-sm font-semibold text-blue-300 transition-colors hover:bg-blue-500/15"
+                            onClick={() => handleTabChange('users')}
+                            className="rounded-xl border border-indigo-500/20 bg-indigo-500/10 px-4 py-2 text-sm font-semibold text-indigo-300 transition-all hover:bg-indigo-500/15"
                           >
                             Xem tất cả
                           </button>
@@ -533,7 +587,7 @@ export default function AdminDashboard() {
                         <div className="overflow-x-auto">
                           <table className="w-full border-collapse text-left">
                             <thead>
-                              <tr className="border-b border-white/10 text-xs uppercase tracking-[0.18em] text-gray-500">
+                              <tr className="border-b border-white/[0.06] text-xs uppercase tracking-[0.18em] text-slate-500">
                                 <th className="pb-3 font-medium">Người dùng</th>
                                 <th className="pb-3 font-medium">Vai trò</th>
                                 <th className="pb-3 font-medium">Ngày tạo</th>
@@ -579,15 +633,15 @@ export default function AdminDashboard() {
                       </div>
 
                       <div className="space-y-6">
-                        <div className="rounded-lg border border-white/10 bg-gray-900/90 p-6 shadow-[0_20px_40px_rgba(0,0,0,0.25)]">
+                        <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] backdrop-blur-sm p-6">
                           <h2 className="text-lg font-bold text-white">Phân bổ vai trò</h2>
-                          <p className="mt-1 text-sm text-gray-500">
+                          <p className="mt-1 text-sm text-slate-500">
                             Tỷ trọng hiện tại giữa quản trị, nhà tuyển dụng và ứng viên.
                           </p>
 
                           <div className="mt-5 space-y-3">
                             {[
-                              { label: 'Quản trị', value: adminCount, tone: 'bg-blue-500' },
+                              { label: 'Quản trị', value: adminCount, tone: 'bg-indigo-500' },
                               { label: 'Nhà tuyển dụng', value: employerCount, tone: 'bg-amber-500' },
                               { label: 'Ứng viên', value: seekerCount, tone: 'bg-emerald-500' },
                             ].map((item) => {
@@ -597,7 +651,7 @@ export default function AdminDashboard() {
                               return (
                                 <div key={item.label}>
                                   <div className="mb-2 flex items-center justify-between text-sm">
-                                    <span className="text-gray-300">{item.label}</span>
+                                    <span className="text-slate-300">{item.label}</span>
                                     <span className="font-semibold text-white">{item.value.toLocaleString()}</span>
                                   </div>
                                   <div className="h-2 rounded-full bg-white/5">
@@ -609,7 +663,7 @@ export default function AdminDashboard() {
                           </div>
                         </div>
 
-                        <div className="rounded-lg border border-amber-500/15 bg-gradient-to-br from-amber-500/10 to-red-500/5 p-6 shadow-[0_20px_40px_rgba(0,0,0,0.25)]">
+                        <div className="rounded-2xl border border-amber-500/15 bg-gradient-to-br from-amber-500/10 to-orange-500/5 p-6">
                           <h2 className="text-lg font-bold text-white">Điểm nóng kiểm duyệt</h2>
                           <p className="mt-2 text-sm leading-6 text-amber-100/80">
                             {stats.pendingJobs > 0
@@ -617,8 +671,8 @@ export default function AdminDashboard() {
                               : 'Hiện không có tin nào trong hàng chờ. Hệ thống đang ở trạng thái ổn định.'}
                           </p>
                           <button
-                            onClick={() => setActiveTab('jobs')}
-                            className="mt-4 rounded-lg border border-amber-400/20 bg-white/5 px-4 py-2.5 text-sm font-semibold text-amber-200 transition-colors hover:bg-white/10"
+                            onClick={() => handleTabChange('jobs')}
+                            className="mt-4 rounded-xl border border-amber-400/20 bg-white/[0.06] px-4 py-2.5 text-sm font-semibold text-amber-200 transition-all hover:bg-white/[0.1]"
                           >
                             Kiểm tra danh sách
                           </button>
@@ -626,17 +680,17 @@ export default function AdminDashboard() {
                       </div>
                     </section>
 
-                    <section className="rounded-lg border border-white/10 bg-gray-900/90 p-6 shadow-[0_20px_40px_rgba(0,0,0,0.25)]">
+                    <section className="rounded-2xl border border-white/[0.06] bg-white/[0.02] backdrop-blur-sm p-6">
                       <div className="mb-6 flex items-center justify-between gap-4">
                         <div>
                           <h2 className="text-xl font-bold text-white">Hàng chờ phê duyệt nổi bật</h2>
-                          <p className="mt-1 text-sm text-gray-500">
+                          <p className="mt-1 text-sm text-slate-500">
                             Truy cập nhanh các tin đang đợi xử lý gần nhất.
                           </p>
                         </div>
                         <button
-                          onClick={() => setActiveTab('jobs')}
-                          className="rounded-lg border border-amber-500/20 bg-amber-500/10 px-4 py-2 text-sm font-semibold text-amber-300 transition-colors hover:bg-amber-500/15"
+                          onClick={() => handleTabChange('jobs')}
+                          className="rounded-xl border border-amber-500/20 bg-amber-500/10 px-4 py-2 text-sm font-semibold text-amber-300 transition-all hover:bg-amber-500/15"
                         >
                           Mở tab việc làm
                         </button>
@@ -646,18 +700,18 @@ export default function AdminDashboard() {
                         {pendingPreview.map((job) => (
                           <div
                             key={job.id}
-                            className="rounded-lg border border-white/10 bg-white/[0.03] p-5 transition-colors hover:bg-white/[0.05]"
+                            className="rounded-xl border border-white/[0.06] bg-white/[0.03] p-5 transition-all hover:bg-white/[0.05]"
                           >
                             <div className="flex items-start justify-between gap-3">
                               <div className="min-w-0">
                                 <p className="truncate text-lg font-semibold text-white">{job.job_title}</p>
-                                <p className="mt-1 text-sm text-gray-400">{job.company_name || 'Chưa có công ty'}</p>
+                                <p className="mt-1 text-sm text-slate-400">{job.company_name || 'Chưa có công ty'}</p>
                               </div>
                               <span className="rounded-full border border-amber-500/20 bg-amber-500/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-amber-300">
                                 Chờ duyệt
                               </span>
                             </div>
-                            <div className="mt-4 flex flex-wrap gap-3 text-sm text-gray-500">
+                            <div className="mt-4 flex flex-wrap gap-3 text-sm text-slate-500">
                               <span>{formatDate(job.created_at)}</span>
                               {job.job_address ? <span>{job.job_address}</span> : null}
                             </div>
@@ -665,7 +719,7 @@ export default function AdminDashboard() {
                         ))}
 
                         {!pendingPreview.length && (
-                          <div className="rounded-lg border border-dashed border-white/10 bg-white/[0.02] p-8 text-center text-sm text-gray-500 xl:col-span-2">
+                          <div className="rounded-xl border border-dashed border-white/[0.06] bg-white/[0.02] p-8 text-center text-sm text-slate-500 xl:col-span-2">
                             Không còn tin nào trong hàng chờ phù hợp với bộ lọc hiện tại.
                           </div>
                         )}
@@ -675,7 +729,7 @@ export default function AdminDashboard() {
                 )}
 
                 {activeTab === 'users' && (
-                  <section className="rounded-lg border border-white/10 bg-gray-900/90 p-6 shadow-[0_20px_40px_rgba(0,0,0,0.25)]">
+                  <section className="rounded-2xl border border-white/[0.06] bg-white/[0.02] backdrop-blur-sm p-6">
                     <div className="mb-6 flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
                       <div>
                         <h2 className="text-xl font-bold text-white">Danh sách người dùng</h2>
@@ -686,12 +740,12 @@ export default function AdminDashboard() {
 
                       <div className="flex flex-wrap gap-2">
                         {[
-                          { label: 'Tất cả', value: filteredUsers.length, tone: 'border-white/10 bg-white/5 text-gray-200' },
-                          { label: 'Admin', value: adminCount, tone: 'border-blue-500/20 bg-blue-500/10 text-blue-300' },
+                          { label: 'Tất cả', value: filteredUsers.length, tone: 'border-white/[0.08] bg-white/[0.04] text-slate-200' },
+                          { label: 'Admin', value: adminCount, tone: 'border-indigo-500/20 bg-indigo-500/10 text-indigo-300' },
                           { label: 'NTD', value: employerCount, tone: 'border-amber-500/20 bg-amber-500/10 text-amber-300' },
                           { label: 'Đã xác thực', value: verifiedCount, tone: 'border-emerald-500/20 bg-emerald-500/10 text-emerald-300' },
                         ].map((item) => (
-                          <div key={item.label} className={`rounded-full border px-3 py-1.5 text-xs font-semibold ${item.tone}`}>
+                          <div key={item.label} className={`rounded-xl border px-3 py-1.5 text-xs font-semibold ${item.tone}`}>
                             {item.label}: {item.value.toLocaleString()}
                           </div>
                         ))}
@@ -701,11 +755,12 @@ export default function AdminDashboard() {
                     <div className="overflow-x-auto">
                       <table className="w-full min-w-[720px] border-collapse text-left">
                         <thead>
-                          <tr className="border-b border-white/10 text-xs uppercase tracking-[0.18em] text-gray-500">
+                          <tr className="border-b border-white/[0.06] text-xs uppercase tracking-[0.18em] text-slate-500">
                             <th className="pb-3 font-medium">Người dùng</th>
                             <th className="pb-3 font-medium">Vai trò</th>
                             <th className="pb-3 font-medium">Trạng thái</th>
                             <th className="pb-3 font-medium">Ngày tạo</th>
+                            <th className="pb-3 font-medium">Thao tác</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -744,12 +799,28 @@ export default function AdminDashboard() {
                                 </span>
                               </td>
                               <td className="py-4 text-sm text-gray-400">{formatDate(row.created_at)}</td>
+                              <td className="py-4">
+                                {(row.role_code || row.role) !== 'admin' && (
+                                  <button
+                                    onClick={() => handleToggleSuspend(row.id, row.is_suspended)}
+                                    disabled={suspendLoading === row.id}
+                                    className={`inline-flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-xs font-semibold transition-all disabled:opacity-60 ${
+                                      row.is_suspended
+                                        ? 'border-emerald-500/20 bg-emerald-500/10 text-emerald-300 hover:bg-emerald-500/20'
+                                        : 'border-rose-500/20 bg-rose-500/10 text-rose-300 hover:bg-rose-500/20'
+                                    }`}
+                                  >
+                                    {row.is_suspended ? <ShieldCheck className="h-3.5 w-3.5" /> : <Ban className="h-3.5 w-3.5" />}
+                                    {suspendLoading === row.id ? 'Đang xử lý...' : row.is_suspended ? 'Kích hoạt' : 'Tạm dừng'}
+                                  </button>
+                                )}
+                              </td>
                             </tr>
                           ))}
 
                           {!filteredUsers.length && (
                             <tr>
-                              <td colSpan="4" className="py-12 text-center text-sm text-gray-500">
+                              <td colSpan="5" className="py-12 text-center text-sm text-gray-500">
                                 Không tìm thấy người dùng phù hợp.
                               </td>
                             </tr>
@@ -761,22 +832,22 @@ export default function AdminDashboard() {
                 )}
 
                 {activeTab === 'jobs' && (
-                  <section className="rounded-lg border border-white/10 bg-gray-900/90 p-6 shadow-[0_20px_40px_rgba(0,0,0,0.25)]">
+                  <section className="rounded-2xl border border-white/[0.06] bg-white/[0.02] backdrop-blur-sm p-6">
                     <div className="mb-6 flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
                       <div>
                         <h2 className="text-xl font-bold text-white">Phê duyệt tin tuyển dụng</h2>
-                        <p className="mt-1 text-sm text-gray-500">
+                        <p className="mt-1 text-sm text-slate-500">
                           Xử lý nhanh các tin đang chờ để giữ nhịp vận hành cho nhà tuyển dụng.
                         </p>
                       </div>
 
-                      <div className="rounded-lg border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-200">
+                      <div className="rounded-xl border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-200">
                         Hàng chờ hiện tại: <span className="font-semibold text-white">{filteredPendingJobs.length.toLocaleString()}</span> tin
                       </div>
                     </div>
 
                     {filteredPendingJobs.length === 0 ? (
-                      <div className="rounded-lg border border-dashed border-white/10 bg-white/[0.02] py-16 text-center text-gray-500">
+                      <div className="rounded-xl border border-dashed border-white/[0.06] bg-white/[0.02] py-16 text-center text-slate-500">
                         <Briefcase className="mx-auto mb-4 h-12 w-12 opacity-20" />
                         Không có tin tuyển dụng nào đang chờ duyệt.
                       </div>
@@ -784,7 +855,7 @@ export default function AdminDashboard() {
                       <div className="overflow-x-auto">
                         <table className="w-full min-w-[760px] border-collapse text-left">
                           <thead>
-                            <tr className="border-b border-white/10 text-xs uppercase tracking-[0.18em] text-gray-500">
+                            <tr className="border-b border-white/[0.06] text-xs uppercase tracking-[0.18em] text-slate-500">
                               <th className="pb-3 font-medium">Vị trí</th>
                               <th className="pb-3 font-medium">Công ty</th>
                               <th className="pb-3 font-medium">Ngày đăng</th>
@@ -819,14 +890,14 @@ export default function AdminDashboard() {
                                     <button
                                       onClick={() => handleJobModeration(job.id, 'approved')}
                                       disabled={jobActionLoading === job.id}
-                                      className="rounded-lg border border-emerald-500/20 bg-emerald-500/10 px-4 py-2 text-xs font-bold uppercase tracking-[0.16em] text-emerald-300 transition-colors hover:bg-emerald-500 hover:text-white disabled:opacity-60"
+                                      className="rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-4 py-2 text-xs font-bold uppercase tracking-[0.16em] text-emerald-300 transition-all hover:bg-emerald-500 hover:text-white disabled:opacity-60"
                                     >
                                       {jobActionLoading === job.id ? 'Đang xử lý...' : 'Chấp nhận'}
                                     </button>
                                     <button
                                       onClick={() => handleJobModeration(job.id, 'rejected')}
                                       disabled={jobActionLoading === job.id}
-                                      className="rounded-lg border border-red-500/20 bg-gradient-to-r from-rose-500 to-pink-500/10 px-4 py-2 text-xs font-bold uppercase tracking-[0.16em] text-red-300 transition-colors hover:bg-gradient-to-r from-rose-500 to-pink-500 hover:text-white disabled:opacity-60"
+                                      className="rounded-xl border border-rose-500/20 bg-rose-500/10 px-4 py-2 text-xs font-bold uppercase tracking-[0.16em] text-rose-300 transition-all hover:bg-rose-500 hover:text-white disabled:opacity-60"
                                     >
                                       Từ chối
                                     </button>
@@ -842,16 +913,16 @@ export default function AdminDashboard() {
                 )}
 
                 {activeTab === 'notifications' && (
-                  <section className="rounded-lg border border-white/10 bg-gray-900/90 p-6 shadow-[0_20px_40px_rgba(0,0,0,0.25)]">
+                  <section className="rounded-2xl border border-white/[0.06] bg-white/[0.02] backdrop-blur-sm p-6">
                     <div className="mb-6 flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
                       <div>
                         <h2 className="text-xl font-bold text-white">Thông báo quản trị</h2>
-                        <p className="mt-1 text-sm text-gray-500">
+                        <p className="mt-1 text-sm text-slate-500">
                           Mọi tin mới nhà tuyển dụng gửi lên chờ duyệt sẽ xuất hiện tại đây.
                         </p>
                       </div>
 
-                      <div className="rounded-lg border border-blue-500/20 bg-blue-500/10 px-4 py-3 text-sm text-blue-200">
+                      <div className="rounded-xl border border-indigo-500/20 bg-indigo-500/10 px-4 py-3 text-sm text-indigo-200">
                         Tổng số: <span className="font-semibold text-white">{filteredNotifications.length.toLocaleString()}</span> thông báo
                       </div>
                     </div>
@@ -862,11 +933,11 @@ export default function AdminDashboard() {
                           <button
                             key={note.id}
                             type="button"
-                            onClick={() => setActiveTab(note.tab || 'jobs')}
-                            className={`w-full rounded-lg border p-4 text-left transition ${
+                            onClick={() => handleTabChange(note.tab || 'jobs')}
+                            className={`w-full rounded-xl border p-4 text-left transition-all ${
                               note.read
-                                ? 'border-white/10 bg-white/[0.03] hover:bg-white/[0.05]'
-                                : 'border-blue-500/20 bg-blue-500/10'
+                                ? 'border-white/[0.06] bg-white/[0.03] hover:bg-white/[0.05]'
+                                : 'border-indigo-500/20 bg-indigo-500/10'
                             }`}
                           >
                             <div className="flex items-start justify-between gap-4">
@@ -885,7 +956,7 @@ export default function AdminDashboard() {
                           </button>
                         ))
                       ) : (
-                        <div className="rounded-lg border border-dashed border-white/10 bg-white/[0.02] py-16 text-center text-gray-500">
+                        <div className="rounded-xl border border-dashed border-white/[0.06] bg-white/[0.02] py-16 text-center text-slate-500">
                           <Bell className="mx-auto mb-4 h-12 w-12 opacity-20" />
                           Chưa có thông báo quản trị nào.
                         </div>
@@ -896,25 +967,25 @@ export default function AdminDashboard() {
 
                 {activeTab === 'settings' && (
                   <section className="grid grid-cols-1 gap-6 xl:grid-cols-[1.2fr,1fr]">
-                    <div className="rounded-lg border border-white/10 bg-gray-900/90 p-6 shadow-[0_20px_40px_rgba(0,0,0,0.25)]">
+                    <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] backdrop-blur-sm p-6">
                       <h2 className="text-xl font-bold text-white">Thông tin quản trị</h2>
-                      <p className="mt-1 text-sm text-gray-500">
+                      <p className="mt-1 text-sm text-slate-500">
                         Tóm tắt tài khoản hiện tại và trạng thái vận hành chung.
                       </p>
 
-                      <div className="mt-6 flex items-center gap-4 rounded-lg border border-white/10 bg-white/[0.03] p-5">
+                      <div className="mt-6 flex items-center gap-4 rounded-xl border border-white/[0.06] bg-white/[0.03] p-5">
                         <UserAvatar
                           src={user?.avatar_url}
                           alt={user?.full_name}
                           className="h-16 w-16 rounded-full object-cover ring-2 ring-white/10"
-                          fallbackClassName="flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-gray-700 to-gray-600 ring-2 ring-white/10"
+                          fallbackClassName="flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-slate-700 to-slate-600 ring-2 ring-white/10"
                           iconClassName="h-6 w-6 text-white"
                         />
 
                         <div className="min-w-0">
                           <p className="truncate text-lg font-semibold text-white">{user?.full_name || 'System Admin'}</p>
-                          <p className="truncate text-sm text-gray-400">{user?.email || 'Chưa có email'}</p>
-                          <div className="mt-3 inline-flex rounded-full border border-blue-500/20 bg-blue-500/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-blue-300">
+                          <p className="truncate text-sm text-slate-400">{user?.email || 'Chưa có email'}</p>
+                          <div className="mt-3 inline-flex rounded-full border border-indigo-500/20 bg-indigo-500/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-indigo-300">
                             {user?.role_code || 'admin'}
                           </div>
                         </div>
@@ -940,9 +1011,9 @@ export default function AdminDashboard() {
                       </div>
                     </div>
 
-                    <div className="rounded-lg border border-white/10 bg-gray-900/90 p-6 shadow-[0_20px_40px_rgba(0,0,0,0.25)]">
+                    <div className="rounded-2xl border border-white/[0.06] bg-white/[0.02] backdrop-blur-sm p-6">
                       <h2 className="text-xl font-bold text-white">Nguyên tắc vận hành</h2>
-                      <p className="mt-1 text-sm text-gray-500">
+                      <p className="mt-1 text-sm text-slate-500">
                         Các điểm cần giữ đồng bộ khi kiểm duyệt nội dung hệ thống.
                       </p>
 
@@ -954,7 +1025,7 @@ export default function AdminDashboard() {
                         ].map((item) => (
                           <div
                             key={item}
-                            className="rounded-lg border border-white/10 bg-white/[0.03] px-4 py-4 text-sm leading-6 text-gray-300"
+                            className="rounded-xl border border-white/[0.06] bg-white/[0.03] px-4 py-4 text-sm leading-6 text-slate-300"
                           >
                             {item}
                           </div>

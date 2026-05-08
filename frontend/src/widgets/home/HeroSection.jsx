@@ -136,7 +136,7 @@ export default function HeroSection({ onSearch }) {
   };
 
   return (
-    <section className="relative overflow-hidden bg-gradient-to-br from-indigo-600 via-violet-600 to-purple-700">
+    <section className="relative bg-gradient-to-br from-indigo-600 via-violet-600 to-purple-700">
       {/* Decorative floating elements */}
       <div className="pointer-events-none absolute inset-0">
         <div className="absolute -left-20 -top-20 h-72 w-72 rounded-full bg-white/5 blur-3xl"></div>
@@ -150,7 +150,7 @@ export default function HeroSection({ onSearch }) {
             e.preventDefault();
             triggerSearch();
           }}
-          className="grid gap-2 rounded-xl border border-white/20 bg-white/95 p-2 shadow-2xl shadow-indigo-900/20 backdrop-blur-sm lg:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)_220px_auto]"
+          className="relative z-20 grid gap-2 rounded-xl border border-white/20 bg-white/95 p-2 shadow-2xl shadow-indigo-900/20 backdrop-blur-sm lg:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)_220px_auto]"
         >
           <label className="flex min-h-11 items-center gap-2 rounded-lg bg-indigo-50/50 px-3 transition-all duration-200 focus-within:bg-white focus-within:ring-2 focus-within:ring-indigo-200">
             <Search className="h-5 w-5 shrink-0 text-indigo-400" />
@@ -196,7 +196,7 @@ export default function HeroSection({ onSearch }) {
               </button>
             </label>
             {showSuggestions && filteredLocations.length > 0 && (
-              <div className="absolute left-0 right-0 top-full z-30 mt-2 overflow-hidden rounded-xl border border-indigo-100 bg-white/95 py-1 shadow-xl shadow-indigo-200/30 backdrop-blur-sm">
+              <div className="absolute left-0 right-0 top-full z-50 mt-2 max-h-64 overflow-y-auto rounded-xl border border-indigo-100 bg-white py-1 shadow-xl shadow-indigo-200/30">
                 {filteredLocations.map((item) => (
                   <button
                     key={item}
@@ -233,7 +233,7 @@ export default function HeroSection({ onSearch }) {
               <ChevronDown className={`h-4 w-4 shrink-0 text-gray-400 transition-transform ${jobTypeOpen ? 'rotate-180' : ''}`} />
             </button>
             {jobTypeOpen && (
-              <div className="absolute left-0 right-0 top-full z-30 mt-2 overflow-hidden rounded-xl border border-indigo-100 bg-white/95 py-1 shadow-xl shadow-indigo-200/30 backdrop-blur-sm">
+              <div className="absolute left-0 right-0 top-full z-50 mt-2 overflow-hidden rounded-xl border border-indigo-100 bg-white py-1 shadow-xl shadow-indigo-200/30">
                 {jobTypes.map((type) => (
                   <button
                     key={type.value}

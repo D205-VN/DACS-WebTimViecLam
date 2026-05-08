@@ -17,5 +17,6 @@ router.get('/stats', adminController.getStats);
 router.get('/users', adminController.getUsers);
 router.get('/jobs/pending', adminController.getPendingJobs);
 router.put('/jobs/:id/status', adminController.updateJobStatus);
+router.put('/users/:id/suspend', adminController.toggleUserSuspend);
 
 module.exports = router;

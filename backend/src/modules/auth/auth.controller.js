@@ -181,6 +181,11 @@ async function login(req, res) {
       return res.status(401).json({ error: 'Email hoặc mật khẩu không đúng' });
     }
 
+    // Check if user is suspended
+    if (user.is_suspended) {
+      return res.status(403).json({ error: 'Tài khoản của bạn đã bị tạm dừng bởi quản trị viên. Vui lòng liên hệ hỗ trợ để biết thêm chi tiết.', suspended: true });
+    }
+
     const token = createToken(user);
 
     res.json({
@@ -249,6 +254,11 @@ async function googleAuth(req, res) {
 
     const token = createToken(user.rows[0]);
 
+    // Check if user is suspended
+    if (user.rows[0].is_suspended) {
+      return res.status(403).json({ error: 'Tài khoản của bạn đã bị tạm dừng bởi quản trị viên. Vui lòng liên hệ hỗ trợ để biết thêm chi tiết.', suspended: true });
+    }
+
     res.json({
       message: 'Đăng nhập Google thành công!',
       token,
@@ -276,6 +286,11 @@ async function getMe(req, res) {
 
     if (result.rows.length === 0) {
       return res.status(404).json({ error: 'Không tìm thấy người dùng' });
+    }
+
+    // Check if user is suspended - force logout on frontend
+    if (result.rows[0].is_suspended) {
+      return res.status(403).json({ error: 'Tài khoản của bạn đã bị tạm dừng bởi quản trị viên.', suspended: true });
     }
 
     res.json({ user: result.rows[0] });

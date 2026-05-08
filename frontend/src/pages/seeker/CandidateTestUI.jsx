@@ -275,45 +275,51 @@ const CandidateTestUI = () => {
   const progressPercent = Math.round(((currentQIdx + 1) / test.questions.length) * 100);
 
   return (
-    <div className="h-screen w-full bg-[#070b18] text-white flex flex-col select-none overflow-hidden font-sans">
+    <div className="h-screen w-full bg-gradient-to-br from-[#0a0e1a] via-[#0d1225] to-[#080c18] text-white flex flex-col select-none overflow-hidden font-sans">
+      {/* Ambient background effects */}
+      <div className="fixed inset-0 pointer-events-none z-0">
+        <div className="absolute top-0 left-1/4 w-96 h-96 bg-indigo-500/[0.07] rounded-full blur-[120px]" />
+        <div className="absolute bottom-0 right-1/4 w-80 h-80 bg-cyan-500/[0.05] rounded-full blur-[100px]" />
+      </div>
+
       {/* Test Header */}
-      <div className="px-7 py-4 flex justify-between items-center z-10 bg-[#0b1024]/95 border-b border-white/10 shadow-[0_12px_30px_rgba(0,0,0,0.18)]">
-        <div className="flex items-center gap-4">
-          <div className="w-11 h-11 rounded-lg bg-cyan-500 flex items-center justify-center shadow-[0_0_18px_rgba(34,211,238,0.28)]">
-            <Mic className="text-white" size={24} />
+      <div className="relative z-10 px-8 py-4 flex justify-between items-center backdrop-blur-xl bg-white/[0.03] border-b border-white/[0.06]">
+        <div className="flex items-center gap-5">
+          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-500/20">
+            <Mic className="text-white" size={22} />
           </div>
           <div className="min-w-[280px]">
-            <h1 className="text-xl font-bold text-white tracking-wide">{test.title}</h1>
-            <div className="mt-2 flex items-center gap-3">
-              <div className="h-1.5 w-44 overflow-hidden rounded-full bg-white/10">
+            <h1 className="text-lg font-bold text-white/95 tracking-tight">{test.title}</h1>
+            <div className="mt-2.5 flex items-center gap-3">
+              <div className="h-1 w-44 overflow-hidden rounded-full bg-white/[0.08]">
                 <div
-                  className="h-full rounded-full bg-cyan-400 transition-all duration-500"
+                  className="h-full rounded-full bg-gradient-to-r from-indigo-400 to-purple-400 transition-all duration-700 ease-out"
                   style={{ width: `${progressPercent}%` }}
                 />
               </div>
-              <span className="text-sm font-semibold text-cyan-200/80">Câu {currentQIdx + 1} / {test.questions.length}</span>
+              <span className="text-xs font-medium text-slate-400">Câu {currentQIdx + 1} / {test.questions.length}</span>
             </div>
           </div>
         </div>
-        <div className="flex items-center gap-6">
+        <div className="flex items-center gap-4">
           {suspiciousFlag && (
-            <div className="flex items-center gap-2 text-red-300 font-bold bg-gradient-to-r from-rose-500 to-pink-500/10 border border-red-500/30 px-4 py-2 rounded-full animate-pulse">
-              <AlertTriangle size={18} />
+            <div className="flex items-center gap-2 text-rose-300 text-sm font-semibold bg-rose-500/10 border border-rose-500/20 px-4 py-2 rounded-xl animate-pulse">
+              <AlertTriangle size={16} />
               Cảnh báo gian lận
             </div>
           )}
-          <div className={`flex items-center gap-3 px-6 py-2 rounded-full border ${timeLeft < 60 ? 'bg-gradient-to-r from-rose-500 to-pink-500/20 border-red-500/50 text-red-300 animate-pulse shadow-[0_0_15px_rgba(239,68,68,0.3)]' : 'bg-cyan-400/10 border-cyan-200/20 text-cyan-300 shadow-[0_0_10px_rgba(34,211,238,0.1)]'}`}>
-            <Clock size={20} />
-            <span className="text-2xl font-mono font-bold tracking-wider">{formatTime(timeLeft)}</span>
+          <div className={`flex items-center gap-2.5 px-5 py-2.5 rounded-xl border backdrop-blur-sm ${timeLeft < 60 ? 'bg-rose-500/10 border-rose-400/25 text-rose-300 animate-pulse' : 'bg-white/[0.04] border-white/[0.08] text-slate-300'}`}>
+            <Clock size={16} className={timeLeft < 60 ? 'text-rose-400' : 'text-indigo-400'} />
+            <span className="text-xl font-mono font-bold tracking-wider">{formatTime(timeLeft)}</span>
           </div>
         </div>
       </div>
 
       {/* Main Layout */}
-      <div className="flex-1 flex gap-6 p-6 overflow-hidden bg-[linear-gradient(180deg,#0b1024_0%,#090d1d_50%,#050712_100%)]">
+      <div className="relative z-10 flex-1 flex gap-5 p-5 overflow-hidden">
         
         {/* Left Side: Media Display */}
-        <div className="w-[55%] min-w-0 relative overflow-hidden rounded-lg border border-white/12 bg-black/45 shadow-[0_22px_56px_rgba(0,0,0,0.46)] flex flex-col group">
+        <div className="w-[55%] min-w-0 relative overflow-hidden rounded-2xl border border-white/[0.06] bg-black/30 backdrop-blur-sm shadow-2xl flex flex-col group">
           <div className="flex-1 flex items-center justify-center relative w-full h-full">
             {usesAvatarLive3D ? (
               <HeyGenLiveAvatar
@@ -358,33 +364,33 @@ const CandidateTestUI = () => {
             )}
 
             {/* Premium Question Overlay */}
-            <div className={`absolute bottom-0 left-0 right-0 z-30 bg-black/70 ${usesAvatarLive3D ? 'p-5' : 'p-8'}`}>
-              <div className={`border border-white/15 bg-[#080d1d]/86 shadow-[0_18px_44px_rgba(0,0,0,0.34)] backdrop-blur-md transition-all duration-300 ${usesAvatarLive3D ? 'rounded-lg px-5 py-4' : 'rounded-lg p-6'}`}>
-                <div className="mb-2 flex items-center justify-between gap-3">
-                  <span className="text-cyan-300 font-mono text-sm font-semibold tracking-wider">CÂU HỎI {currentQIdx + 1}</span>
-                  <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-semibold text-slate-300">
+            <div className={`absolute bottom-0 left-0 right-0 z-30 ${usesAvatarLive3D ? 'p-4' : 'p-6'}`}>
+              <div className={`border border-white/[0.08] bg-black/60 backdrop-blur-xl transition-all duration-300 ${usesAvatarLive3D ? 'rounded-xl px-5 py-4' : 'rounded-xl p-6'}`}>
+                <div className="mb-3 flex items-center justify-between gap-3">
+                  <span className="text-indigo-300 font-mono text-xs font-semibold tracking-widest uppercase">Câu hỏi {currentQIdx + 1}</span>
+                  <span className="rounded-lg border border-white/[0.08] bg-white/[0.05] px-3 py-1 text-xs font-medium text-slate-400">
                     {currentQ?.type === 'mcq' ? 'Trắc nghiệm' : 'Tự luận'}
                   </span>
                 </div>
-                <h2 className={`font-bold text-white leading-relaxed ${usesAvatarLive3D ? 'text-xl max-h-32 overflow-y-auto pr-2' : 'text-2xl'}`}>{currentQ?.content}</h2>
-                {currentQ?.type === 'mcq' && <p className="text-sm text-slate-400 mt-3 flex items-center gap-2"><span className="w-1.5 h-1.5 bg-cyan-400 rounded-full"></span>Chọn một đáp án bên phải</p>}
+                <h2 className={`font-semibold text-white/95 leading-relaxed ${usesAvatarLive3D ? 'text-lg max-h-32 overflow-y-auto pr-2' : 'text-xl'}`}>{currentQ?.content}</h2>
+                {currentQ?.type === 'mcq' && <p className="text-sm text-slate-500 mt-3 flex items-center gap-2"><span className="w-1.5 h-1.5 bg-indigo-400 rounded-full"></span>Chọn một đáp án bên phải</p>}
               </div>
             </div>
           </div>
         </div>
 
         {/* Right Side: Interactive Input Panel */}
-        <div className="w-[45%] min-w-0 flex flex-col overflow-hidden rounded-lg border border-white/12 bg-[#0d1428]/95 shadow-[0_22px_56px_rgba(0,0,0,0.34)] relative">
-          <div className="flex-1 p-7 overflow-y-auto relative z-10 flex flex-col">
-            <div className="mb-6 flex items-center justify-between gap-4">
-              <h3 className="text-xl font-bold text-white flex items-center gap-3">
-                <span className="w-9 h-9 rounded-lg bg-cyan-400/12 flex items-center justify-center text-cyan-200">
-                  <Send size={17} />
+        <div className="w-[45%] min-w-0 flex flex-col overflow-hidden rounded-2xl border border-white/[0.06] bg-white/[0.02] backdrop-blur-sm shadow-2xl relative">
+          <div className="flex-1 p-6 overflow-y-auto relative z-10 flex flex-col">
+            <div className="mb-5 flex items-center justify-between gap-4">
+              <h3 className="text-base font-semibold text-white/90 flex items-center gap-3">
+                <span className="w-9 h-9 rounded-xl bg-indigo-500/15 flex items-center justify-center text-indigo-300">
+                  <Send size={16} />
                 </span>
                 Câu trả lời
               </h3>
-              <span className="rounded-full border border-cyan-200/15 bg-cyan-300/8 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-cyan-200">
-                {textAnswer.trim() ? 'Đã chọn' : 'Chưa chọn'}
+              <span className={`rounded-lg px-3 py-1 text-xs font-medium ${textAnswer.trim() ? 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/20' : 'bg-white/[0.04] text-slate-500 border border-white/[0.06]'}`}>
+                {textAnswer.trim() ? '✓ Đã chọn' : 'Chưa chọn'}
               </span>
             </div>
             
@@ -397,20 +403,20 @@ const CandidateTestUI = () => {
                     <button
                       key={key}
                       onClick={() => setTextAnswer(key)}
-                      className={`relative overflow-hidden group text-left w-full rounded-lg border px-5 py-5 transition-all duration-300 ${
+                      className={`relative overflow-hidden group text-left w-full rounded-xl border px-5 py-4 transition-all duration-300 ${
                         isSelected 
-                          ? 'bg-cyan-400/14 border-cyan-300/80 shadow-[0_0_24px_rgba(34,211,238,0.18)]'
-                          : 'bg-[#131a2f] border-white/10 hover:bg-[#18213a] hover:border-white/25'
+                          ? 'bg-indigo-500/10 border-indigo-400/40 shadow-lg shadow-indigo-500/10'
+                          : 'bg-white/[0.02] border-white/[0.06] hover:bg-white/[0.04] hover:border-white/[0.12]'
                       }`}
                     >
-                      <div className={`absolute left-0 top-0 h-full w-1 transition ${isSelected ? 'bg-cyan-300' : 'bg-transparent group-hover:bg-white/20'}`} />
+                      <div className={`absolute left-0 top-0 h-full w-0.5 rounded-r transition-all ${isSelected ? 'bg-gradient-to-b from-indigo-400 to-purple-400' : 'bg-transparent group-hover:bg-white/10'}`} />
                       <div className="relative z-10 flex items-start gap-4">
-                        <div className={`mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full border font-bold text-sm transition ${
-                          isSelected ? 'border-cyan-300 bg-cyan-300 text-slate-950' : 'border-slate-500 text-slate-400 group-hover:border-white group-hover:text-white'
+                        <div className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border text-sm font-semibold transition ${
+                          isSelected ? 'border-indigo-400 bg-gradient-to-br from-indigo-500 to-purple-500 text-white' : 'border-white/10 text-slate-500 group-hover:border-white/20 group-hover:text-slate-300'
                         }`}>
                           {key}
                         </div>
-                        <span className={`text-[17px] leading-relaxed ${isSelected ? 'text-white font-semibold' : 'text-slate-300'}`}>
+                        <span className={`text-[15px] leading-relaxed ${isSelected ? 'text-white font-medium' : 'text-slate-400'}`}>
                           {currentOptions[key]}
                         </span>
                       </div>
@@ -423,7 +429,7 @@ const CandidateTestUI = () => {
                 {/* Text Input */}
                 <div className="relative group flex-1 flex flex-col">
                   <textarea 
-                    className="relative flex-1 w-full bg-[#080d1c] border border-white/12 rounded-lg p-6 text-white text-lg placeholder-white/30 focus:outline-none focus:border-cyan-300/55 focus:ring-1 focus:ring-cyan-300/45 resize-none transition-all"
+                    className="relative flex-1 w-full bg-white/[0.03] border border-white/[0.08] rounded-xl p-5 text-white/90 text-base placeholder-white/20 focus:outline-none focus:border-indigo-400/40 focus:ring-1 focus:ring-indigo-400/20 resize-none transition-all"
                     placeholder={isRecording ? 'Nói câu trả lời của bạn, nội dung sẽ hiện ở đây...' : 'Nhập câu trả lời của bạn...'}
                     value={textAnswer}
                     onChange={(e) => setTextAnswer(e.target.value)}
@@ -434,15 +440,15 @@ const CandidateTestUI = () => {
                 </div>
 
                 {/* Voice Input Section */}
-                <div className="mt-6 bg-[#080d1c]/85 border border-white/10 rounded-lg p-5">
-                  <h4 className="font-semibold text-slate-300 mb-5 flex items-center gap-2 text-sm uppercase tracking-wider">
-                    <Mic size={16} className="text-cyan-400" /> Ghi âm câu trả lời
+                <div className="mt-5 bg-white/[0.02] border border-white/[0.06] rounded-xl p-5">
+                  <h4 className="font-medium text-slate-400 mb-4 flex items-center gap-2 text-xs uppercase tracking-widest">
+                    <Mic size={14} className="text-indigo-400" /> Ghi âm câu trả lời
                   </h4>
-                  <div className="flex items-center gap-6">
+                  <div className="flex items-center gap-5">
                     {!isRecording ? (
                       <button 
                         onClick={startRecording}
-                        className="group relative w-16 h-16 rounded-full bg-gradient-to-br from-red-500 to-rose-600 flex items-center justify-center shadow-[0_0_20px_rgba(239,68,68,0.4)] transition-transform "
+                        className="group relative w-14 h-14 rounded-2xl bg-gradient-to-br from-rose-500 to-pink-600 flex items-center justify-center shadow-lg shadow-rose-500/25 transition-all hover:shadow-rose-500/40 hover:scale-105"
                       >
                         <div className="absolute inset-0 rounded-full bg-white/20 opacity-0 group-hover:opacity-100 transition-opacity"></div>
                         <Mic size={28} className="text-white" />
@@ -488,15 +494,14 @@ const CandidateTestUI = () => {
           </div>
 
           {/* Action Footer */}
-          <div className="p-5 bg-[#070b18]/95 border-t border-white/10 flex justify-end relative z-10">
+          <div className="p-5 border-t border-white/[0.06] flex justify-end relative z-10">
             <button 
               onClick={handleSubmitAnswer}
               disabled={isRecording || !textAnswer.trim()}
-              className="relative overflow-hidden group disabled:opacity-45 disabled:cursor-not-allowed bg-cyan-400 text-slate-950 px-9 py-4 rounded-lg font-bold flex items-center gap-3 text-lg transition-all hover:bg-cyan-200 hover:shadow-[0_0_24px_rgba(34,211,238,0.35)]"
+              className="group disabled:opacity-40 disabled:cursor-not-allowed bg-gradient-to-r from-indigo-500 to-purple-500 text-white px-8 py-3.5 rounded-xl font-semibold flex items-center gap-3 text-sm transition-all hover:shadow-lg hover:shadow-indigo-500/25 hover:from-indigo-400 hover:to-purple-400"
             >
-              <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out"></div>
-              <span className="relative z-10">{currentQIdx < test?.questions.length - 1 ? 'Câu tiếp theo' : 'Nộp bài'}</span>
-              <Send size={22} className="relative z-10 group-hover:translate-x-1 transition-transform" />
+              <span>{currentQIdx < test?.questions.length - 1 ? 'Câu tiếp theo' : 'Nộp bài'}</span>
+              <Send size={18} className="group-hover:translate-x-0.5 transition-transform" />
             </button>
           </div>
         </div>

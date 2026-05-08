@@ -39,6 +39,11 @@ exports.getStats = async (req, res) => {
 
 exports.getUsers = async (req, res) => {
   try {
+    // Ensure is_suspended column exists
+    await pool.query(`
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS is_suspended BOOLEAN DEFAULT false
+    `).catch(() => {});
+
     const result = await pool.query(
       `SELECT
           u.id,
@@ -47,6 +52,7 @@ exports.getUsers = async (req, res) => {
           r.code AS role_code,
           r.name AS role_name,
           u.is_verified,
+          COALESCE(u.is_suspended, false) AS is_suspended,
           u.created_at
        FROM users u
        JOIN roles r ON u.role_id = r.id
@@ -151,5 +157,44 @@ exports.updateJobStatus = async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Lỗi khi cập nhật trạng thái' });
+  }
+};
+
+exports.toggleUserSuspend = async (req, res) => {
+  const { id } = req.params;
+  const { suspended } = req.body;
+
+  if (typeof suspended !== 'boolean') {
+    return res.status(400).json({ error: 'Trường suspended phải là boolean' });
+  }
+
+  try {
+    await pool.query(`
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS is_suspended BOOLEAN DEFAULT false
+    `).catch(() => {});
+
+    if (parseInt(id) === req.user.id) {
+      return res.status(400).json({ error: 'Không thể tạm dừng tài khoản của chính mình' });
+    }
+
+    const result = await pool.query(
+      'UPDATE users SET is_suspended = $1 WHERE id = $2 RETURNING id, full_name, email, is_suspended',
+      [suspended, id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Không tìm thấy người dùng' });
+    }
+
+    const user = result.rows[0];
+    res.json({
+      message: suspended
+        ? `Đã tạm dừng tài khoản "${user.full_name}"`
+        : `Đã kích hoạt lại tài khoản "${user.full_name}"`,
+      data: user,
+    });
+  } catch (err) {
+    console.error('Toggle user suspend error:', err);
+    res.status(500).json({ error: 'Lỗi khi cập nhật trạng thái tài khoản' });
   }
 };

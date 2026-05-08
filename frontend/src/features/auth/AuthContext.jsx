@@ -21,13 +21,15 @@ export function AuthProvider({ children }) {
     fetch(`${API_BASE}/me`, {
       headers: { Authorization: `Bearer ${token}` },
     })
-      .then((res) => {
+      .then(async (res) => {
         if (!res.ok) {
-          // Only clear token if server explicitly rejects it (401/403)
           if (res.status === 401 || res.status === 403) {
+            const data = await res.json().catch(() => ({}));
+            if (data.suspended) {
+              throw new Error('SUSPENDED');
+            }
             throw new Error('Token invalid');
           }
-          // For other errors (500, etc.), keep the cached user
           setLoading(false);
           return null;
         }
@@ -41,16 +43,54 @@ export function AuthProvider({ children }) {
         setLoading(false);
       })
       .catch((err) => {
+        if (err.message === 'SUSPENDED') {
+          localStorage.removeItem('token');
+          localStorage.removeItem('user');
+          setToken(null);
+          setUser(null);
+          setLoading(false);
+          alert('Tài khoản của bạn đã bị tạm dừng bởi quản trị viên. Bạn sẽ được đăng xuất.');
+          window.location.href = '/login';
+          return;
+        }
         if (err.message === 'Token invalid') {
           localStorage.removeItem('token');
           localStorage.removeItem('user');
           setToken(null);
           setUser(null);
         }
-        // Network error: keep cached user, don't logout
         setLoading(false);
       });
   }, [token]);
+
+  // Periodic check for account suspension (every 60 seconds)
+  useEffect(() => {
+    if (!token || !user) return;
+
+    const checkSuspension = async () => {
+      try {
+        const res = await fetch(`${API_BASE}/me`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (res.status === 403) {
+          const data = await res.json().catch(() => ({}));
+          if (data.suspended) {
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            setToken(null);
+            setUser(null);
+            alert('Tài khoản của bạn đã bị tạm dừng bởi quản trị viên. Bạn sẽ được đăng xuất.');
+            window.location.href = '/login';
+          }
+        }
+      } catch {
+        // Network error — ignore
+      }
+    };
+
+    const interval = setInterval(checkSuspension, 60 * 1000);
+    return () => clearInterval(interval);
+  }, [token, user]);
 
   const login = useCallback((newToken, userData) => {
     localStorage.setItem('token', newToken);
