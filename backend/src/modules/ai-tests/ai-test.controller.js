@@ -189,6 +189,27 @@ function normalizeKeywords(value, fallbackKeywords = []) {
   return fallbackKeywords.map(compactText).filter(Boolean).slice(0, 5).join(', ');
 }
 
+function syncMcqExpectedAnswer(question) {
+  const correctAnswer = compactText(question?.correct_answer).toUpperCase();
+  if (question?.type !== 'mcq' || !MCQ_KEYS.includes(correctAnswer) || !question.expected_answer) {
+    return question;
+  }
+
+  const expectedAnswer = compactText(question.expected_answer);
+  const syncedExpectedAnswer = expectedAnswer
+    .replace(/^(Đáp\s*án)\s+[A-D](\s+đúng\b)/i, `$1 ${correctAnswer}$2`)
+    .replace(/^(Giải\s*thích\s+vì\s+sao)\s+[A-D](\s+đúng\b)/i, `$1 ${correctAnswer}$2`);
+
+  return {
+    ...question,
+    expected_answer: syncedExpectedAnswer,
+  };
+}
+
+function syncQuestionListExpectedAnswers(questions = []) {
+  return questions.map(syncMcqExpectedAnswer);
+}
+
 function getQuestionFingerprint(content) {
   return compactText(content)
     .toLowerCase()
@@ -247,7 +268,7 @@ function normalizeQuestionPayload(input = {}, { expectedType = null, fallbackKey
     normalized.options = null;
   }
 
-  return normalized;
+  return syncMcqExpectedAnswer(normalized);
 }
 
 function extractSkillPhrases(text, subject) {
@@ -309,11 +330,11 @@ function shuffleMcqOptions(question, seed = '') {
     if (oldKey === question.correct_answer) shuffledCorrectAnswer = newKey;
   });
 
-  return {
+  return syncMcqExpectedAnswer({
     ...question,
     options: shuffledOptions,
     correct_answer: shuffledCorrectAnswer,
-  };
+  });
 }
 
 function buildFallbackQuestion(type, index, context) {
@@ -571,7 +592,7 @@ const aiTestController = {
 
       res.json({
         ...test.rows[0],
-        questions: questions.rows,
+        questions: syncQuestionListExpectedAnswers(questions.rows),
         scoring_config: config.rows[0]
       });
     } catch (err) {
@@ -657,7 +678,7 @@ const aiTestController = {
   getQuestions: async (req, res) => {
     try {
       const questions = await pool.query('SELECT * FROM ai_questions ORDER BY created_at DESC');
-      res.json(questions.rows);
+      res.json(syncQuestionListExpectedAnswers(questions.rows));
     } catch (err) {
       console.error(err);
       res.status(500).json({ error: 'Server Error' });
@@ -1128,7 +1149,7 @@ TRẢ VỀ DUY NHẤT MỘT MẢNG JSON HỢP LỆ. KHÔNG CÓ MARKDOWN HAY BẤ
             `INSERT INTO ai_test_questions (test_id, question_id, order_index) VALUES ($1, $2, $3)`,
             [testId, savedQ.id, startOrder + idx]
           );
-          savedQuestions.push(savedQ);
+          savedQuestions.push(syncMcqExpectedAnswer(savedQ));
         }
 
         await client.query('COMMIT');
@@ -1228,7 +1249,7 @@ TRẢ VỀ DUY NHẤT MỘT MẢNG JSON HỢP LỆ. KHÔNG CÓ MARKDOWN HAY BẤ
 
       res.json({
         ...test.rows[0],
-        questions: questions.rows,
+        questions: syncQuestionListExpectedAnswers(questions.rows),
         scoring_config: config.rows[0]
       });
     } catch (err) {

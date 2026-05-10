@@ -10,9 +10,40 @@ types.setTypeParser(1114, (stringValue) => {
   return new Date(`${normalized}Z`);
 });
 
+function getDatabaseUrl() {
+  const connectionString = process.env.DATABASE_URL;
+  if (!connectionString) return connectionString;
+
+  try {
+    const url = new URL(connectionString);
+    const sslMode = url.searchParams.get('sslmode');
+
+    if (['prefer', 'require', 'verify-ca'].includes(sslMode)) {
+      url.searchParams.set('sslmode', 'verify-full');
+      return url.toString();
+    }
+  } catch {
+    return connectionString;
+  }
+
+  return connectionString;
+}
+
+function hasSslMode(connectionString) {
+  if (!connectionString) return false;
+
+  try {
+    return new URL(connectionString).searchParams.has('sslmode');
+  } catch {
+    return false;
+  }
+}
+
+const connectionString = getDatabaseUrl();
+
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: process.env.DATABASE_URL?.includes('neon.tech')
+  connectionString,
+  ssl: connectionString?.includes('neon.tech') && !hasSslMode(connectionString)
     ? { rejectUnauthorized: false }
     : undefined,
 });
