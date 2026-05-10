@@ -128,8 +128,10 @@ async function sendMessage(req, res) {
       type: 'message_new',
       title: `Tin nhắn mới từ ${senderName}`,
       message: body.length > 120 ? `${body.slice(0, 117)}...` : body,
-      to: Number(conversation.employer_id) === Number(recipientId) ? '/employer/dashboard' : '/seeker/applied-jobs',
-      tab: Number(conversation.employer_id) === Number(recipientId) ? 'candidates' : null,
+      to: Number(conversation.employer_id) === Number(recipientId)
+        ? `/employer/messages?conversationId=${conversation.id}`
+        : `/seeker/messages?conversationId=${conversation.id}`,
+      tab: null,
       meta: {
         conversation_id: conversation.id,
         application_id: conversation.application_id,

@@ -4,6 +4,7 @@ import { ArrowLeft, Briefcase, MapPin, DollarSign, Clock, FileText, Users, Tag, 
 import { useAuth } from '@features/auth/AuthContext';
 import API_BASE_URL from '@shared/api/baseUrl';
 import EmployerHeader from '@widgets/employer/EmployerHeader';
+import { clearRequestCache } from '@shared/api/requestCache';
 import { requestCurrentLocation } from '@shared/geo/currentLocation';
 import { locationCenters, normalizeProvinceName } from '@shared/geo/provinceCoordinates';
 import { getEmployerDashboardPath, getEmployerDashboardState } from '@shared/utils/employerDashboardRoutes';
@@ -130,6 +131,7 @@ export default function PostJob() {
 
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Đăng tin thất bại');
+      clearRequestCache((key) => key.includes('/api/employer'));
       setSuccess(true);
       setTimeout(() => navigate(getEmployerDashboardPath('jobs'), { state: getEmployerDashboardState('jobs') }), 2200);
     } catch (err) {

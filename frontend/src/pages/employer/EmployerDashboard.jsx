@@ -22,6 +22,74 @@ import {
 import { cachedJsonFetch } from '@shared/api/requestCache';
 import { prefetchEmployerPortalData } from '@shared/api/employerPrefetch';
 
+const EMPTY_STATS = {
+  totalJobs: 0,
+  activeJobs: 0,
+  pendingJobs: 0,
+  rejectedJobs: 0,
+  totalCandidates: 0,
+  newCandidates: 0,
+};
+
+function toCount(value) {
+  const count = Number(value);
+  return Number.isFinite(count) ? count : 0;
+}
+
+function normalizeModerationStatus(status) {
+  const normalized = String(status || '').trim().toLowerCase();
+  return ['pending', 'approved', 'rejected', 'stopped'].includes(normalized) ? normalized : 'approved';
+}
+
+function parseJobDeadline(deadline) {
+  if (!deadline) return null;
+  if (/^\d{4}-\d{2}-\d{2}$/.test(deadline)) return new Date(`${deadline}T00:00:00`);
+  if (/^\d{2}\/\d{2}\/\d{4}$/.test(deadline)) {
+    const [day, month, year] = deadline.split('/');
+    return new Date(`${year}-${month}-${day}T00:00:00`);
+  }
+
+  const parsed = new Date(deadline);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
+function isActiveJob(job) {
+  if (normalizeModerationStatus(job.status) !== 'approved') return false;
+  const deadline = parseJobDeadline(job.deadline || job.submission_deadline);
+  if (!deadline) return true;
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  deadline.setHours(0, 0, 0, 0);
+  return deadline >= today;
+}
+
+function normalizeDashboardStats(stats) {
+  if (!stats) return EMPTY_STATS;
+
+  return {
+    totalJobs: toCount(stats.totalJobs ?? stats.total_jobs),
+    activeJobs: toCount(stats.activeJobs ?? stats.active_jobs),
+    pendingJobs: toCount(stats.pendingJobs ?? stats.pending_jobs),
+    rejectedJobs: toCount(stats.rejectedJobs ?? stats.rejected_jobs),
+    totalCandidates: toCount(stats.totalCandidates ?? stats.total_candidates),
+    newCandidates: toCount(stats.newCandidates ?? stats.new_candidates),
+  };
+}
+
+function buildStatsFromJobs(jobs) {
+  return jobs.reduce((acc, job) => {
+    const status = normalizeModerationStatus(job.status);
+    acc.totalJobs += 1;
+    if (isActiveJob(job)) acc.activeJobs += 1;
+    if (status === 'pending') acc.pendingJobs += 1;
+    if (status === 'rejected') acc.rejectedJobs += 1;
+    acc.totalCandidates += toCount(job.applicant_count);
+    acc.newCandidates += toCount(job.recent_applicant_count);
+    return acc;
+  }, { ...EMPTY_STATS });
+}
+
 export default function EmployerDashboard() {
   const { user, token } = useAuth();
   const navigate = useNavigate();
@@ -38,12 +106,35 @@ export default function EmployerDashboard() {
   // Fetch dashboard data
   useEffect(() => {
     const fetchDashboard = async () => {
+      const requestOptions = {
+        headers: { Authorization: `Bearer ${token}` },
+      };
+
       try {
-        const data = await cachedJsonFetch(`${API_BASE_URL}/api/employer/dashboard`, {
-          headers: { Authorization: `Bearer ${token}` },
-        }, { ttlMs: 15 * 1000 });
-        setStats(data.stats);
-        setRecentJobs(data.recentJobs || []);
+        const [dashboardResult, jobsResult] = await Promise.allSettled([
+          cachedJsonFetch(`${API_BASE_URL}/api/employer/dashboard`, requestOptions, { ttlMs: 15 * 1000 }),
+          cachedJsonFetch(`${API_BASE_URL}/api/employer/jobs`, requestOptions, { ttlMs: 30 * 1000 }),
+        ]);
+
+        if (dashboardResult.status === 'rejected' && jobsResult.status === 'rejected') {
+          throw dashboardResult.reason;
+        }
+
+        const dashboardData = dashboardResult.status === 'fulfilled' ? dashboardResult.value : {};
+        const dashboardRecentJobs = Array.isArray(dashboardData.recentJobs) ? dashboardData.recentJobs : [];
+        const jobs = jobsResult.status === 'fulfilled' && Array.isArray(jobsResult.value?.data)
+          ? jobsResult.value.data
+          : null;
+        const resolvedStats = jobs && (jobs.length > 0 || dashboardRecentJobs.length === 0)
+          ? buildStatsFromJobs(jobs)
+          : dashboardRecentJobs.length
+            ? buildStatsFromJobs(dashboardRecentJobs)
+            : normalizeDashboardStats(dashboardData.stats);
+
+        setStats(resolvedStats);
+        setRecentJobs(dashboardRecentJobs.length
+          ? dashboardRecentJobs
+          : (jobs || []).slice(0, 5));
         prefetchEmployerPortalData(token);
       } catch (err) {
         console.error('Error fetching dashboard:', err);
@@ -57,14 +148,7 @@ export default function EmployerDashboard() {
   }, [token]);
 
   // Fallback stats when API not ready
-  const displayStats = stats || {
-    totalJobs: 0,
-    activeJobs: 0,
-    pendingJobs: 0,
-    rejectedJobs: 0,
-    totalCandidates: 0,
-    newCandidates: 0,
-  };
+  const displayStats = stats || EMPTY_STATS;
 
   const handleTabChange = (tab) => {
     setActiveTab(tab);
