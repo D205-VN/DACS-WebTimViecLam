@@ -13,6 +13,7 @@ import {
   Loader2,
   LogOut,
   Menu,
+  MessageSquareText,
   Plus,
   Send,
   Shield,
@@ -26,7 +27,7 @@ import { getRouteByRole } from '@shared/utils/roleRedirect';
 import UserAvatar from '@shared/ui/UserAvatar';
 
 function getNavLinks(roleCode) {
-  return [
+  const links = [
     {
       name: 'Tìm việc',
       to: getRouteByRole(roleCode, 'home'),
@@ -55,6 +56,17 @@ function getNavLinks(roleCode) {
       match: (pathname) => pathname.startsWith('/blog') || pathname.startsWith('/seeker/blog'),
     },
   ];
+
+  if (roleCode === 'seeker' || roleCode === 'employer') {
+    links.push({
+      name: 'Tin nhắn',
+      to: getRouteByRole(roleCode, 'messages'),
+      icon: MessageSquareText,
+      match: (pathname) => pathname.startsWith('/messages') || pathname.startsWith('/seeker/messages') || pathname.startsWith('/employer/messages'),
+    });
+  }
+
+  return links;
 }
 
 function getUserMenuLinks(roleCode) {
@@ -67,6 +79,14 @@ function getUserMenuLinks(roleCode) {
         icon: LayoutDashboard,
         iconClass: 'bg-blue-50 text-blue-500',
         match: (pathname) => pathname.startsWith('/admin'),
+      },
+      {
+        to: getRouteByRole(roleCode, 'messages'),
+        label: 'Tin nhắn',
+        description: 'Inbox tuyển dụng chung',
+        icon: MessageSquareText,
+        iconClass: 'bg-cyan-50 text-cyan-500',
+        match: (pathname) => pathname.startsWith('/employer/messages'),
       },
       {
         to: getRouteByRole(roleCode, 'changePassword'),
@@ -141,6 +161,14 @@ function getUserMenuLinks(roleCode) {
       icon: Send,
       iconClass: 'bg-green-50 text-green-500',
       match: (pathname) => pathname.startsWith('/applied-jobs') || pathname.startsWith('/seeker/applied-jobs'),
+    },
+    {
+      to: getRouteByRole(roleCode, 'messages'),
+      label: 'Tin nhắn',
+      description: 'Trao đổi với nhà tuyển dụng',
+      icon: MessageSquareText,
+      iconClass: 'bg-cyan-50 text-cyan-500',
+      match: (pathname) => pathname.startsWith('/messages') || pathname.startsWith('/seeker/messages'),
     },
     {
       to: getRouteByRole(roleCode, 'jobAlerts'),
@@ -271,7 +299,7 @@ function getNotificationTypeMeta(type) {
     case 'seeker_job_alert_digest':
       return { icon: Bell, iconClass: 'bg-cyan-50 text-cyan-500' };
     case 'message_new':
-      return { icon: Send, iconClass: 'bg-cyan-50 text-cyan-500' };
+      return { icon: MessageSquareText, iconClass: 'bg-cyan-50 text-cyan-500' };
     default:
       return { icon: Bell, iconClass: 'bg-blue-50 text-blue-500' };
   }

@@ -5,6 +5,7 @@ import {
   ClipboardCheck,
   FileText,
   LayoutDashboard,
+  MessageSquareText,
   Users,
   Bell,
   Video,
@@ -14,6 +15,7 @@ export const primaryEmployerNavItems = [
   { key: 'dashboard', label: 'Bảng điều khiển', icon: LayoutDashboard },
   { key: 'jobs', label: 'Tin tuyển dụng', icon: FileText },
   { key: 'candidates', label: 'Ứng viên', icon: Users },
+  { key: 'messages', label: 'Tin nhắn', icon: MessageSquareText },
   { key: 'meeting-rooms', label: 'Phòng Meet', icon: Video },
   { key: 'notifications', label: 'Thông báo', icon: Bell },
 ];

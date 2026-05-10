@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ChevronDown, Plus } from 'lucide-react';
 import {
@@ -11,10 +11,7 @@ import { getEmployerDashboardPath, getEmployerDashboardState } from '@shared/uti
 export default function EmployerSidebar({ activeKey, onSelect }) {
   const navigate = useNavigate();
   const [toolsOpen, setToolsOpen] = useState(() => isSecondaryEmployerNavKey(activeKey));
-
-  useEffect(() => {
-    if (isSecondaryEmployerNavKey(activeKey)) setToolsOpen(true);
-  }, [activeKey]);
+  const toolsExpanded = toolsOpen || isSecondaryEmployerNavKey(activeKey);
 
   const handleNavigate = (key) => {
     if (onSelect) {
@@ -71,9 +68,9 @@ export default function EmployerSidebar({ activeKey, onSelect }) {
             className="flex w-full items-center justify-between rounded-xl px-3 py-2 text-left text-xs font-bold uppercase tracking-wider text-gray-400 transition-colors hover:bg-indigo-50/40 hover:text-indigo-600"
           >
             Công cụ khác
-            <ChevronDown className={`h-4 w-4 transition-transform ${toolsOpen ? 'rotate-180' : ''}`} />
+            <ChevronDown className={`h-4 w-4 transition-transform ${toolsExpanded ? 'rotate-180' : ''}`} />
           </button>
-          {toolsOpen && (
+          {toolsExpanded && (
             <div className="mt-1 space-y-1">
               {secondaryEmployerNavItems.map(renderItem)}
             </div>

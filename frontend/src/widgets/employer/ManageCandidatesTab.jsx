@@ -21,7 +21,6 @@ import {
   List,
 } from 'lucide-react';
 import { useAuth } from '@features/auth/AuthContext';
-import ConversationModal from '@features/messages/ConversationModal';
 import API_BASE_URL from '@shared/api/baseUrl';
 import UserAvatar from '@shared/ui/UserAvatar';
 import { cachedJsonFetch, clearRequestCache, readCachedJson } from '@shared/api/requestCache';
@@ -114,7 +113,6 @@ export default function ManageCandidatesTab() {
   const [detailError, setDetailError] = useState('');
   const [scheduleLoading, setScheduleLoading] = useState(false);
   const [modalSection, setModalSection] = useState('profile');
-  const [chatCandidate, setChatCandidate] = useState(null);
   const [interviewForm, setInterviewForm] = useState({
     interview_at: '',
     interview_mode: 'online',
@@ -444,7 +442,7 @@ export default function ManageCandidatesTab() {
                             </button>
                             <button
                               type="button"
-                              onClick={() => setChatCandidate(candidate)}
+                              onClick={() => navigate(`/employer/messages?applicationId=${candidate.id}`)}
                               className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-cyan-50 px-3 py-2 text-xs font-semibold text-cyan-700 transition hover:bg-cyan-100"
                             >
                               <MessageCircle className="h-3.5 w-3.5" /> Chat
@@ -560,7 +558,7 @@ export default function ManageCandidatesTab() {
                             </button>
                             <button
                               type="button"
-                              onClick={() => setChatCandidate(candidate)}
+                              onClick={() => navigate(`/employer/messages?applicationId=${candidate.id}`)}
                               className="flex items-center gap-1 px-3 py-1.5 bg-cyan-50 text-cyan-700 rounded-lg text-xs font-medium hover:bg-cyan-100 transition-colors"
                             >
                               <MessageCircle className="w-3.5 h-3.5" /> Nhắn tin
@@ -1232,12 +1230,6 @@ export default function ManageCandidatesTab() {
         </div>
       ) : null}
 
-      <ConversationModal
-        open={Boolean(chatCandidate)}
-        applicationId={chatCandidate?.id}
-        initialTitle={chatCandidate?.candidate_name}
-        onClose={() => setChatCandidate(null)}
-      />
     </>
   );
 }

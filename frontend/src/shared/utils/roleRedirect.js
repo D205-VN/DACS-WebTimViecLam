@@ -7,6 +7,7 @@ const ROUTE_BY_ROLE = {
     changePassword: '/change-password',
     savedJobs: '/saved-jobs',
     appliedJobs: '/applied-jobs',
+    messages: '/messages',
     jobAlerts: '/seeker/job-alerts',
     cvBuilder: '/seeker/cv-builder',
     myCvs: '/seeker/my-cvs',
@@ -21,6 +22,7 @@ const ROUTE_BY_ROLE = {
     changePassword: '/seeker/change-password',
     savedJobs: '/seeker/saved-jobs',
     appliedJobs: '/seeker/applied-jobs',
+    messages: '/seeker/messages',
     jobAlerts: '/seeker/job-alerts',
     cvBuilder: '/seeker/cv-builder',
     myCvs: '/seeker/my-cvs',
@@ -34,6 +36,7 @@ const ROUTE_BY_ROLE = {
     blog: '/blog',
     profile: '/profile',
     changePassword: '/employer/change-password',
+    messages: '/employer/messages',
   },
   admin: {
     home: '/admin/dashboard',

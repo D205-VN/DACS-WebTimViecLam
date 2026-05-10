@@ -18,8 +18,7 @@ import {
   CheckCircle2,
 } from 'lucide-react';
 import { useAuth } from '@features/auth/AuthContext';
-import ConversationModal from '@features/messages/ConversationModal';
-import { getBackLabelByRole, getDefaultRouteByRole, getJobDetailRoute } from '@shared/utils/roleRedirect';
+import { getBackLabelByRole, getDefaultRouteByRole, getJobDetailRoute, getRouteByRole } from '@shared/utils/roleRedirect';
 import { getSeekerAiTestPath } from '@shared/utils/aiTestRoutes';
 import API_BASE_URL from '@shared/api/baseUrl';
 
@@ -69,7 +68,6 @@ export default function AppliedJobsPage() {
   const [jobs, setJobs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [preferenceLoadingId, setPreferenceLoadingId] = useState(null);
-  const [chatJob, setChatJob] = useState(null);
   const backRoute = getDefaultRouteByRole(user?.role_code);
   const backLabel = getBackLabelByRole(user?.role_code);
 
@@ -119,7 +117,6 @@ export default function AppliedJobsPage() {
   };
 
   return (
-    <>
     <div className="aw-container max-w-5xl py-6">
       <Link to={backRoute} className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-indigo-700 mb-6 transition-colors">
         <ArrowLeft className="w-4 h-4" /> {backLabel}
@@ -188,14 +185,13 @@ export default function AppliedJobsPage() {
                       <span className="flex items-center gap-1 text-sm text-gray-500"><Clock className="w-3.5 h-3.5" />{new Date(job.applied_at).toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' })}</span>
                     </div>
 
-                      <button
-                        type="button"
-                        onClick={() => setChatJob(job)}
+                      <Link
+                        to={`${getRouteByRole(user?.role_code, 'messages')}?applicationId=${job.application_id}`}
                         className="mt-3 inline-flex items-center gap-2 rounded-lg bg-cyan-50 px-4 py-2 text-sm font-semibold text-cyan-700 transition hover:bg-cyan-100"
                       >
                         <MessageCircle className="h-4 w-4" />
                         Nhắn nhà tuyển dụng
-                      </button>
+                      </Link>
 
                       {job.status === 'hired' && (
                         <Link
@@ -392,12 +388,5 @@ export default function AppliedJobsPage() {
         </div>
       )}
     </div>
-    <ConversationModal
-      open={Boolean(chatJob)}
-      applicationId={chatJob?.application_id}
-      initialTitle={chatJob?.company_name}
-      onClose={() => setChatJob(null)}
-    />
-    </>
   );
 }

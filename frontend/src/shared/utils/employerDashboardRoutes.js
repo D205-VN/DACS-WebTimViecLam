@@ -11,6 +11,19 @@ const EMPLOYER_DASHBOARD_TABS = new Set([
 ]);
 
 export function getEmployerDashboardPath(tab = 'dashboard', params = {}) {
+  if (tab === 'messages') {
+    const query = new URLSearchParams();
+
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== '') {
+        query.set(key, String(value));
+      }
+    });
+
+    const search = query.toString();
+    return search ? `/employer/messages?${search}` : '/employer/messages';
+  }
+
   const searchParams = new URLSearchParams();
 
   Object.entries(params).forEach(([key, value]) => {

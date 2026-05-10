@@ -48,6 +48,10 @@ export default function EmployerHeader() {
   };
 
   const isHeaderLinkActive = (link) => {
+    if (link.tab === 'messages') {
+      return location.pathname.startsWith('/employer/messages');
+    }
+
     if (link.tab === 'ai-tests' && location.pathname.startsWith('/employer/ai-tests/')) {
       return true;
     }
@@ -71,7 +75,7 @@ export default function EmployerHeader() {
 
           {/* Nav Links */}
           <nav className="hidden lg:flex items-center gap-1">
-            {navLinks.filter(l => ['dashboard', 'jobs', 'candidates', 'analytics'].includes(l.tab)).map((link) => (
+            {navLinks.filter(l => ['dashboard', 'jobs', 'candidates', 'messages'].includes(l.tab)).map((link) => (
               <button
                 key={link.tab}
                 onClick={() => navigate(getEmployerDashboardPath(link.tab), { state: getEmployerDashboardState(link.tab) })}

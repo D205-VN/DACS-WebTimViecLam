@@ -18,7 +18,6 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@features/auth/AuthContext';
 import API_BASE_URL from '@shared/api/baseUrl';
-import ConversationModal from '@features/messages/ConversationModal';
 
 /* ─── 3 bước quy trình Onboarding ─── */
 const STEPS = [
@@ -45,7 +44,6 @@ export default function OnboardingPage() {
   const [loading, setLoading] = useState(true);
   const [jobInfo, setJobInfo] = useState(null);
   const activeStep = 1; // 0, 1, 2
-  const [chatOpen, setChatOpen] = useState(false);
   const [scanning, setScanning] = useState(null);
   const [aiResults, setAiResults] = useState({});
   const [previews, setPreviews] = useState({});
@@ -413,19 +411,13 @@ export default function OnboardingPage() {
             Liên hệ nhà tuyển dụng <strong>{jobInfo?.company}</strong> qua hotline hoặc nhắn tin trực tiếp trên hệ thống.
           </p>
         </div>
-        <button
-          onClick={() => setChatOpen(true)}
+        <Link
+          to={`/seeker/messages?applicationId=${id}`}
           className="bg-gray-900 text-white px-6 py-3 rounded-lg font-bold text-sm hover:bg-gray-700 transition-all "
         >
           Nhắn tin cho Nhà tuyển dụng
-        </button>
+        </Link>
       </div>
-      <ConversationModal
-        open={chatOpen}
-        applicationId={id}
-        initialTitle={jobInfo?.company || 'Nhà tuyển dụng'}
-        onClose={() => setChatOpen(false)}
-      />
     </div>
   );
 }

@@ -12,6 +12,7 @@ import RegisterPage from '@pages/auth/RegisterPage';
 import ChangePasswordPage from '@pages/auth/ChangePasswordPage';
 import ForgotPasswordPage from '@pages/auth/ForgotPasswordPage';
 import ProfilePage from '@pages/ProfilePage';
+import MessagesPage from '@pages/MessagesPage';
 import JobDetailPage from '@pages/JobDetailPage';
 import SavedJobsPage from '@pages/seeker/SavedJobsPage';
 import AppliedJobsPage from '@pages/seeker/AppliedJobsPage';
@@ -87,6 +88,7 @@ const router = createBrowserRouter([
   { path: '/admin/change-password', element: <MainLayout><AdminRoute><ChangePasswordPage /></AdminRoute></MainLayout> },
   { path: '/saved-jobs', element: <MainLayout><ProtectedRoute><SavedJobsPage /></ProtectedRoute></MainLayout> },
   { path: '/applied-jobs', element: <MainLayout><ProtectedRoute><AppliedJobsPage /></ProtectedRoute></MainLayout> },
+  { path: '/messages', element: <MainLayout><ProtectedRoute><MessagesPage /></ProtectedRoute></MainLayout> },
   { path: '/seeker', element: <Navigate to="/seeker/home" replace /> },
   { path: '/seeker/home', element: <MainLayout><SeekerRoute><HomePage /></SeekerRoute></MainLayout> },
   { path: '/seeker/companies', element: <MainLayout><SeekerRoute><CompaniesPage /></SeekerRoute></MainLayout> },
@@ -97,6 +99,7 @@ const router = createBrowserRouter([
   { path: '/seeker/change-password', element: <MainLayout><SeekerRoute><ChangePasswordPage /></SeekerRoute></MainLayout> },
   { path: '/seeker/saved-jobs', element: <MainLayout><SeekerRoute><SavedJobsPage /></SeekerRoute></MainLayout> },
   { path: '/seeker/applied-jobs', element: <MainLayout><SeekerRoute><AppliedJobsPage /></SeekerRoute></MainLayout> },
+  { path: '/seeker/messages', element: <MainLayout><SeekerRoute><MessagesPage /></SeekerRoute></MainLayout> },
   { path: '/seeker/job-alerts', element: <MainLayout><SeekerRoute><JobAlertsPage /></SeekerRoute></MainLayout> },
   { path: '/seeker/cv-builder', element: <MainLayout><SeekerRoute><CVBuilderPage /></SeekerRoute></MainLayout> },
   { path: '/seeker/my-cvs', element: <MainLayout><SeekerRoute><ManageCVsPage /></SeekerRoute></MainLayout> },
@@ -108,6 +111,7 @@ const router = createBrowserRouter([
   { path: '/cv-import', element: <Navigate to="/seeker/cv-import" replace /> },
   { path: '/blockchain-verification', element: <Navigate to="/seeker/blockchain-verification" replace /> },
   { path: '/employer/dashboard', element: <EmployerRoute><EmployerDashboard /></EmployerRoute> },
+  { path: '/employer/messages', element: <EmployerRoute><EmployerPageLayout activeKey="messages"><MessagesPage /></EmployerPageLayout></EmployerRoute> },
   { path: '/employer/meeting-rooms', element: <EmployerRoute><EmployerDashboardTabRedirect tab="meeting-rooms" /></EmployerRoute> },
   { path: '/employer/post-job', element: <EmployerRoute><PostJob /></EmployerRoute> },
   { path: '/employer/ai-tests', element: <EmployerRoute><EmployerDashboardTabRedirect tab="ai-tests" /></EmployerRoute> },
