@@ -18,6 +18,7 @@ function getAllowedOrigins() {
     'http://localhost:5173',
     'http://127.0.0.1:5173',
     'https://aptertekwork.pages.dev',
+    'https://aptertekwork.vercel.app',
     ...parseOriginList(process.env.FRONTEND_URL),
     ...parseOriginList(process.env.FRONTEND_URLS),
   ])];
@@ -30,7 +31,9 @@ function isAllowedOrigin(origin, allowedOrigins) {
   try {
     const { protocol, hostname } = new URL(normalizedOrigin);
     return protocol === 'https:' && (
-      hostname === 'aptertekwork.pages.dev' || hostname.endsWith('.aptertekwork.pages.dev')
+      hostname === 'aptertekwork.pages.dev' ||
+      hostname.endsWith('.aptertekwork.pages.dev') ||
+      hostname === 'aptertekwork.vercel.app'
     );
   } catch {
     return false;
