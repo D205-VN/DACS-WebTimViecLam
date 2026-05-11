@@ -7,6 +7,18 @@ import API_BASE_URL from '@shared/api/baseUrl';
 
 const API_BASE = `${API_BASE_URL}/api/auth`;
 
+const normalizeEmail = (value = '') => String(value || '').trim().toLowerCase();
+
+async function readApiJson(res) {
+  const text = await res.text();
+
+  try {
+    return text ? JSON.parse(text) : {};
+  } catch {
+    throw new Error('Máy chủ trả về dữ liệu không hợp lệ. Vui lòng kiểm tra cấu hình API.');
+  }
+}
+
 export default function RegisterPage() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -54,18 +66,14 @@ export default function RegisterPage() {
   
   // Use pendingEmail if navigating from login, otherwise use form data
   const pendingEmail = location.state?.pendingEmail;
-  const emailForOTP = pendingEmail || (isEmployer ? formData.companyEmail : formData.email);
+  const emailForOTP = normalizeEmail(pendingEmail || (isEmployer ? formData.companyEmail : formData.email));
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     if (formData.password !== formData.confirmPassword) { setError('Mật khẩu xác nhận không khớp'); return; }
-
-    if (isEmployer) {
-      const free = ['gmail.com','yahoo.com','hotmail.com','outlook.com','mail.com','ymail.com','protonmail.com'];
-      const domain = formData.companyEmail.split('@')[1]?.toLowerCase();
-      if (free.includes(domain)) { setError('Nhà tuyển dụng vui lòng sử dụng email công ty'); return; }
-    }
+    const accountEmail = normalizeEmail(isEmployer ? formData.companyEmail : formData.email);
+    if (!accountEmail) { setError('Vui lòng nhập email'); return; }
 
     const selectedCity = cities.find(c => c.code === formData.cityCode);
     const selectedWard = wards.find(w => w.code == formData.wardCode);
@@ -75,18 +83,19 @@ export default function RegisterPage() {
       const res = await fetch(`${API_BASE}/register`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          fullName: formData.fullName, email: emailForOTP, phone: formData.phone,
+          fullName: formData.fullName.trim(), email: accountEmail, phone: formData.phone.trim(),
           password: formData.password, role_code: formData.role_code,
-          companyName: formData.companyName || null, companyEmail: formData.companyEmail || null,
+          companyName: formData.companyName.trim() || null,
+          companyEmail: isEmployer ? accountEmail : normalizeEmail(formData.companyEmail) || null,
           companyCity: selectedCity?.name || null, companyWard: selectedWard?.name || null,
         }),
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
+      const data = await readApiJson(res);
+      if (!res.ok) throw new Error(data.error || 'Không thể đăng ký tài khoản');
       setStep(2);
       setOtpCountdown(60);
     } catch (err) {
-      setError(err.message);
+      setError(err.message || 'Không thể đăng ký tài khoản');
     } finally { setLoading(false); }
   };
 
@@ -111,11 +120,11 @@ export default function RegisterPage() {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: emailForOTP, otp: code }),
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
+      const data = await readApiJson(res);
+      if (!res.ok) throw new Error(data.error || 'Không thể xác thực OTP');
       login(data.token, data.user);
       navigate(getDefaultRouteByRole(data.user.role_code));
-    } catch (err) { setError(err.message); } finally { setLoading(false); }
+    } catch (err) { setError(err.message || 'Không thể xác thực OTP'); } finally { setLoading(false); }
   };
 
   const handleResendOTP = async () => {
@@ -126,10 +135,10 @@ export default function RegisterPage() {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: emailForOTP }),
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
+      const data = await readApiJson(res);
+      if (!res.ok) throw new Error(data.error || 'Không thể gửi lại OTP');
       setOtpCountdown(60); setOtp(['','','','','','']);
-    } catch (err) { setError(err.message); } finally { setLoading(false); }
+    } catch (err) { setError(err.message || 'Không thể gửi lại OTP'); } finally { setLoading(false); }
   };
 
   // Init Google Sign-In
@@ -256,12 +265,12 @@ export default function RegisterPage() {
                 {isEmployer && (
                   <>
                     <div>
-                      <label className="block text-sm font-semibold text-gray-700 mb-1.5">Email công ty <span className="text-xs text-gray-400 font-normal">(bắt buộc email doanh nghiệp)</span></label>
+                      <label className="block text-sm font-semibold text-gray-700 mb-1.5">Email nhà tuyển dụng</label>
                       <div className="relative">
                         <Building2 className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                         <input type="email" value={formData.companyEmail} onChange={e => handleChange('companyEmail', e.target.value)} placeholder="hr@congty.com.vn" className={inputClass} required />
                       </div>
-                      <p className="mt-1 text-xs text-amber-600">Không chấp nhận Gmail, Yahoo, Hotmail...</p>
+                      <p className="mt-1 text-xs text-amber-600">Nên dùng email công ty để tăng độ tin cậy hồ sơ tuyển dụng.</p>
                     </div>
                     <div>
                       <label className="block text-sm font-semibold text-gray-700 mb-1.5">Tên công ty</label>
