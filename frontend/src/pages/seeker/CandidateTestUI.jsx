@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useLocation, useParams, useNavigate } from 'react-router-dom';
-import { AlertTriangle, Bot, CheckSquare, Clock, Mic, Send, Square, Video } from 'lucide-react';
+import { AlertTriangle, ArrowRight, Award, Bot, CheckCircle, CheckSquare, Clock, Mic, Send, Square, Trophy, Video, XCircle } from 'lucide-react';
 import HeyGenLiveAvatar from '@shared/ui/HeyGenLiveAvatar';
 import { aiTestApi } from '@shared/api/aiTestApi';
 import { getAiTestKind, getSeekerAiTestPath } from '@shared/utils/aiTestRoutes';
@@ -83,6 +83,8 @@ const CandidateTestUI = () => {
   const [currentQIdx, setCurrentQIdx] = useState(0);
   const [timeLeft, setTimeLeft] = useState(0);
   const [submissionId, setSubmissionId] = useState(null);
+  const [testResult, setTestResult] = useState(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   
   // Anti-cheat state
   const [tabSwitchCount, setTabSwitchCount] = useState(0);
@@ -103,10 +105,22 @@ const CandidateTestUI = () => {
     if (!submissionId || hasFinishedRef.current) return;
 
     hasFinishedRef.current = true;
-    await aiTestApi.completeSubmission({ submission_id: submissionId });
-    alert('Test Completed Successfully!');
-    navigate('/profile');
-  }, [navigate, submissionId]);
+    setIsSubmitting(true);
+    try {
+      const data = await aiTestApi.completeSubmission({ submission_id: submissionId });
+      if (data?.result) {
+        setTestResult(data.result);
+      } else {
+        // Fallback if backend doesn't return result
+        setTestResult({ percentage: 0, total_score: 0, max_score: 0, total_questions: test?.questions?.length || 0, answered_questions: 0, correct_count: 0, test_title: test?.title, answers: [] });
+      }
+    } catch (err) {
+      console.error(err);
+      setTestResult({ percentage: 0, total_score: 0, max_score: 0, total_questions: test?.questions?.length || 0, answered_questions: 0, correct_count: 0, test_title: test?.title, answers: [] });
+    } finally {
+      setIsSubmitting(false);
+    }
+  }, [submissionId, test]);
 
   useEffect(() => {
     // Prevent leaving
@@ -308,6 +322,203 @@ const CandidateTestUI = () => {
     return (
       <div className="h-screen flex items-center justify-center bg-slate-950 text-white text-xl font-bold">
         Bài test chưa có câu hỏi.
+      </div>
+    );
+  }
+
+  // ============ SUBMITTING OVERLAY ============
+  if (isSubmitting) {
+    return (
+      <div className="h-screen w-full flex flex-col items-center justify-center bg-gradient-to-br from-[#0a0e1a] via-[#0d1225] to-[#080c18] text-white select-none font-sans">
+        <div className="fixed inset-0 pointer-events-none z-0">
+          <div className="absolute top-1/3 left-1/2 -translate-x-1/2 w-[500px] h-[500px] bg-indigo-500/[0.08] rounded-full blur-[150px]" />
+        </div>
+        <div className="relative z-10 flex flex-col items-center gap-8">
+          <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-2xl shadow-indigo-500/30 animate-pulse">
+            <Award size={40} className="text-white" />
+          </div>
+          <div className="text-center">
+            <h2 className="text-3xl font-black tracking-tight mb-3">Đang chấm điểm...</h2>
+            <p className="text-slate-400 text-lg">AI đang phân tích câu trả lời của bạn</p>
+          </div>
+          <div className="flex gap-2">
+            {[0,1,2].map(i => (
+              <div key={i} className="w-3 h-3 rounded-full bg-indigo-400 animate-bounce" style={{ animationDelay: `${i * 150}ms` }} />
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ============ RESULT SCREEN ============
+  if (testResult) {
+    const pct = testResult.percentage || 0;
+    const grade = pct >= 90 ? { label: 'Xuất sắc', color: 'from-emerald-400 to-green-500', bg: 'bg-emerald-500/10', border: 'border-emerald-500/20', text: 'text-emerald-400', emoji: '🏆' }
+      : pct >= 70 ? { label: 'Tốt', color: 'from-blue-400 to-cyan-500', bg: 'bg-blue-500/10', border: 'border-blue-500/20', text: 'text-blue-400', emoji: '⭐' }
+      : pct >= 50 ? { label: 'Trung bình', color: 'from-amber-400 to-orange-500', bg: 'bg-amber-500/10', border: 'border-amber-500/20', text: 'text-amber-400', emoji: '📝' }
+      : { label: 'Cần cải thiện', color: 'from-rose-400 to-pink-500', bg: 'bg-rose-500/10', border: 'border-rose-500/20', text: 'text-rose-400', emoji: '💪' };
+
+    const circumference = 2 * Math.PI * 80;
+    const strokeOffset = circumference - (pct / 100) * circumference;
+
+    return (
+      <div className="min-h-screen w-full bg-gradient-to-br from-[#0a0e1a] via-[#0d1225] to-[#080c18] text-white select-none font-sans overflow-y-auto">
+        {/* Ambient effects */}
+        <div className="fixed inset-0 pointer-events-none z-0">
+          <div className="absolute top-0 left-1/4 w-96 h-96 bg-indigo-500/[0.06] rounded-full blur-[120px]" />
+          <div className="absolute bottom-0 right-1/4 w-80 h-80 bg-cyan-500/[0.04] rounded-full blur-[100px]" />
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-purple-500/[0.03] rounded-full blur-[200px]" />
+        </div>
+
+        <div className="relative z-10 max-w-4xl mx-auto px-6 py-12">
+          {/* Header */}
+          <div className="text-center mb-12">
+            <div className="inline-flex items-center gap-2 rounded-full border border-white/[0.08] bg-white/[0.03] px-5 py-2 text-sm font-medium text-slate-400 mb-6 backdrop-blur-sm">
+              <Trophy size={16} className="text-amber-400" />
+              Kết quả bài test
+            </div>
+            <h1 className="text-4xl font-black tracking-tight mb-3 bg-gradient-to-r from-white to-slate-300 bg-clip-text text-transparent">
+              {testResult.test_title || test?.title || 'Bài test'}
+            </h1>
+            <p className="text-slate-500 text-lg">Đã hoàn thành lúc {testResult.completed_at ? new Date(testResult.completed_at).toLocaleString('vi-VN') : new Date().toLocaleString('vi-VN')}</p>
+          </div>
+
+          {/* Score Card */}
+          <div className="relative rounded-3xl border border-white/[0.08] bg-white/[0.02] backdrop-blur-xl p-10 mb-10 overflow-hidden">
+            <div className={`absolute inset-0 ${grade.bg} opacity-30`} />
+            <div className="relative z-10 flex flex-col md:flex-row items-center gap-10">
+              {/* Circular Score */}
+              <div className="relative flex-shrink-0">
+                <svg width="200" height="200" className="-rotate-90">
+                  <circle cx="100" cy="100" r="80" fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="12" />
+                  <circle
+                    cx="100" cy="100" r="80" fill="none"
+                    stroke="url(#scoreGradient)" strokeWidth="12" strokeLinecap="round"
+                    strokeDasharray={circumference} strokeDashoffset={strokeOffset}
+                    className="transition-all duration-1000 ease-out"
+                  />
+                  <defs>
+                    <linearGradient id="scoreGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                      <stop offset="0%" stopColor={pct >= 70 ? '#34d399' : pct >= 50 ? '#fbbf24' : '#f87171'} />
+                      <stop offset="100%" stopColor={pct >= 70 ? '#06b6d4' : pct >= 50 ? '#f97316' : '#ec4899'} />
+                    </linearGradient>
+                  </defs>
+                </svg>
+                <div className="absolute inset-0 flex flex-col items-center justify-center">
+                  <span className="text-5xl font-black tracking-tight">{pct}</span>
+                  <span className="text-sm font-bold text-slate-400 -mt-1">/ 100 điểm</span>
+                </div>
+              </div>
+
+              {/* Score Details */}
+              <div className="flex-1 text-center md:text-left">
+                <div className="flex items-center gap-3 justify-center md:justify-start mb-4">
+                  <span className="text-4xl">{grade.emoji}</span>
+                  <span className={`text-3xl font-black bg-gradient-to-r ${grade.color} bg-clip-text text-transparent`}>{grade.label}</span>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-6">
+                  <div className="rounded-2xl border border-white/[0.08] bg-white/[0.03] p-4 text-center">
+                    <p className="text-2xl font-black text-white">{testResult.total_score?.toFixed(1)}</p>
+                    <p className="text-xs font-medium text-slate-500 mt-1">Tổng điểm</p>
+                  </div>
+                  <div className="rounded-2xl border border-white/[0.08] bg-white/[0.03] p-4 text-center">
+                    <p className="text-2xl font-black text-white">{testResult.max_score}</p>
+                    <p className="text-xs font-medium text-slate-500 mt-1">Điểm tối đa</p>
+                  </div>
+                  <div className="rounded-2xl border border-white/[0.08] bg-white/[0.03] p-4 text-center">
+                    <p className="text-2xl font-black text-emerald-400">{testResult.correct_count}</p>
+                    <p className="text-xs font-medium text-slate-500 mt-1">Câu đúng</p>
+                  </div>
+                  <div className="rounded-2xl border border-white/[0.08] bg-white/[0.03] p-4 text-center">
+                    <p className="text-2xl font-black text-white">{testResult.answered_questions}/{testResult.total_questions}</p>
+                    <p className="text-xs font-medium text-slate-500 mt-1">Đã trả lời</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Per-question breakdown */}
+          {testResult.answers?.length > 0 && (
+            <div className="mb-10">
+              <h3 className="text-xl font-black tracking-tight mb-6 flex items-center gap-3">
+                <span className="w-9 h-9 rounded-xl bg-indigo-500/15 flex items-center justify-center text-indigo-300">
+                  <CheckSquare size={18} />
+                </span>
+                Chi tiết từng câu
+              </h3>
+              <div className="space-y-4">
+                {testResult.answers.map((answer, index) => {
+                  const score = answer.final_score;
+                  const isCorrect = score >= 10;
+                  const isMcq = answer.question_type === 'mcq';
+                  const details = answer.scoring_details || {};
+                  return (
+                    <div
+                      key={answer.question_id || index}
+                      className={`rounded-2xl border p-5 transition-all ${
+                        isCorrect
+                          ? 'border-emerald-500/20 bg-emerald-500/[0.04]'
+                          : score > 0
+                            ? 'border-amber-500/20 bg-amber-500/[0.04]'
+                            : 'border-rose-500/20 bg-rose-500/[0.04]'
+                      }`}
+                    >
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="flex items-start gap-4 min-w-0 flex-1">
+                          <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl font-black text-sm ${
+                            isCorrect ? 'bg-emerald-500/20 text-emerald-400' : score > 0 ? 'bg-amber-500/20 text-amber-400' : 'bg-rose-500/20 text-rose-400'
+                          }`}>
+                            {index + 1}
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className="text-white/90 font-semibold leading-relaxed mb-2">{answer.question_content}</p>
+                            <div className="flex flex-wrap items-center gap-3 text-sm">
+                              <span className="text-slate-500">Đáp án: <span className="text-white/80 font-medium">{answer.text_answer || '—'}</span></span>
+                              {isMcq && answer.correct_answer && (
+                                <span className="text-slate-500">Đáp án đúng: <span className="text-emerald-400 font-bold">{answer.correct_answer}</span></span>
+                              )}
+                              <span className={`rounded-lg px-2.5 py-1 text-xs font-bold ${
+                                isMcq ? 'bg-indigo-500/15 text-indigo-300 border border-indigo-500/20' : 'bg-violet-500/15 text-violet-300 border border-violet-500/20'
+                              }`}>
+                                {isMcq ? 'Trắc nghiệm' : 'Tự luận'}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-3 shrink-0">
+                          <div className="text-right">
+                            <p className={`text-xl font-black ${isCorrect ? 'text-emerald-400' : score > 0 ? 'text-amber-400' : 'text-rose-400'}`}>
+                              {score.toFixed(1)}
+                            </p>
+                            <p className="text-xs text-slate-500">/ 10</p>
+                          </div>
+                          {isCorrect ? (
+                            <CheckCircle size={24} className="text-emerald-400" />
+                          ) : (
+                            <XCircle size={24} className={score > 0 ? 'text-amber-400' : 'text-rose-400'} />
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Action Buttons */}
+          <div className="flex items-center justify-center gap-4 pb-8">
+            <button
+              onClick={() => navigate('/seeker/my-scores')}
+              className="group inline-flex items-center gap-3 rounded-2xl bg-gradient-to-r from-indigo-500 to-purple-500 px-8 py-4 text-base font-bold text-white shadow-xl shadow-indigo-500/20 transition-all hover:shadow-2xl hover:shadow-indigo-500/30 hover:-translate-y-0.5"
+            >
+              Về bảng điểm
+              <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
+            </button>
+          </div>
+        </div>
       </div>
     );
   }

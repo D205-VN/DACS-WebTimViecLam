@@ -35,6 +35,9 @@ router.post('/start-submission', aiTestController.startSubmission);
 router.post('/submit-answer', aiTestController.submitAnswer);
 router.post('/complete-submission', aiTestController.completeSubmission);
 
+// Candidate: my scores
+router.get('/my-submissions', aiTestController.getMySubmissions);
+
 // Admin / HR Management
 router.get('/submissions', aiTestController.getSubmissions);
 router.get('/submissions/:id', aiTestController.getSubmissionDetails);

@@ -18,6 +18,7 @@ import {
   Send,
   Shield,
   Sparkles,
+  Trophy,
   User,
   X,
 } from 'lucide-react';
@@ -161,6 +162,14 @@ function getUserMenuLinks(roleCode) {
       icon: Send,
       iconClass: 'bg-green-50 text-green-500',
       match: (pathname) => pathname.startsWith('/applied-jobs') || pathname.startsWith('/seeker/applied-jobs'),
+    },
+    {
+      to: getRouteByRole(roleCode, 'myScores'),
+      label: 'Bảng điểm',
+      description: 'Kết quả bài test AI',
+      icon: Trophy,
+      iconClass: 'bg-amber-50 text-amber-500',
+      match: (pathname) => pathname.startsWith('/seeker/my-scores'),
     },
     {
       to: getRouteByRole(roleCode, 'messages'),

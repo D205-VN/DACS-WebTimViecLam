@@ -791,8 +791,73 @@ const aiTestController = {
         `UPDATE ai_submissions SET status = 'completed', completed_at = CURRENT_TIMESTAMP WHERE id = $1`,
         [submission_id]
       );
-      // Finalize total score logic could go here or after all answers are scored
-      res.json({ message: 'Submission completed' });
+
+      // Wait a moment for async scoring to finish
+      await new Promise(resolve => setTimeout(resolve, 1500));
+
+      // Recalculate total score to ensure it's up-to-date
+      await pool.query(
+        `UPDATE ai_submissions SET total_score = (SELECT COALESCE(SUM(final_score),0) FROM ai_answers WHERE submission_id = $1) WHERE id = $1`,
+        [submission_id]
+      );
+
+      // Fetch submission with test info
+      const submissionRes = await pool.query(
+        `SELECT s.*, t.title as test_title, t.test_type,
+                (SELECT COUNT(*) FROM ai_test_questions WHERE test_id = s.test_id) as total_questions
+         FROM ai_submissions s
+         JOIN ai_tests t ON s.test_id = t.id
+         WHERE s.id = $1`,
+        [submission_id]
+      );
+
+      if (submissionRes.rows.length === 0) {
+        return res.json({ message: 'Submission completed' });
+      }
+
+      const submission = submissionRes.rows[0];
+
+      // Fetch per-answer scores
+      const answersRes = await pool.query(
+        `SELECT a.id, a.question_id, a.text_answer, a.final_score, a.scoring_details,
+                q.content as question_content, q.type as question_type, q.correct_answer
+         FROM ai_answers a
+         JOIN ai_questions q ON a.question_id = q.id
+         WHERE a.submission_id = $1
+         ORDER BY a.id ASC`,
+        [submission_id]
+      );
+
+      const totalQuestions = parseInt(submission.total_questions) || answersRes.rows.length;
+      const maxScore = totalQuestions * 10;
+      const totalScore = parseFloat(submission.total_score) || 0;
+      const percentage = maxScore > 0 ? Math.round((totalScore / maxScore) * 100) : 0;
+      const correctCount = answersRes.rows.filter(a => parseFloat(a.final_score) >= 10).length;
+
+      res.json({
+        message: 'Submission completed',
+        result: {
+          submission_id: submission.id,
+          test_title: submission.test_title,
+          test_type: submission.test_type,
+          total_score: totalScore,
+          max_score: maxScore,
+          percentage,
+          total_questions: totalQuestions,
+          answered_questions: answersRes.rows.length,
+          correct_count: correctCount,
+          completed_at: submission.completed_at,
+          answers: answersRes.rows.map(a => ({
+            question_id: a.question_id,
+            question_content: a.question_content,
+            question_type: a.question_type,
+            text_answer: a.text_answer,
+            correct_answer: a.correct_answer,
+            final_score: parseFloat(a.final_score) || 0,
+            scoring_details: typeof a.scoring_details === 'string' ? JSON.parse(a.scoring_details || '{}') : (a.scoring_details || {}),
+          })),
+        },
+      });
     } catch (err) {
       console.error(err);
       res.status(500).json({ error: 'Server Error' });
@@ -875,6 +940,52 @@ const aiTestController = {
       `UPDATE ai_submissions SET total_score = (SELECT COALESCE(SUM(final_score),0) FROM ai_answers WHERE submission_id = $1) WHERE id = $1`,
       [answer.submission_id]
     );
+  },
+
+  // ==================== CANDIDATE: MY SCORES ====================
+  getMySubmissions: async (req, res) => {
+    try {
+      const candidateId = req.user?.id;
+      if (!candidateId) return res.status(401).json({ error: 'Unauthorized' });
+
+      const submissions = await pool.query(
+        `SELECT s.id, s.test_id, s.status, s.total_score, s.completed_at, s.created_at,
+                s.suspicious_flag, s.tab_switch_count,
+                t.title as test_title, t.test_type, t.duration,
+                t.job_id,
+                j.job_title, j.company_name, j.job_address as job_location, j.salary as job_salary,
+                (SELECT COUNT(*) FROM ai_test_questions WHERE test_id = s.test_id) as total_questions,
+                (SELECT COUNT(*) FROM ai_answers WHERE submission_id = s.id) as answered_questions,
+                (SELECT COUNT(*) FROM ai_answers WHERE submission_id = s.id AND final_score >= 10) as correct_count
+         FROM ai_submissions s
+         JOIN ai_tests t ON s.test_id = t.id
+         LEFT JOIN jobs j ON j.id = t.job_id
+         WHERE s.candidate_id = $1
+         ORDER BY s.completed_at DESC NULLS LAST, s.created_at DESC`,
+        [candidateId]
+      );
+
+      const rows = submissions.rows.map(row => {
+        const totalQ = parseInt(row.total_questions) || 0;
+        const maxScore = totalQ * 10;
+        const totalScore = parseFloat(row.total_score) || 0;
+        const percentage = maxScore > 0 ? Math.round((totalScore / maxScore) * 100) : 0;
+        return {
+          ...row,
+          total_questions: totalQ,
+          answered_questions: parseInt(row.answered_questions) || 0,
+          correct_count: parseInt(row.correct_count) || 0,
+          max_score: maxScore,
+          total_score: totalScore,
+          percentage,
+        };
+      });
+
+      res.json(rows);
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: 'Server Error' });
+    }
   },
 
   // ==================== ADMIN / HR ====================

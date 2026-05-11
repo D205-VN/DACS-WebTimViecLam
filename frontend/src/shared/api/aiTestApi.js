@@ -85,5 +85,6 @@ export const aiTestApi = {
     method: 'POST',
     body: JSON.stringify(payload),
   }),
+  getMySubmissions: () => request('/my-submissions'),
   getTestByJobId: (jobId) => request(`/by-job/${encodeURIComponent(jobId)}`),
 };

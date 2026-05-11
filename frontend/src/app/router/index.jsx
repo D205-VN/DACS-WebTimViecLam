@@ -23,6 +23,7 @@ import CVImportImagePage from '@pages/seeker/CVImportImagePage';
 import BlockchainVerificationPage from '@pages/seeker/BlockchainVerificationPage';
 import JobAlertsPage from '@pages/seeker/JobAlertsPage';
 import OnboardingPage from '@pages/seeker/OnboardingPage';
+import MyScoresPage from '@pages/seeker/MyScoresPage';
 import EmployerDashboard from '@pages/employer/EmployerDashboard';
 import PostJob from '@pages/employer/PostJob';
 import AITestEditPage from '@pages/employer/AITestEditPage';
@@ -106,6 +107,7 @@ const router = createBrowserRouter([
   { path: '/seeker/cv-import', element: <MainLayout><SeekerRoute><CVImportImagePage /></SeekerRoute></MainLayout> },
   { path: '/seeker/blockchain-verification', element: <MainLayout><SeekerRoute><BlockchainVerificationPage /></SeekerRoute></MainLayout> },
   { path: '/seeker/onboarding/:id', element: <MainLayout><SeekerRoute><OnboardingPage /></SeekerRoute></MainLayout> },
+  { path: '/seeker/my-scores', element: <MainLayout><SeekerRoute><MyScoresPage /></SeekerRoute></MainLayout> },
   { path: '/cv-builder', element: <Navigate to="/seeker/cv-builder" replace /> },
   { path: '/my-cvs', element: <Navigate to="/seeker/my-cvs" replace /> },
   { path: '/cv-import', element: <Navigate to="/seeker/cv-import" replace /> },
