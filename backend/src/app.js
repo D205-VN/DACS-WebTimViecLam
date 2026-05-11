@@ -2,12 +2,39 @@ const express = require('express');
 const cors = require('cors');
 const modules = require('./modules');
 
+function normalizeOrigin(origin) {
+  return String(origin || '').trim().replace(/\/+$/, '');
+}
+
+function parseOriginList(value) {
+  return String(value || '')
+    .split(',')
+    .map(normalizeOrigin)
+    .filter(Boolean);
+}
+
 function getAllowedOrigins() {
-  return [
+  return [...new Set([
     'http://localhost:5173',
     'http://127.0.0.1:5173',
-    process.env.FRONTEND_URL,
-  ].filter(Boolean);
+    'https://aptertekwork.pages.dev',
+    ...parseOriginList(process.env.FRONTEND_URL),
+    ...parseOriginList(process.env.FRONTEND_URLS),
+  ])];
+}
+
+function isAllowedOrigin(origin, allowedOrigins) {
+  const normalizedOrigin = normalizeOrigin(origin);
+  if (allowedOrigins.includes(normalizedOrigin)) return true;
+
+  try {
+    const { protocol, hostname } = new URL(normalizedOrigin);
+    return protocol === 'https:' && (
+      hostname === 'aptertekwork.pages.dev' || hostname.endsWith('.aptertekwork.pages.dev')
+    );
+  } catch {
+    return false;
+  }
 }
 
 function createApp() {
@@ -18,7 +45,7 @@ function createApp() {
     origin: (origin, callback) => {
       if (!origin) return callback(null, true);
 
-      if (allowedOrigins.includes(origin) || process.env.NODE_ENV !== 'production') {
+      if (isAllowedOrigin(origin, allowedOrigins) || process.env.NODE_ENV !== 'production') {
         return callback(null, true);
       }
 
@@ -45,4 +72,5 @@ function createApp() {
 module.exports = {
   createApp,
   getAllowedOrigins,
+  isAllowedOrigin,
 };
