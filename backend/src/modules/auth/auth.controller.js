@@ -22,6 +22,34 @@ function createToken(user) {
   );
 }
 
+function isEmailDeliveryError(err) {
+  const code = String(err?.code || '');
+  const message = String(err?.message || '').toLowerCase();
+
+  return [
+    'EAUTH',
+    'ECONNECTION',
+    'ETIMEDOUT',
+    'ESOCKET',
+    'ENOTFOUND',
+  ].includes(code) ||
+    message.includes('smtp_email') ||
+    message.includes('smtp_password') ||
+    message.includes('timed out') ||
+    message.includes('invalid login') ||
+    message.includes('authentication');
+}
+
+function sendServerError(res, err, fallbackMessage) {
+  if (isEmailDeliveryError(err)) {
+    return res.status(502).json({
+      error: 'Không thể gửi mã OTP qua email. Vui lòng kiểm tra cấu hình gửi email trên máy chủ.',
+    });
+  }
+
+  return res.status(500).json({ error: fallbackMessage });
+}
+
 /**
  * POST /api/auth/register
  * Đăng ký tài khoản mới + gửi OTP qua email
@@ -74,7 +102,7 @@ async function register(req, res) {
     });
   } catch (err) {
     console.error('Register error:', err);
-    res.status(500).json({ error: 'Đã xảy ra lỗi khi đăng ký' });
+    sendServerError(res, err, 'Đã xảy ra lỗi khi đăng ký');
   }
 }
 
@@ -154,7 +182,7 @@ async function resendOTP(req, res) {
     res.json({ message: 'Đã gửi lại mã OTP. Vui lòng kiểm tra email.' });
   } catch (err) {
     console.error('Resend OTP error:', err);
-    res.status(500).json({ error: 'Đã xảy ra lỗi khi gửi lại OTP' });
+    sendServerError(res, err, 'Đã xảy ra lỗi khi gửi lại OTP');
   }
 }
 
@@ -461,7 +489,7 @@ async function forgotPassword(req, res) {
     res.json({ message: 'Mã xác thực đã được gửi đến email của bạn.', email });
   } catch (err) {
     console.error('Forgot password error:', err);
-    res.status(500).json({ error: 'Đã xảy ra lỗi khi gửi mã xác thực' });
+    sendServerError(res, err, 'Đã xảy ra lỗi khi gửi mã xác thực');
   }
 }
 

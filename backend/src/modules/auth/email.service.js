@@ -1,8 +1,18 @@
 const nodemailer = require('nodemailer');
 require('dotenv').config();
 
+const DEFAULT_MAIL_TIMEOUT_MS = 15000;
+
+function getMailTimeoutMs() {
+  const timeout = Number(process.env.SMTP_TIMEOUT_MS);
+  return Number.isFinite(timeout) && timeout > 0 ? timeout : DEFAULT_MAIL_TIMEOUT_MS;
+}
+
 const transporter = nodemailer.createTransport({
   service: 'gmail',
+  connectionTimeout: getMailTimeoutMs(),
+  greetingTimeout: getMailTimeoutMs(),
+  socketTimeout: getMailTimeoutMs(),
   auth: {
     user: process.env.SMTP_EMAIL,
     pass: process.env.SMTP_PASSWORD,
@@ -11,6 +21,12 @@ const transporter = nodemailer.createTransport({
 
 function isEmailConfigured() {
   return Boolean(process.env.SMTP_EMAIL && process.env.SMTP_PASSWORD);
+}
+
+function ensureEmailConfigured() {
+  if (!isEmailConfigured()) {
+    throw new Error('SMTP_EMAIL hoặc SMTP_PASSWORD chưa được cấu hình');
+  }
 }
 
 function formatInterviewDateTime(interviewAt) {
@@ -43,6 +59,8 @@ function escapeHtml(value = '') {
  * @param {string} otp - Mã OTP 6 số
  */
 async function sendOTPEmail(to, otp) {
+  ensureEmailConfigured();
+
   const mailOptions = {
     from: `"AptertekWork.vn" <${process.env.SMTP_EMAIL}>`,
     to,
@@ -98,6 +116,8 @@ async function sendOTPEmail(to, otp) {
  * @param {string} otp - Mã OTP 6 số
  */
 async function sendPasswordResetOTPEmail(to, otp) {
+  ensureEmailConfigured();
+
   const mailOptions = {
     from: `"AptertekWork.vn" <${process.env.SMTP_EMAIL}>`,
     to,
