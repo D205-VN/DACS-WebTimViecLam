@@ -142,6 +142,7 @@ export default function VerificationPublicPage() {
             <div className="mt-6 grid gap-4 md:grid-cols-2">
               <StatusRow label="Hash block hợp lệ" ok={payload.is_block_valid} />
               <StatusRow label="Liên kết với block trước hợp lệ" ok={payload.is_linked_to_previous} />
+              <StatusRow label="Transaction on-chain khớp" ok={payload.is_on_chain_anchor_valid} />
               <StatusRow label="Khớp với dữ liệu hiện tại" ok={payload.matches_current_record} />
               <StatusRow label="Đang là version mới nhất" ok={payload.is_latest_version} />
             </div>
@@ -170,6 +171,26 @@ export default function VerificationPublicPage() {
             <div className="rounded-lg border border-indigo-50 bg-white p-6 shadow-sm">
               <h2 className="text-lg font-bold text-gray-800">Dấu vết chuỗi</h2>
               <div className="mt-4 space-y-4">
+                <div>
+                  <p className="text-xs uppercase tracking-[0.18em] text-gray-400">On-chain transaction</p>
+                  {payload.anchor_tx_hash ? (
+                    <>
+                      <p className="mt-2 break-all rounded-lg bg-emerald-50 px-4 py-3 font-mono text-xs text-emerald-700">{payload.anchor_tx_hash}</p>
+                      <p className="mt-2 text-sm text-gray-600">
+                        {payload.anchor_network || 'EVM'}{payload.chain_id ? ` #${payload.chain_id}` : ''}
+                      </p>
+                      {payload.explorer_url ? (
+                        <a href={payload.explorer_url} target="_blank" rel="noreferrer" className="mt-2 inline-flex items-center gap-1 text-sm font-semibold text-emerald-700 hover:text-emerald-800">
+                          <ExternalLink className="h-4 w-4" /> Xem trên explorer
+                        </a>
+                      ) : null}
+                    </>
+                  ) : (
+                    <p className="mt-2 rounded-lg bg-amber-50 px-4 py-3 text-sm text-amber-700">
+                      {payload.on_chain_anchor?.error || payload.anchor_error || 'Chưa có transaction on-chain cho bản ghi này.'}
+                    </p>
+                  )}
+                </div>
                 <div>
                   <p className="text-xs uppercase tracking-[0.18em] text-gray-400">Block hash</p>
                   <p className="mt-2 break-all rounded-lg bg-indigo-50/50 px-4 py-3 font-mono text-xs text-gray-600">{payload.block_hash}</p>

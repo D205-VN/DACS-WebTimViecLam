@@ -63,6 +63,43 @@ function resolvePublicUrl(publicUrl, verificationCode) {
   return `${window.location.origin}${basePath.startsWith('/') ? basePath : `/${basePath}`}`;
 }
 
+function AnchorStatus({ item }) {
+  if (!item?.verification_code) return null;
+
+  if (item.anchor_tx_hash) {
+    const label = item.anchor_network
+      ? `Đã ghi on-chain: ${item.anchor_network}${item.chain_id ? ` #${item.chain_id}` : ''}`
+      : 'Đã ghi on-chain';
+
+    return (
+      <div className="mt-3 rounded-lg border border-emerald-100 bg-emerald-50 px-3 py-2 text-xs text-emerald-700">
+        <p className="font-semibold">{label}</p>
+        <p className="mt-1 break-all font-mono">{item.anchor_tx_hash}</p>
+        {item.explorer_url ? (
+          <a href={item.explorer_url} target="_blank" rel="noreferrer" className="mt-2 inline-flex items-center gap-1 font-semibold text-emerald-800 hover:text-emerald-900">
+            <ExternalLink className="h-3.5 w-3.5" /> Xem transaction
+          </a>
+        ) : null}
+      </div>
+    );
+  }
+
+  if (item.anchor_error) {
+    return (
+      <div className="mt-3 rounded-lg border border-amber-100 bg-amber-50 px-3 py-2 text-xs text-amber-700">
+        <p className="font-semibold">Chưa ghi được lên mạng blockchain thật</p>
+        <p className="mt-1">{item.anchor_error}</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mt-3 rounded-lg border border-gray-100 bg-gray-50 px-3 py-2 text-xs text-gray-500">
+      Ledger nội bộ đã tạo, chưa có transaction on-chain.
+    </div>
+  );
+}
+
 export default function BlockchainVerificationPage() {
   const { token, user } = useAuth();
   const [overview, setOverview] = useState({
@@ -339,6 +376,7 @@ export default function BlockchainVerificationPage() {
                       {cv.verification_code ? (
                         <p className="font-mono text-xs text-gray-500 break-all">{cv.verification_code}</p>
                       ) : null}
+                      <AnchorStatus item={cv} />
                     </div>
 
                     <div className="mt-5 flex flex-wrap gap-2">
@@ -483,6 +521,7 @@ export default function BlockchainVerificationPage() {
                         <p>Ngày cấp: {formatDate(item.issue_date)}</p>
                         <p>Hết hạn: {item.expiry_date ? formatDate(item.expiry_date) : 'Không có'}</p>
                         <p className="font-mono text-xs text-gray-500 break-all">{item.verification_code}</p>
+                        <AnchorStatus item={item} />
                       </div>
 
                       <div className="mt-5 flex flex-wrap gap-2">
@@ -641,6 +680,7 @@ export default function BlockchainVerificationPage() {
                           Thời gian: {formatDate(item.start_date)} - {item.currently_working ? 'Hiện tại' : formatDate(item.end_date)}
                         </p>
                         <p className="font-mono text-xs text-gray-500 break-all">{item.verification_code}</p>
+                        <AnchorStatus item={item} />
                       </div>
 
                       {item.summary ? (

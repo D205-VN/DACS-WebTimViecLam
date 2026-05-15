@@ -4,13 +4,16 @@ const {
   buildAssetMetadata,
   buildCertificatePayload,
   buildCvPayload,
+  buildExplorerUrl,
   buildWorkHistoryPayload,
   createBlockchainBlock,
   ensureVerificationSchema,
   formatDateValue,
+  getBlockchainConfig,
   getLatestAssetBlock,
   hashPayload,
   validateBlockchainRecord,
+  verifyBlockAnchor,
 } = require('./verification.model');
 
 function requireSeekerRole(req, res) {
@@ -24,6 +27,20 @@ function requireSeekerRole(req, res) {
 
 function buildPublicVerificationUrl(req, verificationCode) {
   return `/verify/${verificationCode}`;
+}
+
+function buildAnchorData(block = {}) {
+  const explorerTxUrl = getBlockchainConfig().explorerTxUrl;
+
+  return {
+    anchor_network: block.anchor_network || null,
+    chain_id: block.chain_id || null,
+    anchor_tx_hash: block.anchor_tx_hash || null,
+    anchor_address: block.anchor_address || null,
+    anchor_error: block.anchor_error || null,
+    anchored_at: block.anchored_at || null,
+    explorer_url: block.anchor_tx_hash ? buildExplorerUrl(block.anchor_tx_hash, explorerTxUrl) : null,
+  };
 }
 
 async function getUserFullName(userId, client = pool) {
@@ -86,10 +103,17 @@ async function getOverview(req, res) {
                 chain.verification_code,
                 chain.block_hash,
                 chain.payload_hash,
+                chain.anchor_network,
+                chain.chain_id,
+                chain.anchor_tx_hash,
+                chain.anchor_address,
+                chain.anchor_error,
+                chain.anchored_at,
                 chain.created_at as notarized_at
          FROM user_cvs c
          LEFT JOIN LATERAL (
-           SELECT verification_code, block_hash, payload_hash, created_at
+           SELECT verification_code, block_hash, payload_hash, anchor_network, chain_id,
+                  anchor_tx_hash, anchor_address, anchor_error, anchored_at, created_at
            FROM blockchain_blocks
            WHERE asset_type = 'cv' AND asset_id = c.id AND owner_user_id = c.user_id
            ORDER BY block_index DESC
@@ -100,19 +124,23 @@ async function getOverview(req, res) {
         [req.user.id]
       ),
       pool.query(
-        `SELECT id, certificate_name, issuer_name, credential_id, issue_date, expiry_date, document_url,
-                notes, status, verification_code, created_at, updated_at
-         FROM user_certifications
-         WHERE user_id = $1
-         ORDER BY created_at DESC, id DESC`,
+        `SELECT c.id, c.certificate_name, c.issuer_name, c.credential_id, c.issue_date, c.expiry_date,
+                c.document_url, c.notes, c.status, c.verification_code, c.created_at, c.updated_at,
+                b.anchor_network, b.chain_id, b.anchor_tx_hash, b.anchor_address, b.anchor_error, b.anchored_at
+         FROM user_certifications c
+         LEFT JOIN blockchain_blocks b ON b.id = c.block_id
+         WHERE c.user_id = $1
+         ORDER BY c.created_at DESC, c.id DESC`,
         [req.user.id]
       ),
       pool.query(
-        `SELECT id, company_name, job_title, employment_type, start_date, end_date,
-                currently_working, summary, status, verification_code, created_at, updated_at
-         FROM user_work_histories
-         WHERE user_id = $1
-         ORDER BY start_date DESC NULLS LAST, created_at DESC, id DESC`,
+        `SELECT w.id, w.company_name, w.job_title, w.employment_type, w.start_date, w.end_date,
+                w.currently_working, w.summary, w.status, w.verification_code, w.created_at, w.updated_at,
+                b.anchor_network, b.chain_id, b.anchor_tx_hash, b.anchor_address, b.anchor_error, b.anchored_at
+         FROM user_work_histories w
+         LEFT JOIN blockchain_blocks b ON b.id = w.block_id
+         WHERE w.user_id = $1
+         ORDER BY w.start_date DESC NULLS LAST, w.created_at DESC, w.id DESC`,
         [req.user.id]
       ),
     ]);
@@ -121,14 +149,17 @@ async function getOverview(req, res) {
       data: {
         cvs: cvsResult.rows.map((row) => ({
           ...row,
+          ...buildAnchorData(row),
           public_url: row.verification_code ? buildPublicVerificationUrl(req, row.verification_code) : null,
         })),
         certificates: certificateResult.rows.map((row) => ({
           ...row,
+          ...buildAnchorData(row),
           public_url: row.verification_code ? buildPublicVerificationUrl(req, row.verification_code) : null,
         })),
         workHistories: workHistoryResult.rows.map((row) => ({
           ...row,
+          ...buildAnchorData(row),
           public_url: row.verification_code ? buildPublicVerificationUrl(req, row.verification_code) : null,
         })),
       },
@@ -179,6 +210,7 @@ async function notarizeCv(req, res) {
             verification_code: latestBlock.verification_code,
             block_hash: latestBlock.block_hash,
             payload_hash: latestBlock.payload_hash,
+            ...buildAnchorData(latestBlock),
             notarized_at: latestBlock.created_at,
             public_url: buildPublicVerificationUrl(req, latestBlock.verification_code),
           },
@@ -202,6 +234,7 @@ async function notarizeCv(req, res) {
           verification_code: block.verification_code,
           block_hash: block.block_hash,
           payload_hash: block.payload_hash,
+          ...buildAnchorData(block),
           notarized_at: block.created_at,
           public_url: buildPublicVerificationUrl(req, block.verification_code),
         },
@@ -285,6 +318,7 @@ async function createCertificate(req, res) {
         message: 'Đã tạo chứng chỉ và ghi nhận lên blockchain ledger nội bộ.',
         data: {
           ...updateResult.rows[0],
+          ...buildAnchorData(block),
           public_url: buildPublicVerificationUrl(req, block.verification_code),
         },
       });
@@ -305,17 +339,20 @@ async function getCertificates(req, res) {
   try {
     await ensureVerificationSchema();
     const result = await pool.query(
-      `SELECT id, certificate_name, issuer_name, credential_id, issue_date, expiry_date, document_url,
-              notes, status, verification_code, created_at, updated_at
-       FROM user_certifications
-       WHERE user_id = $1
-       ORDER BY created_at DESC, id DESC`,
+      `SELECT c.id, c.certificate_name, c.issuer_name, c.credential_id, c.issue_date, c.expiry_date,
+              c.document_url, c.notes, c.status, c.verification_code, c.created_at, c.updated_at,
+              b.anchor_network, b.chain_id, b.anchor_tx_hash, b.anchor_address, b.anchor_error, b.anchored_at
+       FROM user_certifications c
+       LEFT JOIN blockchain_blocks b ON b.id = c.block_id
+       WHERE c.user_id = $1
+       ORDER BY c.created_at DESC, c.id DESC`,
       [req.user.id]
     );
 
     res.json({
       data: result.rows.map((row) => ({
         ...row,
+        ...buildAnchorData(row),
         public_url: row.verification_code ? buildPublicVerificationUrl(req, row.verification_code) : null,
       })),
     });
@@ -428,6 +465,7 @@ async function createWorkHistory(req, res) {
         message: 'Đã tạo lịch sử làm việc và ghi nhận lên blockchain ledger nội bộ.',
         data: {
           ...updateResult.rows[0],
+          ...buildAnchorData(block),
           public_url: buildPublicVerificationUrl(req, block.verification_code),
         },
       });
@@ -448,17 +486,20 @@ async function getWorkHistories(req, res) {
   try {
     await ensureVerificationSchema();
     const result = await pool.query(
-      `SELECT id, company_name, job_title, employment_type, start_date, end_date,
-              currently_working, summary, status, verification_code, created_at, updated_at
-       FROM user_work_histories
-       WHERE user_id = $1
-       ORDER BY start_date DESC NULLS LAST, created_at DESC, id DESC`,
+      `SELECT w.id, w.company_name, w.job_title, w.employment_type, w.start_date, w.end_date,
+              w.currently_working, w.summary, w.status, w.verification_code, w.created_at, w.updated_at,
+              b.anchor_network, b.chain_id, b.anchor_tx_hash, b.anchor_address, b.anchor_error, b.anchored_at
+       FROM user_work_histories w
+       LEFT JOIN blockchain_blocks b ON b.id = w.block_id
+       WHERE w.user_id = $1
+       ORDER BY w.start_date DESC NULLS LAST, w.created_at DESC, w.id DESC`,
       [req.user.id]
     );
 
     res.json({
       data: result.rows.map((row) => ({
         ...row,
+        ...buildAnchorData(row),
         public_url: row.verification_code ? buildPublicVerificationUrl(req, row.verification_code) : null,
       })),
     });
@@ -515,7 +556,8 @@ async function getPublicVerification(req, res) {
 
     const blockResult = await pool.query(
       `SELECT id, block_index, asset_type, asset_id, owner_user_id, verification_code, payload_hash,
-              previous_hash, block_hash, metadata, created_at
+              previous_hash, block_hash, anchor_network, chain_id, anchor_tx_hash,
+              anchor_address, anchor_error, anchored_at, metadata, created_at
        FROM blockchain_blocks
        WHERE verification_code = $1
        LIMIT 1`,
@@ -638,6 +680,23 @@ async function getPublicVerification(req, res) {
       [block.asset_type, block.asset_id]
     );
     const latestVerification = latestAssetBlock.rows[0] || null;
+    let onChainAnchor = {
+      checked: false,
+      is_valid: false,
+      error: 'Chưa có transaction on-chain để kiểm tra',
+    };
+
+    if (block.anchor_tx_hash) {
+      try {
+        onChainAnchor = await verifyBlockAnchor(block);
+      } catch (err) {
+        onChainAnchor = {
+          checked: false,
+          is_valid: false,
+          error: err.message,
+        };
+      }
+    }
 
     res.json({
       data: {
@@ -648,10 +707,13 @@ async function getPublicVerification(req, res) {
         block_hash: block.block_hash,
         previous_hash: block.previous_hash,
         payload_hash: block.payload_hash,
+        ...buildAnchorData(block),
         metadata: block.metadata || {},
         public_url: buildPublicVerificationUrl(req, block.verification_code),
         is_block_valid: chainValidation.isBlockValid,
         is_linked_to_previous: chainValidation.isLinkedToPrevious,
+        is_on_chain_anchor_valid: onChainAnchor.is_valid,
+        on_chain_anchor: onChainAnchor,
         is_latest_version: latestVerification?.verification_code === block.verification_code,
         matches_current_record: currentPayloadHash ? currentPayloadHash === block.payload_hash : false,
         asset,

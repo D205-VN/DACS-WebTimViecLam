@@ -1,5 +1,13 @@
 const crypto = require('crypto');
 const pool = require('../../infrastructure/database/postgres');
+const {
+  anchorBlockOnChain,
+  buildExplorerUrl,
+  getBlockchainConfig,
+  isBlockchainEnabled,
+  isBlockchainRequired,
+  verifyBlockAnchor,
+} = require('./blockchain.service');
 
 let verificationSchemaReady = false;
 
@@ -154,9 +162,25 @@ async function ensureVerificationSchema() {
       payload_hash VARCHAR(64) NOT NULL,
       previous_hash VARCHAR(64),
       block_hash VARCHAR(64) NOT NULL UNIQUE,
+      anchor_network VARCHAR(100),
+      chain_id INTEGER,
+      anchor_tx_hash VARCHAR(100),
+      anchor_address VARCHAR(100),
+      anchor_error TEXT,
+      anchored_at TIMESTAMP,
       metadata JSONB NOT NULL DEFAULT '{}'::jsonb,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )
+  `);
+
+  await pool.query(`
+    ALTER TABLE blockchain_blocks
+    ADD COLUMN IF NOT EXISTS anchor_network VARCHAR(100),
+    ADD COLUMN IF NOT EXISTS chain_id INTEGER,
+    ADD COLUMN IF NOT EXISTS anchor_tx_hash VARCHAR(100),
+    ADD COLUMN IF NOT EXISTS anchor_address VARCHAR(100),
+    ADD COLUMN IF NOT EXISTS anchor_error TEXT,
+    ADD COLUMN IF NOT EXISTS anchored_at TIMESTAMP
   `);
 
   await pool.query(`
@@ -231,7 +255,8 @@ async function ensureVerificationSchema() {
 async function getLatestAssetBlock({ assetType, assetId, ownerUserId }, client = pool) {
   const result = await client.query(
     `SELECT id, block_index, asset_type, asset_id, owner_user_id, verification_code, payload_hash,
-            previous_hash, block_hash, metadata, created_at
+            previous_hash, block_hash, anchor_network, chain_id, anchor_tx_hash,
+            anchor_address, anchor_error, anchored_at, metadata, created_at
      FROM blockchain_blocks
      WHERE asset_type = $1 AND asset_id = $2 AND owner_user_id = $3
      ORDER BY block_index DESC
@@ -293,7 +318,8 @@ async function createBlockchainBlock({
      )
      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9::jsonb)
      RETURNING id, block_index, asset_type, asset_id, owner_user_id, verification_code,
-               payload_hash, previous_hash, block_hash, metadata, created_at`,
+               payload_hash, previous_hash, block_hash, anchor_network, chain_id,
+               anchor_tx_hash, anchor_address, anchor_error, anchored_at, metadata, created_at`,
     [
       blockIndex,
       assetType,
@@ -307,7 +333,47 @@ async function createBlockchainBlock({
     ]
   );
 
-  return result.rows[0];
+  const block = result.rows[0];
+
+  if (!isBlockchainEnabled()) {
+    return block;
+  }
+
+  try {
+    const anchor = await anchorBlockOnChain(block);
+    const anchoredResult = await client.query(
+      `UPDATE blockchain_blocks
+       SET anchor_network = $1,
+           chain_id = $2,
+           anchor_tx_hash = $3,
+           anchor_address = $4,
+           anchor_error = NULL,
+           anchored_at = NOW()
+       WHERE id = $5
+       RETURNING id, block_index, asset_type, asset_id, owner_user_id, verification_code,
+                 payload_hash, previous_hash, block_hash, anchor_network, chain_id,
+                 anchor_tx_hash, anchor_address, anchor_error, anchored_at, metadata, created_at`,
+      [anchor.network, anchor.chain_id, anchor.tx_hash, anchor.anchor_address, block.id]
+    );
+
+    return anchoredResult.rows[0];
+  } catch (err) {
+    if (isBlockchainRequired()) {
+      throw err;
+    }
+
+    const failedResult = await client.query(
+      `UPDATE blockchain_blocks
+       SET anchor_error = $1
+       WHERE id = $2
+       RETURNING id, block_index, asset_type, asset_id, owner_user_id, verification_code,
+                 payload_hash, previous_hash, block_hash, anchor_network, chain_id,
+                 anchor_tx_hash, anchor_address, anchor_error, anchored_at, metadata, created_at`,
+      [err.message, block.id]
+    );
+
+    return failedResult.rows[0];
+  }
 }
 
 function validateBlockchainRecord(block, previousBlock) {
@@ -341,10 +407,13 @@ module.exports = {
   buildCertificatePayload,
   buildCvPayload,
   buildWorkHistoryPayload,
+  buildExplorerUrl,
   createBlockchainBlock,
   ensureVerificationSchema,
   formatDateValue,
+  getBlockchainConfig,
   getLatestAssetBlock,
   hashPayload,
   validateBlockchainRecord,
+  verifyBlockAnchor,
 };
