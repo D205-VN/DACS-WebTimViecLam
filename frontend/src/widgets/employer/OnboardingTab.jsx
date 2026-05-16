@@ -21,6 +21,47 @@ import { useAuth } from '@features/auth/AuthContext';
 import API_BASE_URL from '@shared/api/baseUrl';
 import UserAvatar from '@shared/ui/UserAvatar';
 
+const DEFAULT_DOCUMENTS = [
+  { id: 'cccd', name: 'CCCD/CMND', status: 'pending', url: null, aiData: null, feedback: '' },
+  { id: 'degree', name: 'Bằng cấp/Chứng chỉ', status: 'pending', url: null, aiData: null, feedback: '' },
+  { id: 'health', name: 'Giấy khám sức khỏe', status: 'pending', url: null, aiData: null, feedback: '' },
+];
+
+const DOCUMENT_LABELS = {
+  cccd: 'CCCD/CMND',
+  cccd_front: 'CCCD/CMND - Mặt trước',
+  cccd_back: 'CCCD/CMND - Mặt sau',
+  degree: 'Bằng cấp/Chứng chỉ',
+  health: 'Giấy khám sức khỏe',
+};
+
+function resolveFileUrl(fileUrl) {
+  if (!fileUrl) return null;
+  if (/^https?:\/\//i.test(fileUrl)) return fileUrl;
+  return `${API_BASE_URL}${fileUrl.startsWith('/') ? fileUrl : `/${fileUrl}`}`;
+}
+
+function normalizeOnboardingDocuments(candidate) {
+  const docs = Array.isArray(candidate.onboarding_documents)
+    ? candidate.onboarding_documents
+    : [];
+
+  if (!docs.length) {
+    return DEFAULT_DOCUMENTS.map((doc) => ({ ...doc }));
+  }
+
+  return docs.map((doc) => ({
+    id: doc.id,
+    docType: doc.doc_type,
+    name: DOCUMENT_LABELS[doc.doc_type] || doc.doc_name || doc.file_name || 'Tài liệu',
+    status: doc.status || 'pending',
+    url: resolveFileUrl(doc.file_url),
+    fileName: doc.file_name,
+    aiData: doc.ai_result && Object.keys(doc.ai_result).length ? doc.ai_result : null,
+    feedback: doc.feedback || '',
+  }));
+}
+
 export default function OnboardingTab() {
   const { token } = useAuth();
   const [candidates, setCandidates] = useState([]);
@@ -56,13 +97,8 @@ export default function OnboardingTab() {
           })
           .map(c => ({
             ...c,
-            // Tất cả ứng viên mới hired → hồ sơ đều "Đang chờ" (chưa nộp)
-            onboarding_status: 'waiting',
-            documents: [
-              { id: 'cccd',   name: 'CCCD/CMND',           status: 'pending', url: null, aiData: null, feedback: '' },
-              { id: 'degree', name: 'Bằng cấp/Chứng chỉ',  status: 'pending', url: null, aiData: null, feedback: '' },
-              { id: 'health', name: 'Giấy khám sức khỏe',   status: 'pending', url: null, aiData: null, feedback: '' },
-            ],
+            onboarding_status: c.onboarding_submission_id ? 'submitted' : 'waiting',
+            documents: normalizeOnboardingDocuments(c),
           }));
         setCandidates(hiredOnboarding);
       }
@@ -85,6 +121,46 @@ export default function OnboardingTab() {
     }, 2000);
   };
 
+  const handleReviewDocument = async (doc, status) => {
+    // If rejecting, ask for a reason
+    let feedbackStr = '';
+    if (status === 'rejected') {
+      const reason = window.prompt(`Nhập lý do từ chối tài liệu "${doc.name}":`);
+      if (reason === null) return; // User cancelled
+      feedbackStr = reason;
+    }
+
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/employer/onboarding-documents/${doc.id}/review`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ status, feedback: feedbackStr }),
+      });
+      
+      if (!res.ok) {
+        const errData = await res.json();
+        throw new Error(errData.error || 'Lỗi khi cập nhật tài liệu');
+      }
+
+      // Update local state immediately for better UX
+      setSelectedCandidate(prev => {
+        if (!prev) return prev;
+        const updatedDocs = prev.documents.map(d => 
+          d.id === doc.id ? { ...d, status, feedback: feedbackStr } : d
+        );
+        return { ...prev, documents: updatedDocs };
+      });
+
+      // Refresh the list to get full updated state from backend
+      fetchOnboardingCandidates();
+    } catch (error) {
+      alert(error.message);
+    }
+  };
+
   // Tính progress dựa trên số tài liệu đã duyệt
   const getProgress = (docs) => {
     if (!docs || docs.length === 0) return 0;
@@ -99,14 +175,22 @@ export default function OnboardingTab() {
     return 'bg-emerald-500';
   };
 
-  const getOnboardingLabel = (docs) => {
+  const getOnboardingLabel = (docs, candidate) => {
     if (!docs) return { text: 'Đang chờ hồ sơ', color: 'bg-amber-100 text-amber-700' };
     const approved = docs.filter(d => d.status === 'approved').length;
     const total = docs.length;
-    if (approved === total) return { text: 'Hoàn tất', color: 'bg-emerald-100 text-emerald-700' };
-    const hasAny = docs.some(d => d.status !== 'pending');
-    if (hasAny) return { text: `${approved}/${total} đã duyệt`, color: 'bg-blue-100 text-blue-700' };
+    if (approved === total && total > 0) return { text: 'Hoàn tất', color: 'bg-emerald-100 text-emerald-700' };
+    const hasReviewed = docs.some(d => d.status !== 'pending');
+    if (hasReviewed) return { text: `${approved}/${total} đã duyệt`, color: 'bg-blue-100 text-blue-700' };
+    // Check if docs were actually submitted (have file URLs)
+    const hasSubmitted = candidate?.onboarding_status === 'submitted' || docs.some(d => d.url);
+    if (hasSubmitted) return { text: 'Đã nộp - Chờ duyệt', color: 'bg-indigo-100 text-indigo-700' };
     return { text: 'Đang chờ hồ sơ', color: 'bg-amber-100 text-amber-700' };
+  };
+
+  const handleViewDocument = (doc) => {
+    if (!doc.url) return;
+    window.open(doc.url, '_blank', 'noopener,noreferrer');
   };
 
   // Search filter
@@ -160,7 +244,7 @@ export default function OnboardingTab() {
               {filteredCandidates.length > 0 ? (
                 filteredCandidates.map((candidate) => {
                   const progress = getProgress(candidate.documents);
-                  const label = getOnboardingLabel(candidate.documents);
+                  const label = getOnboardingLabel(candidate.documents, candidate);
                   return (
                     <button
                       key={candidate.id}
@@ -234,8 +318,8 @@ export default function OnboardingTab() {
                       <span className="flex items-center gap-1 text-xs text-gray-400">
                         <Clock className="w-3.5 h-3.5" /> Trúng tuyển ngày: {new Date(selectedCandidate.created_at).toLocaleDateString('vi-VN')}
                       </span>
-                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${getOnboardingLabel(selectedCandidate.documents).color}`}>
-                        {getOnboardingLabel(selectedCandidate.documents).text}
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${getOnboardingLabel(selectedCandidate.documents, selectedCandidate).color}`}>
+                        {getOnboardingLabel(selectedCandidate.documents, selectedCandidate).text}
                       </span>
                     </div>
                   </div>
@@ -261,72 +345,58 @@ export default function OnboardingTab() {
                 </h4>
                 <div className="space-y-3">
                   {selectedCandidate.documents.map((doc) => (
-                    <div key={doc.id} className="group p-4 rounded-xl border border-indigo-100/60 hover:border-indigo-200 hover:shadow-sm  transition-all bg-white">
-                      <div className="flex items-center justify-between gap-4">
-                        <div className="flex items-center gap-3">
-                          <div className={`p-2 rounded-lg ${
-                            doc.status === 'approved' ? 'bg-emerald-50 text-emerald-600' :
-                            doc.status === 'rejected' ? 'bg-red-50 text-red-600' :
-                                                        'bg-amber-50 text-amber-600'
-                          }`}>
-                            <FileText className="w-5 h-5" />
-                          </div>
-                          <div>
-                            <span className="text-sm font-bold text-gray-800">{doc.name}</span>
-                            <div className="flex items-center gap-2 mt-0.5">
-                              <span className={`text-[10px] font-bold uppercase px-1.5 py-0.5 rounded ${
-                                doc.status === 'approved' ? 'bg-emerald-100 text-emerald-700' :
-                                doc.status === 'rejected' ? 'bg-red-100 text-red-700' :
-                                                            'bg-amber-100 text-amber-700'
-                              }`}>
-                                {doc.status === 'approved' ? 'Đã duyệt' : doc.status === 'rejected' ? 'Bị từ chối' : 'Đang chờ'}
-                              </span>
-                              {doc.aiData && (
-                                <span className="text-[10px] bg-blue-50 text-blue-600 font-bold px-1.5 py-0.5 rounded flex items-center gap-1">
-                                  <ScanLine className="w-3 h-3" /> AI Verified
-                                </span>
-                              )}
-                            </div>
+                    <div key={doc.id} className="group rounded-xl border border-indigo-100/60 hover:border-indigo-200 hover:shadow-sm transition-all bg-white overflow-hidden">
+                      {/* Image preview */}
+                      {doc.url ? (
+                        <div className="w-full bg-gray-50 flex items-center justify-center overflow-hidden" style={{ maxHeight: 280 }}>
+                          <img
+                            src={doc.url}
+                            alt={doc.name}
+                            className="w-full object-contain"
+                            style={{ maxHeight: 280 }}
+                          />
+                        </div>
+                      ) : (
+                        <div className="w-full py-8 bg-gray-50 flex items-center justify-center text-gray-300">
+                          <FileText className="w-8 h-8 mr-2 opacity-40" />
+                          <span className="text-sm italic">Chưa nộp tài liệu</span>
+                        </div>
+                      )}
+
+                      {/* Info bar */}
+                      <div className="flex items-center justify-between gap-4 p-4">
+                        <div>
+                          <span className="text-sm font-bold text-gray-800">{doc.name}</span>
+                          <div className="flex items-center gap-2 mt-0.5">
+                            <span className={`text-[10px] font-bold uppercase px-1.5 py-0.5 rounded ${
+                              doc.status === 'approved' ? 'bg-emerald-100 text-emerald-700' :
+                              doc.status === 'rejected' ? 'bg-red-100 text-red-700' :
+                                                          'bg-amber-100 text-amber-700'
+                            }`}>
+                              {doc.status === 'approved' ? 'Đã duyệt' : doc.status === 'rejected' ? 'Bị từ chối' : 'Đang chờ'}
+                            </span>
                           </div>
                         </div>
 
-                        <div className="flex items-center gap-2">
-                          {/* AI Scan */}
-                          {doc.url && doc.status === 'pending' && (
-                            <button
-                              onClick={() => handleAIScan(doc.id)}
-                              disabled={scanning}
-                              className="p-2 hover:bg-blue-50 text-blue-600 rounded-lg transition-colors flex items-center gap-1.5 text-xs font-bold"
-                            >
-                              {scanning ? <Loader2 className="w-4 h-4 animate-spin" /> : <ScanLine className="w-4 h-4" />}
-                              AI Scan
+                        {doc.url && doc.status === 'pending' && (
+                          <div className="flex gap-1">
+                            <button 
+                              onClick={() => handleReviewDocument(doc, 'approved')}
+                              className="p-1.5 bg-emerald-50 text-emerald-600 rounded-lg hover:bg-emerald-100 transition-colors" title="Duyệt">
+                              <Check className="w-4 h-4" />
                             </button>
-                          )}
-
-                          {doc.url ? (
-                            <button className="p-2 hover:bg-indigo-50 text-indigo-600 rounded-lg transition-colors" title="Xem tài liệu">
-                              <Eye className="w-4 h-4" />
+                            <button 
+                              onClick={() => handleReviewDocument(doc, 'rejected')}
+                              className="p-1.5 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors" title="Từ chối">
+                              <X className="w-4 h-4" />
                             </button>
-                          ) : (
-                            <span className="text-xs text-gray-400 italic">Chưa nộp</span>
-                          )}
-
-                          {doc.url && (
-                            <div className="flex gap-1 ml-2 pl-2 border-l border-indigo-50">
-                              <button className="p-1.5 bg-emerald-50 text-emerald-600 rounded-lg hover:bg-emerald-100 transition-colors" title="Duyệt">
-                                <Check className="w-4 h-4" />
-                              </button>
-                              <button className="p-1.5 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors" title="Từ chối">
-                                <X className="w-4 h-4" />
-                              </button>
-                            </div>
-                          )}
-                        </div>
+                          </div>
+                        )}
                       </div>
 
                       {/* Feedback */}
                       {(doc.feedback || doc.status === 'rejected') && (
-                        <div className="mt-3 ml-11 p-3 bg-red-50 rounded-xl border border-red-100 flex items-start gap-2">
+                        <div className="mx-4 mb-4 p-3 bg-red-50 rounded-xl border border-red-100 flex items-start gap-2">
                           <AlertCircle className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
                           <p className="text-xs text-red-700 font-medium">{doc.feedback || 'Yêu cầu tải lên lại tài liệu hợp lệ.'}</p>
                         </div>

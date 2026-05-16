@@ -45,6 +45,9 @@ export default function OnboardingPage() {
   const [jobInfo, setJobInfo] = useState(null);
   const activeStep = 1; // 0, 1, 2
   const [scanning, setScanning] = useState(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState('');
+  const [submitNotice, setSubmitNotice] = useState('');
   const [aiResults, setAiResults] = useState({});
   const [previews, setPreviews] = useState({});
   const [documents, setDocuments] = useState([
@@ -160,6 +163,43 @@ export default function OnboardingPage() {
     setPreviews(prev => { const n = { ...prev }; delete n[docId]; return n; });
     setAiResults(prev => { const n = { ...prev }; delete n[docId]; return n; });
     setDocuments(prev => prev.map(d => d.id === docId ? { ...d, file: null, status: 'pending', feedback: '' } : d));
+  };
+
+  const handleSubmitDocuments = async () => {
+    setSubmitError('');
+    setSubmitNotice('');
+
+    const missingRequired = documents.filter((doc) => doc.required && !doc.file);
+    if (missingRequired.length) {
+      setSubmitError(`Bạn cần tải đủ hồ sơ bắt buộc: ${missingRequired.map((doc) => doc.name).join(', ')}`);
+      return;
+    }
+
+    const uploadedDocuments = documents.filter((doc) => doc.file);
+    const formData = new FormData();
+    uploadedDocuments.forEach((doc) => {
+      formData.append('documents', doc.file);
+    });
+    formData.append('doc_types', JSON.stringify(uploadedDocuments.map((doc) => doc.id)));
+    formData.append('ai_results', JSON.stringify(aiResults));
+
+    setSubmitting(true);
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/jobs/applications/${id}/onboarding-documents`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+        body: formData,
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'Không thể gửi hồ sơ onboarding');
+
+      setSubmitNotice(data.message || 'Đã gửi hồ sơ cho nhà tuyển dụng xét duyệt.');
+      setDocuments(prev => prev.map(d => d.file ? { ...d, status: 'uploaded' } : d));
+    } catch (err) {
+      setSubmitError(err.message);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   if (loading) {
@@ -390,9 +430,24 @@ export default function OnboardingPage() {
 
         {/* Submit */}
         <div className="px-8 pb-8">
-          <button className="w-full py-4 rounded-lg bg-gray-900 text-white font-black text-base hover:from-gray-700 hover:to-gray-800 transition-all   flex items-center justify-center gap-3">
-            <ShieldCheck className="w-5 h-5" />
-            Gửi Hồ Sơ Cho Nhà Tuyển Dụng Xét Duyệt
+          {submitError ? (
+            <div className="mb-3 rounded-lg border border-red-100 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">
+              {submitError}
+            </div>
+          ) : null}
+          {submitNotice ? (
+            <div className="mb-3 rounded-lg border border-emerald-100 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700">
+              {submitNotice}
+            </div>
+          ) : null}
+          <button
+            type="button"
+            onClick={handleSubmitDocuments}
+            disabled={submitting}
+            className="w-full py-4 rounded-lg bg-gray-900 text-white font-black text-base hover:bg-gray-700 transition-all flex items-center justify-center gap-3 disabled:opacity-70"
+          >
+            {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : <ShieldCheck className="w-5 h-5" />}
+            {submitting ? 'Đang gửi hồ sơ...' : 'Gửi Hồ Sơ Cho Nhà Tuyển Dụng Xét Duyệt'}
           </button>
           <p className="text-center text-xs text-gray-400 mt-3">
             * Sau khi gửi, Nhà tuyển dụng sẽ xem xét và phản hồi trong vòng 1–2 ngày làm việc.

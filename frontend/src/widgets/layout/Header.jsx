@@ -341,7 +341,7 @@ export default function Header() {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [notificationOpen, setNotificationOpen] = useState(false);
   const { user, isAuthenticated, logout } = useAuth();
-  const { notifications, unreadCount, markAllAsRead } = useNotifications();
+  const { notifications, unreadCount, markAllAsRead, markAsRead } = useNotifications();
   const navigate = useNavigate();
   const location = useLocation();
   const dropdownRef = useRef(null);
@@ -443,9 +443,6 @@ export default function Header() {
                       const nextOpen = !notificationOpen;
                       setNotificationOpen(nextOpen);
                       setDropdownOpen(false);
-                      if (nextOpen) {
-                        handleMarkAllRead();
-                      }
                     }}
                     className="relative rounded-lg p-2 text-gray-500 transition-all duration-200 hover:bg-indigo-50 hover:text-indigo-700"
                   >
@@ -481,7 +478,10 @@ export default function Header() {
                             key={item.id}
                             to={item.to}
                             state={item.state}
-                            onClick={() => setNotificationOpen(false)}
+                            onClick={() => {
+                              if (item.id) markAsRead(item.id);
+                              setNotificationOpen(false);
+                            }}
                             className="flex gap-3 px-4 py-3 transition-colors hover:bg-gray-50"
                           >
                             <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${item.iconClass}`}>
@@ -665,7 +665,10 @@ export default function Header() {
                       key={item.id}
                       to={item.to}
                       state={item.state}
-                      onClick={() => setMobileMenuOpen(false)}
+                      onClick={() => {
+                        if (item.id) markAsRead(item.id);
+                        setMobileMenuOpen(false);
+                      }}
                       className="block rounded-lg bg-white px-3 py-2.5"
                     >
                       <p className="text-sm font-medium text-gray-800">{item.title}</p>

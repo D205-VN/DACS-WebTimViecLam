@@ -35,6 +35,8 @@ function getStatusMeta(status) {
       return { label: 'Phỏng vấn', className: 'bg-blue-100 text-blue-700' };
     case 'hired':
       return { label: 'Trúng tuyển', className: 'bg-violet-100 text-violet-700' };
+    case 'onboarding':
+      return { label: 'Onboarding', className: 'bg-teal-100 text-teal-700' };
     case 'rejected':
       return { label: 'Từ chối', className: 'bg-red-100 text-red-700' };
     default:
@@ -294,12 +296,14 @@ export default function ManageCandidatesTab() {
     { id: 'pending', label: 'Chờ xử lý', count: candidates.filter((c) => c.status === 'pending' || !c.status).length },
     { id: 'approved', label: 'Đã duyệt hồ sơ', count: candidates.filter((c) => c.status === 'approved').length },
     { id: 'interview', label: 'Phỏng vấn', count: candidates.filter((c) => c.status === 'interview').length },
-    { id: 'hired', label: 'Trúng tuyển', count: candidates.filter((c) => c.status === 'hired').length },
+    { id: 'hired', label: 'Trúng tuyển', count: candidates.filter((c) => c.status === 'hired' || c.status === 'onboarding').length },
     { id: 'rejected', label: 'Từ chối', count: candidates.filter((c) => c.status === 'rejected').length },
   ];
 
   const visibleCandidates = candidates.filter(
-    (candidate) => activeStage === 'all' || (candidate.status || 'pending') === activeStage
+    (candidate) => activeStage === 'all'
+      || (candidate.status || 'pending') === activeStage
+      || (activeStage === 'hired' && candidate.status === 'onboarding')
   );
   const kanbanStages = stages.filter((stage) => stage.id !== 'all');
   const lockedInterviewMode = candidateDetail?.candidate_interview_mode || candidateDetail?.interview_mode || '';
@@ -575,7 +579,7 @@ export default function ManageCandidatesTab() {
                                 {candidate.status === 'approved' ? 'Lên lịch' : 'Phỏng vấn'}
                               </button>
                             )}
-                            {candidate.status === 'hired' && (
+                            {(candidate.status === 'hired' || candidate.status === 'onboarding') && (
                               <button
                                 type="button"
                                 onClick={() => navigate(getEmployerDashboardPath('onboarding'), { state: getEmployerDashboardState('onboarding') })}
@@ -680,11 +684,12 @@ export default function ManageCandidatesTab() {
               candidateDetail.status === 'approved'
               || candidateDetail.status === 'interview'
               || candidateDetail.status === 'hired'
+              || candidateDetail.status === 'onboarding'
               || candidateDetail.status === 'rejected'
             ) ? (
               <div className="border-b border-slate-200 px-6">
                 <div className="flex gap-1 overflow-x-auto">
-                  {candidateDetail.status === 'approved' || candidateDetail.status === 'interview' || candidateDetail.status === 'hired' ? (
+                  {candidateDetail.status === 'approved' || candidateDetail.status === 'interview' || candidateDetail.status === 'hired' || candidateDetail.status === 'onboarding' ? (
                     <>
                       <button
                         type="button"
@@ -723,7 +728,7 @@ export default function ManageCandidatesTab() {
                           <CheckCircle className="w-4 h-4 inline mr-1.5" /> Đã duyệt hồ sơ
                         </button>
                       ) : null}
-                      {candidateDetail.status === 'hired' ? (
+                      {(candidateDetail.status === 'hired' || candidateDetail.status === 'onboarding') ? (
                         <button
                           type="button"
                           onClick={() => setModalSection('hired')}

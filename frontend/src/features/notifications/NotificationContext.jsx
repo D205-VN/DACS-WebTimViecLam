@@ -114,8 +114,43 @@ export const NotificationProvider = ({ children }) => {
     }
   }, [token]);
 
+  const markAsRead = useCallback(async (notificationId) => {
+    if (!token || !notificationId) return;
+    try {
+      await fetch(`${API_BASE_URL}/api/notifications/${notificationId}/read`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setNotifications(prev => prev.map(n => (
+        String(n.id) === String(notificationId) ? { ...n, read: true } : n
+      )));
+      setUnreadCount(prev => Math.max(prev - 1, 0));
+    } catch (err) {
+      console.error('Mark notification as read error:', err);
+    }
+  }, [token]);
+
+  const deleteNotification = useCallback(async (notificationId) => {
+    if (!token || !notificationId) return;
+    try {
+      await fetch(`${API_BASE_URL}/api/notifications/${notificationId}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setNotifications(prev => {
+        const deleted = prev.find(n => String(n.id) === String(notificationId));
+        if (deleted && !deleted.read) {
+          setUnreadCount(count => Math.max(count - 1, 0));
+        }
+        return prev.filter(n => String(n.id) !== String(notificationId));
+      });
+    } catch (err) {
+      console.error('Delete notification error:', err);
+    }
+  }, [token]);
+
   return (
-    <NotificationContext.Provider value={{ notifications, unreadCount, markAllAsRead, fetchNotifications }}>
+    <NotificationContext.Provider value={{ notifications, unreadCount, markAllAsRead, markAsRead, deleteNotification, fetchNotifications }}>
       {children}
       <div className="fixed right-4 top-20 z-[70] flex w-[min(360px,calc(100vw-2rem))] flex-col gap-3">
         {toasts.map((toast) => (

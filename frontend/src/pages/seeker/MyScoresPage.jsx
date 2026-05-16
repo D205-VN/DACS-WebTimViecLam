@@ -328,7 +328,7 @@ export default function MyScoresPage() {
                       {/* Time info */}
                       {!isCompleted && (
                         <p className="mt-3 text-xs text-gray-400">
-                          Bắt đầu lúc {new Date(sub.created_at).toLocaleString('vi-VN')}
+                          Bắt đầu lúc {new Date(sub.started_at).toLocaleString('vi-VN')}
                         </p>
                       )}
                     </div>

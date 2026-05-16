@@ -1,5 +1,6 @@
 import { useNotifications } from '@features/notifications/NotificationContext';
-import { Bell, CheckCircle2, Info, AlertTriangle, XCircle, Trash2, Loader2 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Bell, CheckCircle2, Info, AlertTriangle, XCircle, Trash2, Loader2, Eye } from 'lucide-react';
 
 function getNotificationMeta(type) {
   switch (type) {
@@ -31,7 +32,14 @@ function formatNotificationTime(value) {
 }
 
 export default function NotificationsTab() {
-  const { notifications, loading, markAllAsRead, deleteNotification } = useNotifications();
+  const { notifications, loading, markAllAsRead, markAsRead, deleteNotification } = useNotifications();
+  const navigate = useNavigate();
+
+  const handleViewNotification = async (notif) => {
+    await markAsRead(notif.id);
+    const target = notif.to || notif.to_path || '/employer/dashboard';
+    navigate(target, { state: notif.tab ? { activeTab: notif.tab } : undefined });
+  };
 
   if (loading) {
     return (
@@ -109,6 +117,13 @@ export default function NotificationsTab() {
                   title="Xóa thông báo"
                 >
                   <Trash2 className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => handleViewNotification(notif)}
+                  className="p-2 text-gray-300 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl opacity-0 group-hover:opacity-100 transition-all duration-200 shrink-0"
+                  title="Xem và đánh dấu đã đọc"
+                >
+                  <Eye className="w-4 h-4" />
                 </button>
               </div>
             );

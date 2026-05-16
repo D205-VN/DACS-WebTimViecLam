@@ -4,6 +4,7 @@ import { AlertTriangle, ArrowRight, Award, Bot, CheckCircle, CheckSquare, Clock,
 import HeyGenLiveAvatar from '@shared/ui/HeyGenLiveAvatar';
 import { aiTestApi } from '@shared/api/aiTestApi';
 import { getAiTestKind, getSeekerAiTestPath } from '@shared/utils/aiTestRoutes';
+import { useAuth } from '@features/auth/AuthContext';
 
 const formatTime = (seconds) => {
   const m = Math.floor(seconds / 60);
@@ -78,6 +79,8 @@ const CandidateTestUI = () => {
   const { id, testKind } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
+  const { user } = useAuth();
+  const isEmployer = user?.role_code === 'employer';
   
   const [test, setTest] = useState(null);
   const [currentQIdx, setCurrentQIdx] = useState(0);
@@ -100,6 +103,10 @@ const CandidateTestUI = () => {
   const recordingTextBaseRef = useRef('');
   const isRecordingRef = useRef(false);
   const hasFinishedRef = useRef(false);
+  const submissionIdRef = useRef(null);
+
+  // Keep ref in sync so cleanup/beforeunload can access latest value
+  useEffect(() => { submissionIdRef.current = submissionId; }, [submissionId]);
 
   const handleFinishTest = useCallback(async () => {
     if (!submissionId || hasFinishedRef.current) return;
@@ -111,7 +118,6 @@ const CandidateTestUI = () => {
       if (data?.result) {
         setTestResult(data.result);
       } else {
-        // Fallback if backend doesn't return result
         setTestResult({ percentage: 0, total_score: 0, max_score: 0, total_questions: test?.questions?.length || 0, answered_questions: 0, correct_count: 0, test_title: test?.title, answers: [] });
       }
     } catch (err) {
@@ -123,8 +129,17 @@ const CandidateTestUI = () => {
   }, [submissionId, test]);
 
   useEffect(() => {
-    // Prevent leaving
+    // Auto-submit on page close/refresh via sendBeacon
     const handleBeforeUnload = (e) => {
+      const sid = submissionIdRef.current;
+      if (sid && !hasFinishedRef.current) {
+        hasFinishedRef.current = true;
+        const token = localStorage.getItem('token') || '';
+        navigator.sendBeacon(
+          `${import.meta.env.VITE_API_URL || ''}/api/ai-tests/complete-submission`,
+          new Blob([JSON.stringify({ submission_id: sid, token })], { type: 'application/json' })
+        );
+      }
       e.preventDefault();
       e.returnValue = '';
     };
@@ -166,6 +181,12 @@ const CandidateTestUI = () => {
 
     return () => {
       active = false;
+      // Auto-complete on unmount (e.g. navigate away via React router)
+      const sid = submissionIdRef.current;
+      if (sid && !hasFinishedRef.current) {
+        hasFinishedRef.current = true;
+        aiTestApi.completeSubmission({ submission_id: sid }).catch(() => {});
+      }
       if (speechRecognitionRef.current) {
         speechRecognitionRef.current.onend = null;
         speechRecognitionRef.current.stop();
@@ -511,10 +532,10 @@ const CandidateTestUI = () => {
           {/* Action Buttons */}
           <div className="flex items-center justify-center gap-4 pb-8">
             <button
-              onClick={() => navigate('/seeker/my-scores')}
+              onClick={() => navigate(isEmployer ? '/employer/dashboard?tab=ai-tests' : '/seeker/my-scores')}
               className="group inline-flex items-center gap-3 rounded-2xl bg-gradient-to-r from-indigo-500 to-purple-500 px-8 py-4 text-base font-bold text-white shadow-xl shadow-indigo-500/20 transition-all hover:shadow-2xl hover:shadow-indigo-500/30 hover:-translate-y-0.5"
             >
-              Về bảng điểm
+              {isEmployer ? 'Về quản lý bài test' : 'Về bảng điểm'}
               <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
             </button>
           </div>
