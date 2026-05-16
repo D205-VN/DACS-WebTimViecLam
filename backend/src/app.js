@@ -1,5 +1,6 @@
 const express = require('express');
 const cors = require('cors');
+const path = require('path');
 const modules = require('./modules');
 
 function normalizeOrigin(origin) {
@@ -60,6 +61,7 @@ function createApp() {
   }));
 
   app.use(express.json({ limit: '5mb' }));
+  app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')));
 
   modules.forEach(({ path, router }) => {
     app.use(path, router);

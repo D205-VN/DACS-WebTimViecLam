@@ -9,6 +9,40 @@ const { ensureMeetingRoomSchema } = require('../meeting-rooms/meeting-room.model
 const { isEmailConfigured, sendInterviewInvitationEmail } = require('../auth/email.service');
 const nodemailer = require('nodemailer');
 
+async function ensureOnboardingSchema() {
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS onboarding_submissions (
+      id SERIAL PRIMARY KEY,
+      application_id INTEGER REFERENCES applied_jobs(id) ON DELETE CASCADE,
+      user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+      employer_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+      job_id INTEGER REFERENCES jobs(id) ON DELETE CASCADE,
+      status VARCHAR(30) DEFAULT 'submitted',
+      submitted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE(application_id)
+    )
+  `);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS onboarding_documents (
+      id SERIAL PRIMARY KEY,
+      submission_id INTEGER REFERENCES onboarding_submissions(id) ON DELETE CASCADE,
+      doc_type VARCHAR(80) NOT NULL,
+      doc_name VARCHAR(255),
+      file_name VARCHAR(255),
+      file_url TEXT,
+      mime_type VARCHAR(120),
+      file_size INTEGER,
+      ai_result JSONB DEFAULT '{}'::jsonb,
+      status VARCHAR(30) DEFAULT 'pending',
+      feedback TEXT,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+}
+
 function getMailTransporter() {
   return nodemailer.createTransport({
     service: 'gmail',
@@ -269,7 +303,7 @@ async function ensureEmployerJobSchemaForRequest(req, res, next) {
 }
 
 function normalizeApplicationStatus(status) {
-  const allowed = ['pending', 'approved', 'interview', 'hired', 'rejected'];
+  const allowed = ['pending', 'approved', 'interview', 'hired', 'onboarding', 'rejected'];
   return allowed.includes(status) ? status : 'pending';
 }
 
@@ -706,6 +740,8 @@ async function getMyJobs(req, res) {
  */
 async function getCandidates(req, res) {
   try {
+    await ensureOnboardingSchema();
+
     const userId = req.user.id;
     const { status, keyword, job_id, applied_from, applied_to } = req.query;
     const conditions = ['j.employer_id = $1'];
@@ -749,10 +785,35 @@ async function getCandidates(req, res) {
               u.full_name as candidate_name, u.email as candidate_email, u.phone as candidate_phone, u.avatar_url,
               j.job_title as job_title, j.company_address, j.company_name,
               COALESCE(NULLIF(TRIM(j.status), ''), 'approved') as job_status,
-              j.submission_deadline as job_deadline
+              j.submission_deadline as job_deadline,
+              os.id AS onboarding_submission_id,
+              os.status AS onboarding_submission_status,
+              os.submitted_at AS onboarding_submitted_at,
+              COALESCE(od.documents, '[]'::json) AS onboarding_documents
        FROM applied_jobs aj
        JOIN users u ON aj.user_id = u.id
        JOIN jobs j ON aj.job_id = j.id
+       LEFT JOIN onboarding_submissions os ON os.application_id = aj.id
+       LEFT JOIN LATERAL (
+         SELECT json_agg(
+           json_build_object(
+             'id', doc.id,
+             'doc_type', doc.doc_type,
+             'doc_name', doc.doc_name,
+             'file_name', doc.file_name,
+             'file_url', doc.file_url,
+             'mime_type', doc.mime_type,
+             'file_size', doc.file_size,
+             'ai_result', doc.ai_result,
+             'status', doc.status,
+             'feedback', doc.feedback,
+             'created_at', doc.created_at
+           )
+           ORDER BY doc.created_at ASC, doc.id ASC
+         ) AS documents
+         FROM onboarding_documents doc
+         WHERE doc.submission_id = os.id
+       ) od ON TRUE
        LEFT JOIN LATERAL (
          SELECT room.id, room.meeting_link
          FROM meeting_schedules ms
@@ -792,12 +853,13 @@ async function getCandidateStats(req, res) {
           COUNT(*) FILTER (WHERE status = 'approved')::int AS approved,
           COUNT(*) FILTER (WHERE status = 'interview')::int AS interview,
           COUNT(*) FILTER (WHERE status = 'hired')::int AS hired,
+          COUNT(*) FILTER (WHERE status = 'onboarding')::int AS onboarding,
           COUNT(*) FILTER (WHERE status = 'rejected')::int AS rejected
        FROM application_statuses`,
       [userId]
     );
 
-    res.json({ data: result.rows[0] || { total: 0, pending: 0, approved: 0, interview: 0, hired: 0, rejected: 0 } });
+    res.json({ data: result.rows[0] || { total: 0, pending: 0, approved: 0, interview: 0, hired: 0, onboarding: 0, rejected: 0 } });
   } catch (err) {
     console.error('Get candidate stats error:', err);
     res.status(500).json({ error: 'Lỗi khi tải thống kê ứng viên' });
@@ -2088,11 +2150,124 @@ async function scheduleInterview(req, res) {
     res.status(500).json({ error: 'Lỗi khi lên lịch phỏng vấn' });
   }
 }
+/**
+ * PATCH /api/employer/onboarding-documents/:docId/review
+ * Duyệt hoặc từ chối một tài liệu onboarding
+ */
+async function reviewOnboardingDocument(req, res) {
+  try {
+    await ensureOnboardingSchema();
+
+    const userId = req.user.id;
+    const docId = Number(req.params.docId);
+    const { status, feedback } = req.body;
+
+    if (!['approved', 'rejected'].includes(status)) {
+      return res.status(400).json({ error: 'Trạng thái không hợp lệ (approved hoặc rejected)' });
+    }
+
+    // Verify ownership: doc belongs to a submission that belongs to this employer
+    const docResult = await pool.query(
+      `SELECT od.id, od.doc_type, od.doc_name, od.status AS current_status,
+              os.id AS submission_id, os.application_id, os.user_id AS candidate_id, os.employer_id, os.job_id
+       FROM onboarding_documents od
+       JOIN onboarding_submissions os ON os.id = od.submission_id
+       WHERE od.id = $1 AND os.employer_id = $2
+       LIMIT 1`,
+      [docId, userId]
+    );
+
+    if (!docResult.rows.length) {
+      return res.status(404).json({ error: 'Không tìm thấy tài liệu' });
+    }
+
+    const doc = docResult.rows[0];
+
+    // Update document status
+    await pool.query(
+      `UPDATE onboarding_documents
+       SET status = $1, feedback = $2, updated_at = NOW()
+       WHERE id = $3`,
+      [status, feedback?.trim() || null, docId]
+    );
+
+    // Check if all documents in this submission are now reviewed
+    const allDocsResult = await pool.query(
+      `SELECT id, status FROM onboarding_documents WHERE submission_id = $1`,
+      [doc.submission_id]
+    );
+    const allDocs = allDocsResult.rows;
+    const allApproved = allDocs.every(d => d.id === docId ? status === 'approved' : d.status === 'approved');
+    const allReviewed = allDocs.every(d => d.id === docId ? true : d.status !== 'pending');
+
+    // Update submission status if all reviewed
+    if (allApproved) {
+      await pool.query(
+        `UPDATE onboarding_submissions SET status = 'approved', updated_at = NOW() WHERE id = $1`,
+        [doc.submission_id]
+      );
+    } else if (allReviewed) {
+      await pool.query(
+        `UPDATE onboarding_submissions SET status = 'reviewed', updated_at = NOW() WHERE id = $1`,
+        [doc.submission_id]
+      );
+    }
+
+    // Get job title for notification
+    const jobResult = await pool.query('SELECT job_title FROM jobs WHERE id = $1', [doc.job_id]);
+    const jobTitle = jobResult.rows[0]?.job_title || 'vị trí ứng tuyển';
+    const docName = doc.doc_name || doc.doc_type || 'tài liệu';
+
+    // Notify candidate
+    const notificationMessage = status === 'approved'
+      ? `Tài liệu "${docName}" cho vị trí ${jobTitle} đã được nhà tuyển dụng chấp nhận.`
+      : `Tài liệu "${docName}" cho vị trí ${jobTitle} đã bị từ chối.${feedback ? ` Lý do: ${feedback}` : ' Vui lòng nộp lại.'}`;
+
+    await createNotification({
+      userId: doc.candidate_id,
+      type: status === 'approved' ? 'onboarding_doc_approved' : 'onboarding_doc_rejected',
+      title: status === 'approved' ? 'Tài liệu onboarding được chấp nhận' : 'Tài liệu onboarding bị từ chối',
+      message: notificationMessage,
+      to: `/seeker/onboarding/${doc.application_id}`,
+      meta: {
+        application_id: doc.application_id,
+        document_id: docId,
+        doc_type: doc.doc_type,
+        status,
+      },
+    }).catch((err) => {
+      console.error('Onboarding doc review notification error:', err);
+    });
+
+    // If all approved, also notify candidate about full approval
+    if (allApproved) {
+      await createNotification({
+        userId: doc.candidate_id,
+        type: 'onboarding_completed',
+        title: 'Hồ sơ onboarding hoàn tất',
+        message: `Tất cả tài liệu cho vị trí ${jobTitle} đã được chấp nhận. Chúc mừng bạn!`,
+        to: `/seeker/onboarding/${doc.application_id}`,
+        meta: { application_id: doc.application_id },
+      }).catch((err) => {
+        console.error('Onboarding completed notification error:', err);
+      });
+    }
+
+    clearEmployerResponseCache(userId);
+    res.json({
+      message: status === 'approved' ? 'Đã chấp nhận tài liệu' : 'Đã từ chối tài liệu',
+      data: { id: docId, status, feedback: feedback?.trim() || null },
+    });
+  } catch (err) {
+    console.error('Review onboarding document error:', err);
+    res.status(500).json({ error: 'Lỗi khi duyệt tài liệu' });
+  }
+}
 
 module.exports = { 
   ensureEmployerJobSchemaForRequest,
   getDashboard, createJob, getMyJobs, getCandidates, getCandidateStats, getCandidateById, getProfile, 
   updateProfile, getNotifications, getAnalytics: getAnalyticsV2,
   updateJob, updateJobStatus, deleteJob, updateApplicationStatus: updateCandidateStatus, saveCandidateNote, scheduleInterview,
-  getCompanyPublicProfile,
+  getCompanyPublicProfile, reviewOnboardingDocument,
 };

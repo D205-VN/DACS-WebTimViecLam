@@ -1,5 +1,6 @@
 const pool = require('../../infrastructure/database/postgres');
 const crypto = require('crypto');
+const fs = require('fs');
 const { getNearestDistanceForAddress } = require('../../core/utils/locationCoordinates');
 const { createNotification } = require('../notifications/notification.service');
 const { ensureJobStatusSchema, ensurePublicApplicationSchema, ensureJobAnalyticsSchema } = require('./job.model');
@@ -53,6 +54,40 @@ function buildSalaryValueExpression(tokenExpr) {
     WHEN regexp_replace(${tokenExpr}, '[^0-9]', '', 'g')::numeric < 1000 THEN regexp_replace(${tokenExpr}, '[^0-9]', '', 'g')::numeric * 1000000
     ELSE regexp_replace(${tokenExpr}, '[^0-9]', '', 'g')::numeric
   END`;
+}
+
+async function ensureOnboardingSchema() {
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS onboarding_submissions (
+      id SERIAL PRIMARY KEY,
+      application_id INTEGER REFERENCES applied_jobs(id) ON DELETE CASCADE,
+      user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+      employer_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+      job_id INTEGER REFERENCES jobs(id) ON DELETE CASCADE,
+      status VARCHAR(30) DEFAULT 'submitted',
+      submitted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE(application_id)
+    )
+  `);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS onboarding_documents (
+      id SERIAL PRIMARY KEY,
+      submission_id INTEGER REFERENCES onboarding_submissions(id) ON DELETE CASCADE,
+      doc_type VARCHAR(80) NOT NULL,
+      doc_name VARCHAR(255),
+      file_name VARCHAR(255),
+      file_url TEXT,
+      mime_type VARCHAR(120),
+      file_size INTEGER,
+      ai_result JSONB DEFAULT '{}'::jsonb,
+      status VARCHAR(30) DEFAULT 'pending',
+      feedback TEXT,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
 }
 
 const salaryLowerExpr = buildSalaryValueExpression(salaryLowerTokenExpr);
@@ -777,6 +812,138 @@ exports.updateInterviewPreference = async (req, res) => {
   } catch (err) {
     console.error('Update interview preference error:', err);
     res.status(500).json({ error: 'Lỗi khi lưu lựa chọn phỏng vấn' });
+  }
+};
+
+exports.submitOnboardingDocuments = async (req, res) => {
+  const uploadedFiles = req.files || [];
+
+  try {
+    await ensurePublicApplicationSchema();
+    await ensureOnboardingSchema();
+
+    const applicationId = Number(req.params.id);
+    const userId = req.user.id;
+    if (!Number.isInteger(applicationId) || applicationId <= 0) {
+      return res.status(400).json({ error: 'Mã hồ sơ ứng tuyển không hợp lệ' });
+    }
+
+    let docTypes = [];
+    let aiResults = {};
+    try {
+      docTypes = JSON.parse(req.body?.doc_types || '[]');
+      aiResults = JSON.parse(req.body?.ai_results || '{}');
+    } catch {
+      return res.status(400).json({ error: 'Dữ liệu hồ sơ onboarding không hợp lệ' });
+    }
+
+    if (!uploadedFiles.length) {
+      return res.status(400).json({ error: 'Bạn cần tải lên ít nhất một giấy tờ' });
+    }
+
+    const ownershipResult = await pool.query(
+      `SELECT aj.id, aj.job_id,
+              COALESCE(NULLIF(TRIM(aj.status), ''), 'pending') AS status,
+              j.employer_id, j.job_title, j.company_name
+       FROM applied_jobs aj
+       JOIN jobs j ON j.id = aj.job_id
+       WHERE aj.id = $1 AND aj.user_id = $2
+       LIMIT 1`,
+      [applicationId, userId]
+    );
+
+    if (!ownershipResult.rows.length) {
+      return res.status(404).json({ error: 'Không tìm thấy hồ sơ ứng tuyển của bạn' });
+    }
+
+    const application = ownershipResult.rows[0];
+    if (!['hired', 'onboarding'].includes(application.status)) {
+      return res.status(400).json({ error: 'Chỉ ứng viên đã trúng tuyển mới được gửi hồ sơ onboarding' });
+    }
+
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+
+      const submissionResult = await client.query(
+        `INSERT INTO onboarding_submissions (application_id, user_id, employer_id, job_id, status, submitted_at, updated_at)
+         VALUES ($1, $2, $3, $4, 'submitted', NOW(), NOW())
+         ON CONFLICT (application_id)
+         DO UPDATE SET status = 'submitted', submitted_at = NOW(), updated_at = NOW()
+         RETURNING id`,
+        [applicationId, userId, application.employer_id, application.job_id]
+      );
+
+      const submissionId = submissionResult.rows[0].id;
+      await client.query('DELETE FROM onboarding_documents WHERE submission_id = $1', [submissionId]);
+
+      for (let index = 0; index < uploadedFiles.length; index += 1) {
+        const file = uploadedFiles[index];
+        const docType = String(docTypes[index] || `document_${index + 1}`).trim();
+        const fileUrl = `/uploads/onboarding/${file.filename}`;
+
+        await client.query(
+          `INSERT INTO onboarding_documents (
+             submission_id, doc_type, doc_name, file_name, file_url, mime_type, file_size, ai_result, status
+           )
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8::jsonb, 'pending')`,
+          [
+            submissionId,
+            docType,
+            docType,
+            file.originalname,
+            fileUrl,
+            file.mimetype,
+            file.size,
+            JSON.stringify(aiResults[docType] || {}),
+          ]
+        );
+      }
+
+      await client.query(
+        `UPDATE applied_jobs
+         SET status = 'onboarding', updated_at = NOW()
+         WHERE id = $1 AND user_id = $2`,
+        [applicationId, userId]
+      );
+
+      await client.query('COMMIT');
+
+      await createNotification({
+        userId: application.employer_id,
+        type: 'onboarding_submitted',
+        title: 'Ứng viên đã gửi hồ sơ onboarding',
+        message: `${req.user.full_name || 'Ứng viên'} đã gửi hồ sơ nhận việc cho vị trí ${application.job_title || 'ứng tuyển'}.`,
+        to: '/employer/dashboard',
+        tab: 'onboarding',
+        meta: {
+          application_id: applicationId,
+          job_id: application.job_id,
+          company_name: application.company_name || null,
+        },
+      }).catch((notificationError) => {
+        console.error('Create onboarding notification error:', notificationError);
+      });
+
+      res.status(201).json({
+        message: 'Đã gửi hồ sơ onboarding cho nhà tuyển dụng xét duyệt',
+        data: {
+          submission_id: submissionId,
+          document_count: uploadedFiles.length,
+        },
+      });
+    } catch (err) {
+      await client.query('ROLLBACK').catch(() => {});
+      throw err;
+    } finally {
+      client.release();
+    }
+  } catch (err) {
+    uploadedFiles.forEach((file) => {
+      if (file.path) fs.unlink(file.path, () => {});
+    });
+    console.error('Submit onboarding documents error:', err);
+    res.status(500).json({ error: err.message || 'Không thể gửi hồ sơ onboarding' });
   }
 };
 

@@ -949,7 +949,7 @@ const aiTestController = {
       if (!candidateId) return res.status(401).json({ error: 'Unauthorized' });
 
       const submissions = await pool.query(
-        `SELECT s.id, s.test_id, s.status, s.total_score, s.completed_at, s.created_at,
+        `SELECT s.id, s.test_id, s.status, s.total_score, s.completed_at, s.started_at,
                 s.suspicious_flag, s.tab_switch_count,
                 t.title as test_title, t.test_type, t.duration,
                 t.job_id,
@@ -960,8 +960,8 @@ const aiTestController = {
          FROM ai_submissions s
          JOIN ai_tests t ON s.test_id = t.id
          LEFT JOIN jobs j ON j.id = t.job_id
-         WHERE s.candidate_id = $1
-         ORDER BY s.completed_at DESC NULLS LAST, s.created_at DESC`,
+         WHERE s.candidate_id = $1 AND s.status IN ('completed', 'graded')
+         ORDER BY s.completed_at DESC NULLS LAST, s.started_at DESC`,
         [candidateId]
       );
 

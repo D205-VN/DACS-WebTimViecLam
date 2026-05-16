@@ -95,10 +95,39 @@ async function markAllNotificationsAsRead(userId) {
   return result.rowCount || 0;
 }
 
+async function markNotificationAsRead(userId, notificationId) {
+  await ensureNotificationsSchema();
+
+  const result = await pool.query(
+    `UPDATE notifications
+     SET read_at = COALESCE(read_at, NOW())
+     WHERE user_id = $1 AND id = $2
+     RETURNING id`,
+    [userId, notificationId]
+  );
+
+  return result.rowCount > 0;
+}
+
+async function deleteNotificationByUser(userId, notificationId) {
+  await ensureNotificationsSchema();
+
+  const result = await pool.query(
+    `DELETE FROM notifications
+     WHERE user_id = $1 AND id = $2
+     RETURNING id`,
+    [userId, notificationId]
+  );
+
+  return result.rowCount > 0;
+}
+
 module.exports = {
   ensureNotificationsSchema,
   createNotification,
   getNotificationsByUser,
   getUnreadNotificationCount,
   markAllNotificationsAsRead,
+  markNotificationAsRead,
+  deleteNotificationByUser,
 };

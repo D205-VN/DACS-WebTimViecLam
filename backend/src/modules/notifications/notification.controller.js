@@ -4,6 +4,8 @@ const {
   getNotificationsByUser,
   getUnreadNotificationCount,
   markAllNotificationsAsRead,
+  markNotificationAsRead: markNotificationAsReadService,
+  deleteNotificationByUser,
   getUserJobAlertRules,
   createJobAlertRule,
   updateJobAlertRule,
@@ -55,6 +57,38 @@ async function markAllAsRead(req, res) {
   } catch (err) {
     console.error('Mark notifications as read error:', err);
     res.status(500).json({ error: 'Lỗi khi cập nhật trạng thái thông báo' });
+  }
+}
+
+async function markNotificationAsRead(req, res) {
+  try {
+    await ensureNotificationsSchema();
+
+    const updated = await markNotificationAsReadService(req.user.id, req.params.id);
+    if (!updated) {
+      return res.status(404).json({ error: 'Không tìm thấy thông báo' });
+    }
+
+    res.json({ message: 'Đã đánh dấu thông báo đã đọc' });
+  } catch (err) {
+    console.error('Mark notification as read error:', err);
+    res.status(500).json({ error: 'Lỗi khi cập nhật trạng thái thông báo' });
+  }
+}
+
+async function deleteNotification(req, res) {
+  try {
+    await ensureNotificationsSchema();
+
+    const deleted = await deleteNotificationByUser(req.user.id, req.params.id);
+    if (!deleted) {
+      return res.status(404).json({ error: 'Không tìm thấy thông báo' });
+    }
+
+    res.json({ message: 'Đã xóa thông báo' });
+  } catch (err) {
+    console.error('Delete notification error:', err);
+    res.status(500).json({ error: 'Lỗi khi xóa thông báo' });
   }
 }
 
@@ -158,6 +192,8 @@ module.exports = {
   getNotifications,
   getUnreadCount,
   markAllAsRead,
+  markNotificationAsRead,
+  deleteNotification,
   getJobAlertRules,
   createJobAlert,
   updateJobAlert,

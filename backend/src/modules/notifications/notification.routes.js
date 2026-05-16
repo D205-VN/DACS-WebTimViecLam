@@ -8,6 +8,8 @@ router.use(authenticateToken);
 router.get('/', notificationController.getNotifications);
 router.get('/unread-count', notificationController.getUnreadCount);
 router.post('/read-all', notificationController.markAllAsRead);
+router.post('/:id/read', notificationController.markNotificationAsRead);
+router.delete('/:id', notificationController.deleteNotification);
 router.get('/job-alerts', notificationController.getJobAlertRules);
 router.post('/job-alerts', notificationController.createJobAlert);
 router.get('/job-alerts/:id/matches', notificationController.getJobAlertMatches);

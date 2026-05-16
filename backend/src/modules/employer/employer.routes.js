@@ -18,7 +18,8 @@ const {
   deleteJob,
   updateApplicationStatus,
   saveCandidateNote,
-  scheduleInterview
+  scheduleInterview,
+  reviewOnboardingDocument,
 } = require('./employer.controller');
 
 // Middleware kiểm tra role employer
@@ -54,5 +55,6 @@ router.patch('/applications/:id/status', updateApplicationStatus);
 router.put('/candidates/:id/status', updateApplicationStatus);
 router.post('/candidates/:id/note', saveCandidateNote);
 router.post('/candidates/:id/interview', scheduleInterview);
+router.patch('/onboarding-documents/:docId/review', reviewOnboardingDocument);
 
 module.exports = router;

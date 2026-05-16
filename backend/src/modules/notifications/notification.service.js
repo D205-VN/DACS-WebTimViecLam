@@ -49,6 +49,14 @@ async function markAllNotificationsAsRead(userId) {
   return notificationModel.markAllNotificationsAsRead(userId);
 }
 
+async function markNotificationAsRead(userId, notificationId) {
+  return notificationModel.markNotificationAsRead(userId, notificationId);
+}
+
+async function deleteNotificationByUser(userId, notificationId) {
+  return notificationModel.deleteNotificationByUser(userId, notificationId);
+}
+
 module.exports = {
   ensureNotificationsSchema: notificationModel.ensureNotificationsSchema,
   ensureJobAlertSchema: jobAlertModel.ensureJobAlertSchema,
@@ -57,6 +65,8 @@ module.exports = {
   getNotificationsByUser,
   getUnreadNotificationCount,
   markAllNotificationsAsRead,
+  markNotificationAsRead,
+  deleteNotificationByUser,
   getUserJobAlertRules: jobAlertModel.getUserJobAlertRules,
   createJobAlertRule: jobAlertModel.createJobAlertRule,
   updateJobAlertRule: jobAlertModel.updateJobAlertRule,
