@@ -9,6 +9,23 @@ require('dotenv').config();
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
+function detectImageMime(buffer) {
+  if (!Buffer.isBuffer(buffer) || buffer.length < 12) return null;
+  if (buffer[0] === 0xFF && buffer[1] === 0xD8 && buffer[2] === 0xFF) return 'image/jpeg';
+  if (
+    buffer[0] === 0x89 &&
+    buffer[1] === 0x50 &&
+    buffer[2] === 0x4E &&
+    buffer[3] === 0x47 &&
+    buffer[4] === 0x0D &&
+    buffer[5] === 0x0A &&
+    buffer[6] === 0x1A &&
+    buffer[7] === 0x0A
+  ) return 'image/png';
+  if (buffer.toString('ascii', 0, 4) === 'RIFF' && buffer.toString('ascii', 8, 12) === 'WEBP') return 'image/webp';
+  return null;
+}
+
 function getCvLanguage(value) {
   const normalized = String(value || process.env.CV_OUTPUT_LANGUAGE || 'vi').trim().toLowerCase();
   return ['en', 'english', 'tiếng anh', 'tieng anh'].includes(normalized) ? 'en' : 'vi';
@@ -1561,11 +1578,16 @@ exports.importFromImage = async (req, res) => {
       return res.status(400).json({ error: 'Vui lòng chọn ảnh để import' });
     }
 
+    const detectedMimeType = detectImageMime(req.file.buffer);
+    if (!detectedMimeType) {
+      return res.status(400).json({ error: 'File upload không phải ảnh PNG, JPG hoặc WEBP hợp lệ' });
+    }
+
     if (!process.env.GEMINI_API_KEY) {
       return res.status(500).json({ error: 'Chưa cấu hình GEMINI_API_KEY để import ảnh' });
     }
 
-    const mimeType = req.file.mimetype || 'image/png';
+    const mimeType = detectedMimeType;
     const base64 = req.file.buffer.toString('base64');
 
     const extractPrompt = `Bạn là hệ thống trích xuất thông tin CV từ ảnh scan (tiếng Việt).

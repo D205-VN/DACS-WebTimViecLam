@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const modules = require('./modules');
+const { defaultRateLimit } = require('./core/middlewares/rate-limit.middleware');
 
 function normalizeOrigin(origin) {
   return String(origin || '').trim().replace(/\/+$/, '');
@@ -60,6 +61,7 @@ function createApp() {
     allowedHeaders: ['Content-Type', 'Authorization'],
   }));
 
+  app.use('/api', defaultRateLimit);
   app.use(express.json({ limit: '5mb' }));
   app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads')));
 

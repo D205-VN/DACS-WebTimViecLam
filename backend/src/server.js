@@ -1,9 +1,12 @@
 require('dotenv').config();
 const http = require('http');
+const { validateEnvironmentOrExit } = require('./core/config/env');
 const { createApp } = require('./app');
 const socketManager = require('./core/realtime/socket');
 const { startInterviewReminderScheduler } = require('./modules/notifications/interviewReminder.scheduler');
 const { startJobAlertDigestScheduler } = require('./modules/notifications/jobAlertDigest.scheduler');
+
+validateEnvironmentOrExit();
 
 const { app, allowedOrigins } = createApp();
 const server = http.createServer(app);

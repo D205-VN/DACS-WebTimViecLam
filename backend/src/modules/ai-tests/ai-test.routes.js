@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { authenticateToken } = require('../../core/middlewares/auth.middleware');
+const { aiRateLimit } = require('../../core/middlewares/rate-limit.middleware');
 const aiTestController = require('./ai-test.controller');
 
 // Public: Get test by job (for job detail page)
@@ -25,14 +26,14 @@ router.delete('/tests/:testId/questions/:questionId', aiTestController.deleteQue
 router.put('/tests/:id/scoring-config', aiTestController.updateScoringConfig);
 
 // Hybrid AI question generation
-router.post('/tests/:testId/generate-questions', aiTestController.generateQuestions);
+router.post('/tests/:testId/generate-questions', aiRateLimit, aiTestController.generateQuestions);
 
 // Candidate UI / Mocks
-router.post('/generate-video', aiTestController.generateVideo);
-router.post('/speech-to-text', aiTestController.speechToText);
-router.post('/liveavatar/session-token', aiTestController.createLiveAvatarSessionToken);
+router.post('/generate-video', aiRateLimit, aiTestController.generateVideo);
+router.post('/speech-to-text', aiRateLimit, aiTestController.speechToText);
+router.post('/liveavatar/session-token', aiRateLimit, aiTestController.createLiveAvatarSessionToken);
 router.post('/start-submission', aiTestController.startSubmission);
-router.post('/submit-answer', aiTestController.submitAnswer);
+router.post('/submit-answer', aiRateLimit, aiTestController.submitAnswer);
 router.post('/complete-submission', aiTestController.completeSubmission);
 
 // Candidate: my scores
