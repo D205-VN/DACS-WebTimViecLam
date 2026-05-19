@@ -4,6 +4,8 @@ import API_BASE_URL from '@shared/api/baseUrl';
 const AuthContext = createContext(null);
 
 const API_BASE = `${API_BASE_URL}/api/auth`;
+const SUSPENSION_CHECK_INTERVAL_MS = 60 * 1000;
+const SUSPENSION_CHECK_MIN_GAP_MS = 15 * 1000;
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(() => {
@@ -66,8 +68,13 @@ export function AuthProvider({ children }) {
   // Periodic check for account suspension while a session is already open
   useEffect(() => {
     if (!token || !user) return;
+    let lastSuspensionCheckAt = 0;
 
     const checkSuspension = async () => {
+      const now = Date.now();
+      if (now - lastSuspensionCheckAt < SUSPENSION_CHECK_MIN_GAP_MS) return;
+      lastSuspensionCheckAt = now;
+
       try {
         const res = await fetch(`${API_BASE}/me`, {
           headers: { Authorization: `Bearer ${token}` },
@@ -94,7 +101,7 @@ export function AuthProvider({ children }) {
       }
     };
 
-    const interval = setInterval(checkSuspension, 15 * 1000);
+    const interval = setInterval(checkSuspension, SUSPENSION_CHECK_INTERVAL_MS);
     window.addEventListener('focus', checkSuspension);
     document.addEventListener('visibilitychange', handleVisibilityChange);
 

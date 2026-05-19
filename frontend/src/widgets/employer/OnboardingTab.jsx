@@ -7,7 +7,6 @@ import {
   Eye,
   FileText,
   MessageCircle,
-  ScanLine,
   ChevronRight,
   AlertCircle,
   Check,
@@ -69,7 +68,6 @@ export default function OnboardingTab() {
   const [error, setError] = useState('');
   const [selectedCandidate, setSelectedCandidate] = useState(null);
   const [feedback, setFeedback] = useState('');
-  const [scanning, setScanning] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
 
   const fetchOnboardingCandidates = useCallback(async () => {
@@ -112,14 +110,6 @@ export default function OnboardingTab() {
   useEffect(() => {
     if (token) fetchOnboardingCandidates();
   }, [token, fetchOnboardingCandidates]);
-
-  const handleAIScan = () => {
-    setScanning(true);
-    setTimeout(() => {
-      setScanning(false);
-      alert('AI đã quét xong tài liệu!\nKết quả: Họ tên khớp 100%, Số CCCD: 012345678xxx');
-    }, 2000);
-  };
 
   const handleReviewDocument = async (doc, status) => {
     // If rejecting, ask for a reason
@@ -380,6 +370,13 @@ export default function OnboardingTab() {
 
                         {doc.url && doc.status === 'pending' && (
                           <div className="flex gap-1">
+                            <button
+                              onClick={() => handleViewDocument(doc)}
+                              className="p-1.5 bg-indigo-50 text-indigo-600 rounded-lg hover:bg-indigo-100 transition-colors"
+                              title="Xem tài liệu"
+                            >
+                              <Eye className="w-4 h-4" />
+                            </button>
                             <button 
                               onClick={() => handleReviewDocument(doc, 'approved')}
                               className="p-1.5 bg-emerald-50 text-emerald-600 rounded-lg hover:bg-emerald-100 transition-colors" title="Duyệt">

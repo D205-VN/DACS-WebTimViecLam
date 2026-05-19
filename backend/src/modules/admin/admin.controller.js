@@ -1,196 +1,69 @@
-const pool = require('../../infrastructure/database/postgres');
-const { createNotification } = require('../notifications/notification.service');
-const { ensureAdminJobSchema } = require('./admin.model');
-const { ensureUserAccountStatusSchema } = require('../auth/auth.model');
+const adminService = require('./admin.service');
 
-async function ensureAdminSchemaForRequest(req, res, next) {
+function sendControllerError(res, err, fallbackMessage, logLabel) {
+  if (err?.isOperational) {
+    return res.status(err.status || 400).json({ error: err.message, code: err.code });
+  }
+
+  console.error(logLabel, err);
+  return res.status(500).json({ error: fallbackMessage });
+}
+
+async function ensureAdminSchemaForRequest(_req, res, next) {
   try {
-    await ensureAdminJobSchema();
+    await adminService.ensureAdminSchema();
     next();
   } catch (err) {
-    console.error('Ensure admin schema error:', err);
-    res.status(500).json({ error: 'Lỗi cấu hình dữ liệu quản trị' });
+    sendControllerError(res, err, 'Lỗi cấu hình dữ liệu quản trị', 'Ensure admin schema error:');
   }
 }
 
 exports.ensureAdminSchemaForRequest = ensureAdminSchemaForRequest;
 
-exports.getStats = async (req, res) => {
+exports.getStats = async (_req, res) => {
   try {
-    await ensureAdminJobSchema();
-
-    const [userCount, jobCount, pendingJobCount, appliedCount] = await Promise.all([
-      pool.query('SELECT COUNT(*) FROM users'),
-      pool.query("SELECT COUNT(*) FROM jobs WHERE COALESCE(NULLIF(TRIM(status), ''), 'approved') = 'approved'"),
-      pool.query("SELECT COUNT(*) FROM jobs WHERE COALESCE(NULLIF(TRIM(status), ''), 'approved') = 'pending'"),
-      pool.query('SELECT COUNT(*) FROM applied_jobs'),
-    ]);
-
-    res.json({
-      users: parseInt(userCount.rows[0].count, 10),
-      jobs: parseInt(jobCount.rows[0].count, 10),
-      pendingJobs: parseInt(pendingJobCount.rows[0].count, 10),
-      applied: parseInt(appliedCount.rows[0].count, 10),
-    });
+    res.json(await adminService.getStats());
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Lỗi khi lấy thống kê' });
+    sendControllerError(res, err, 'Lỗi khi lấy thống kê', 'Get admin stats error:');
   }
 };
 
-exports.getUsers = async (req, res) => {
+exports.getUsers = async (_req, res) => {
   try {
-    await ensureUserAccountStatusSchema();
-
-    const result = await pool.query(
-      `SELECT
-          u.id,
-          u.full_name,
-          u.email,
-          r.code AS role_code,
-          r.name AS role_name,
-          u.is_verified,
-          COALESCE(u.is_suspended, false) AS is_suspended,
-          u.created_at
-       FROM users u
-       JOIN roles r ON u.role_id = r.id
-       ORDER BY u.created_at DESC, u.id DESC`
-    );
-
-    res.json({ data: result.rows });
+    res.json(await adminService.getUsers());
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Lỗi khi lấy danh sách người dùng' });
+    sendControllerError(res, err, 'Lỗi khi lấy danh sách người dùng', 'Get admin users error:');
   }
 };
 
-/**
- * Helper: AI-like rule-based validation for job postings
- */
-function checkJobForAiRejection(job) {
-  const reasons = [];
-  if (!job.job_title || job.job_title.trim().length < 5) reasons.push('Tiêu đề công việc quá ngắn hoặc trống.');
-  if (!job.job_description || job.job_description.trim().length < 50) reasons.push('Mô tả công việc quá sơ sài (cần ít nhất 50 ký tự).');
-  if (!job.job_address || job.job_address.trim().length < 5) reasons.push('Địa điểm làm việc không rõ ràng.');
-  if (!job.salary || job.salary === 'Thỏa thuận' && job.job_description.length < 100) {
-    // Basic check for low effort posts
-  }
-  
-  // Check for common spam/missing info
-  if (reasons.length > 0) {
-    return {
-      shouldReject: true,
-      reason: 'AI Đề xuất từ chối: ' + reasons.join(' ')
-    };
-  }
-  return { shouldReject: false, reason: null };
-}
-
-exports.getPendingJobs = async (req, res) => {
+exports.getPendingJobs = async (_req, res) => {
   try {
-    await ensureAdminJobSchema();
-
-    const result = await pool.query(
-      `SELECT *
-       FROM jobs
-       WHERE COALESCE(NULLIF(TRIM(status), ''), 'approved') = 'pending'
-       ORDER BY created_at DESC NULLS LAST, id DESC`
-    );
-
-    // AI Auto-check for suggestions
-    const jobsWithAiSuggestion = result.rows.map(job => {
-      const aiResult = checkJobForAiRejection(job);
-      return {
-        ...job,
-        ai_suggestion: aiResult.reason
-      };
-    });
-
-    res.json({ data: jobsWithAiSuggestion });
+    res.json(await adminService.getPendingJobs());
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Lỗi khi lấy danh sách chờ duyệt' });
+    sendControllerError(res, err, 'Lỗi khi lấy danh sách chờ duyệt', 'Get pending jobs error:');
   }
 };
 
 exports.updateJobStatus = async (req, res) => {
-  const { id } = req.params;
-  const { status, reason } = req.body;
-
-  if (!['approved', 'rejected'].includes(status)) {
-    return res.status(400).json({ error: 'Trạng thái không hợp lệ' });
-  }
-
   try {
-    await ensureAdminJobSchema();
-
-    const result = await pool.query(
-      'UPDATE jobs SET status = $1, rejection_reason = $2, updated_at = NOW() WHERE id = $3 RETURNING *',
-      [status, reason || null, id]
-    );
-
-    if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'Không tìm thấy việc làm' });
-    }
-
-    const job = result.rows[0];
-    if (job.employer_id) {
-      await createNotification({
-        userId: job.employer_id,
-        type: status === 'approved' ? 'employer_job_approved' : 'employer_job_rejected',
-        title: status === 'approved' ? 'Tin tuyển dụng đã được duyệt' : 'Tin tuyển dụng bị từ chối',
-        message:
-          status === 'approved'
-            ? `Admin đã duyệt tin "${job.job_title}" của bạn.`
-            : `Admin đã từ chối tin "${job.job_title}" của bạn. Lý do: ${reason || 'Không có lý do cụ thể'}`,
-        to: '/employer/dashboard',
-        tab: 'jobs',
-        meta: { job_id: job.id, reason },
-      }).catch((notificationError) => {
-        console.error('Create employer moderation notification error:', notificationError);
-      });
-    }
-
-    res.json({ message: 'Cập nhật trạng thái thành công', data: result.rows[0] });
+    res.json(await adminService.updateJobStatus({
+      jobId: req.params.id,
+      status: req.body?.status,
+      reason: req.body?.reason,
+    }));
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Lỗi khi cập nhật trạng thái' });
+    sendControllerError(res, err, 'Lỗi khi cập nhật trạng thái', 'Update job status error:');
   }
 };
 
 exports.toggleUserSuspend = async (req, res) => {
-  const { id } = req.params;
-  const { suspended } = req.body;
-
-  if (typeof suspended !== 'boolean') {
-    return res.status(400).json({ error: 'Trường suspended phải là boolean' });
-  }
-
   try {
-    await ensureUserAccountStatusSchema();
-
-    if (parseInt(id) === req.user.id) {
-      return res.status(400).json({ error: 'Không thể tạm dừng tài khoản của chính mình' });
-    }
-
-    const result = await pool.query(
-      'UPDATE users SET is_suspended = $1 WHERE id = $2 RETURNING id, full_name, email, is_suspended',
-      [suspended, id]
-    );
-
-    if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'Không tìm thấy người dùng' });
-    }
-
-    const user = result.rows[0];
-    res.json({
-      message: suspended
-        ? `Đã tạm dừng tài khoản "${user.full_name}"`
-        : `Đã kích hoạt lại tài khoản "${user.full_name}"`,
-      data: user,
-    });
+    res.json(await adminService.toggleUserSuspend({
+      targetUserId: req.params.id,
+      suspended: req.body?.suspended,
+      actorUserId: req.user.id,
+    }));
   } catch (err) {
-    console.error('Toggle user suspend error:', err);
-    res.status(500).json({ error: 'Lỗi khi cập nhật trạng thái tài khoản' });
+    sendControllerError(res, err, 'Lỗi khi cập nhật trạng thái tài khoản', 'Toggle user suspend error:');
   }
 };

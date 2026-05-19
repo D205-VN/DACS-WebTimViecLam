@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom';
-import { Bell, FileText, ShieldCheck, Sparkles } from 'lucide-react';
+import { Bell, FileText, ShieldCheck, Sparkles, Trophy } from 'lucide-react';
 
 const seekerTools = [
   {
@@ -8,6 +8,13 @@ const seekerTools = [
     description: 'Tạo CV mới bằng AI',
     icon: Sparkles,
     tone: 'bg-fuchsia-50 text-fuchsia-700',
+  },
+  {
+    to: '/seeker/skill-passport',
+    label: 'Skill Passport',
+    description: 'Hồ sơ năng lực public',
+    icon: Trophy,
+    tone: 'bg-violet-50 text-violet-700',
   },
   {
     to: '/seeker/my-cvs',
@@ -35,7 +42,7 @@ const seekerTools = [
 export default function SeekerToolsNav() {
   return (
     <div className="aw-surface mb-5 p-2">
-      <div className="grid grid-cols-1 gap-2 md:grid-cols-4">
+      <div className="grid grid-cols-1 gap-2 md:grid-cols-5">
         {seekerTools.map((tool) => (
           <NavLink
             key={tool.to}

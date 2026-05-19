@@ -4,6 +4,7 @@ import { ArrowRight, Briefcase, Building2, Loader2, MapPin, Sparkles, TrendingUp
 import { useAuth } from '@features/auth/AuthContext';
 import { getCompanyFilterRoute, getJobDetailRoute, getRouteByRole } from '@shared/utils/roleRedirect';
 import API_BASE_URL from '@shared/api/baseUrl';
+import { cachedJsonFetch } from '@shared/api/requestCache';
 
 const rankColors = [
   'bg-gradient-to-br from-amber-100 to-yellow-50 text-amber-700',
@@ -43,8 +44,7 @@ export default function RightSidebar({ searchParams }) {
   useEffect(() => {
     let cancelled = false;
 
-    fetch(`${API_BASE_URL}/api/jobs/companies`)
-      .then((res) => res.json())
+    cachedJsonFetch(`${API_BASE_URL}/api/jobs/companies`, {}, { ttlMs: 5 * 60 * 1000 })
       .then((payload) => {
         if (!cancelled) {
           setTopCompanies((payload.data || []).slice(0, 5));
@@ -67,7 +67,7 @@ export default function RightSidebar({ searchParams }) {
     let cancelled = false;
     const params = new URLSearchParams({
       page: '1',
-      limit: '4',
+      limit: '20',
     });
     const hasGeoLocation =
       searchParams?.locationSource === 'geolocation' &&
@@ -92,11 +92,10 @@ export default function RightSidebar({ searchParams }) {
       }
     });
 
-    fetch(`${API_BASE_URL}/api/jobs?${params.toString()}`)
-      .then((res) => res.json())
+    cachedJsonFetch(`${API_BASE_URL}/api/jobs?${params.toString()}`, {}, { ttlMs: 20 * 1000 })
       .then((payload) => {
         if (!cancelled) {
-          setSuggestedJobs(payload.data || []);
+          setSuggestedJobs((payload.data || []).slice(0, 4));
           setLoadingSuggestions(false);
         }
       })

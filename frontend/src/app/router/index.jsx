@@ -1,38 +1,52 @@
+import { lazy, Suspense } from 'react';
 import { createBrowserRouter, Navigate, RouterProvider, useLocation } from 'react-router-dom';
 import { useAuth } from '@features/auth/AuthContext';
 import MainLayout from '@app/layouts/MainLayout';
 import { AdminRoute, EmployerRoute, ProtectedRoute, SeekerRoute } from '@app/router/guards';
-import EmployerPageLayout from '@widgets/employer/EmployerPageLayout';
-import HomePage from '@pages/HomePage';
-import CompaniesPage from '@pages/CompaniesPage';
-import BlogPage from '@pages/BlogPage';
-import BlogDetailPage from '@pages/BlogDetailPage';
-import LoginPage from '@pages/auth/LoginPage';
-import RegisterPage from '@pages/auth/RegisterPage';
-import ChangePasswordPage from '@pages/auth/ChangePasswordPage';
-import ForgotPasswordPage from '@pages/auth/ForgotPasswordPage';
-import ProfilePage from '@pages/ProfilePage';
-import MessagesPage from '@pages/MessagesPage';
-import JobDetailPage from '@pages/JobDetailPage';
-import SavedJobsPage from '@pages/seeker/SavedJobsPage';
-import AppliedJobsPage from '@pages/seeker/AppliedJobsPage';
-import AdminDashboard from '@pages/admin/AdminDashboard';
-import CVBuilderPage from '@pages/seeker/CVBuilderPage';
-import ManageCVsPage from '@pages/seeker/ManageCVsPage';
-import CVImportImagePage from '@pages/seeker/CVImportImagePage';
-import BlockchainVerificationPage from '@pages/seeker/BlockchainVerificationPage';
-import JobAlertsPage from '@pages/seeker/JobAlertsPage';
-import OnboardingPage from '@pages/seeker/OnboardingPage';
-import MyScoresPage from '@pages/seeker/MyScoresPage';
-import EmployerDashboard from '@pages/employer/EmployerDashboard';
-import PostJob from '@pages/employer/PostJob';
-import AITestEditPage from '@pages/employer/AITestEditPage';
-import ScoreManagementPage from '@pages/employer/ScoreManagementPage';
-import CandidateTestUI from '@pages/seeker/CandidateTestUI';
-import VerificationPublicPage from '@pages/VerificationPublicPage';
-import CompanyBrandingPage from '@pages/CompanyBrandingPage';
-import InterviewRoomPage from '@pages/InterviewRoomPage';
 import { getEmployerDashboardPath, getEmployerDashboardState } from '@shared/utils/employerDashboardRoutes';
+
+const EmployerPageLayout = lazy(() => import('@widgets/employer/EmployerPageLayout'));
+const HomePage = lazy(() => import('@pages/HomePage'));
+const CompaniesPage = lazy(() => import('@pages/CompaniesPage'));
+const BlogPage = lazy(() => import('@pages/BlogPage'));
+const BlogDetailPage = lazy(() => import('@pages/BlogDetailPage'));
+const LoginPage = lazy(() => import('@pages/auth/LoginPage'));
+const RegisterPage = lazy(() => import('@pages/auth/RegisterPage'));
+const ChangePasswordPage = lazy(() => import('@pages/auth/ChangePasswordPage'));
+const ForgotPasswordPage = lazy(() => import('@pages/auth/ForgotPasswordPage'));
+const ProfilePage = lazy(() => import('@pages/ProfilePage'));
+const MessagesPage = lazy(() => import('@pages/MessagesPage'));
+const JobDetailPage = lazy(() => import('@pages/JobDetailPage'));
+const SavedJobsPage = lazy(() => import('@pages/seeker/SavedJobsPage'));
+const AppliedJobsPage = lazy(() => import('@pages/seeker/AppliedJobsPage'));
+const AdminDashboard = lazy(() => import('@pages/admin/AdminDashboard'));
+const CVBuilderPage = lazy(() => import('@pages/seeker/CVBuilderPage'));
+const ManageCVsPage = lazy(() => import('@pages/seeker/ManageCVsPage'));
+const CVImportImagePage = lazy(() => import('@pages/seeker/CVImportImagePage'));
+const BlockchainVerificationPage = lazy(() => import('@pages/seeker/BlockchainVerificationPage'));
+const SkillPassportPage = lazy(() => import('@pages/seeker/SkillPassportPage'));
+const InterviewCopilotPage = lazy(() => import('@pages/seeker/InterviewCopilotPage'));
+const WorkSimulationPage = lazy(() => import('@pages/seeker/WorkSimulationPage'));
+const JobAlertsPage = lazy(() => import('@pages/seeker/JobAlertsPage'));
+const OnboardingPage = lazy(() => import('@pages/seeker/OnboardingPage'));
+const MyScoresPage = lazy(() => import('@pages/seeker/MyScoresPage'));
+const EmployerDashboard = lazy(() => import('@pages/employer/EmployerDashboard'));
+const PostJob = lazy(() => import('@pages/employer/PostJob'));
+const AITestEditPage = lazy(() => import('@pages/employer/AITestEditPage'));
+const ScoreManagementPage = lazy(() => import('@pages/employer/ScoreManagementPage'));
+const CandidateTestUI = lazy(() => import('@pages/seeker/CandidateTestUI'));
+const VerificationPublicPage = lazy(() => import('@pages/VerificationPublicPage'));
+const PublicSkillPassportPage = lazy(() => import('@pages/PublicSkillPassportPage'));
+const CompanyBrandingPage = lazy(() => import('@pages/CompanyBrandingPage'));
+const InterviewRoomPage = lazy(() => import('@pages/InterviewRoomPage'));
+
+function PageLoader() {
+  return (
+    <div className="flex min-h-[50vh] items-center justify-center">
+      <div className="h-10 w-10 animate-spin rounded-full border-b-2 border-indigo-500"></div>
+    </div>
+  );
+}
 
 function RoleBasedHome() {
   const { user, isAuthenticated, loading } = useAuth();
@@ -82,6 +96,7 @@ const router = createBrowserRouter([
   { path: '/forgot-password', element: <ForgotPasswordPage /> },
   { path: '/jobs/:id', element: <MainLayout><JobDetailPage /></MainLayout> },
   { path: '/verify/:code', element: <MainLayout><VerificationPublicPage /></MainLayout> },
+  { path: '/passport/:token', element: <MainLayout><PublicSkillPassportPage /></MainLayout> },
   { path: '/interview-room/:token', element: <InterviewRoomPage /> },
   { path: '/profile', element: <MainLayout><ProtectedRoute><ProfilePage /></ProtectedRoute></MainLayout> },
   { path: '/change-password', element: <MainLayout><ProtectedRoute><ChangePasswordPage /></ProtectedRoute></MainLayout> },
@@ -106,12 +121,16 @@ const router = createBrowserRouter([
   { path: '/seeker/my-cvs', element: <MainLayout><SeekerRoute><ManageCVsPage /></SeekerRoute></MainLayout> },
   { path: '/seeker/cv-import', element: <MainLayout><SeekerRoute><CVImportImagePage /></SeekerRoute></MainLayout> },
   { path: '/seeker/blockchain-verification', element: <MainLayout><SeekerRoute><BlockchainVerificationPage /></SeekerRoute></MainLayout> },
+  { path: '/seeker/skill-passport', element: <MainLayout><SeekerRoute><SkillPassportPage /></SeekerRoute></MainLayout> },
+  { path: '/seeker/interview-copilot/:jobId', element: <MainLayout><SeekerRoute><InterviewCopilotPage /></SeekerRoute></MainLayout> },
+  { path: '/seeker/work-simulation/:jobId', element: <MainLayout><SeekerRoute><WorkSimulationPage /></SeekerRoute></MainLayout> },
   { path: '/seeker/onboarding/:id', element: <MainLayout><SeekerRoute><OnboardingPage /></SeekerRoute></MainLayout> },
   { path: '/seeker/my-scores', element: <MainLayout><SeekerRoute><MyScoresPage /></SeekerRoute></MainLayout> },
   { path: '/cv-builder', element: <Navigate to="/seeker/cv-builder" replace /> },
   { path: '/my-cvs', element: <Navigate to="/seeker/my-cvs" replace /> },
   { path: '/cv-import', element: <Navigate to="/seeker/cv-import" replace /> },
   { path: '/blockchain-verification', element: <Navigate to="/seeker/blockchain-verification" replace /> },
+  { path: '/skill-passport', element: <Navigate to="/seeker/skill-passport" replace /> },
   { path: '/employer/dashboard', element: <EmployerRoute><EmployerDashboard /></EmployerRoute> },
   { path: '/employer/messages', element: <EmployerRoute><EmployerPageLayout activeKey="messages"><MessagesPage /></EmployerPageLayout></EmployerRoute> },
   { path: '/employer/meeting-rooms', element: <EmployerRoute><EmployerDashboardTabRedirect tab="meeting-rooms" /></EmployerRoute> },
@@ -128,5 +147,9 @@ const router = createBrowserRouter([
 ]);
 
 export default function AppRouter() {
-  return <RouterProvider router={router} />;
+  return (
+    <Suspense fallback={<PageLoader />}>
+      <RouterProvider router={router} />
+    </Suspense>
+  );
 }

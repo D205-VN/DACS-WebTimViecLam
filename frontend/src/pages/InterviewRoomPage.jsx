@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import { ArrowLeft, CalendarClock, CheckCircle2, Loader2, Mic, MicOff, Monitor, MonitorOff, UserCheck, Video, VideoOff, PhoneOff } from 'lucide-react';
+import { ArrowLeft, Bot, CalendarClock, CheckCircle2, ClipboardCheck, Loader2, Mic, MicOff, Monitor, MonitorOff, Save, Star, UserCheck, Video, VideoOff, PhoneOff } from 'lucide-react';
 import { io } from 'socket.io-client';
 import API_BASE_URL from '@shared/api/baseUrl';
 
@@ -19,6 +19,257 @@ function formatDateTime(value) {
     hour: '2-digit', minute: '2-digit',
     day: '2-digit', month: '2-digit', year: 'numeric',
   });
+}
+
+const DEFAULT_RATINGS = {
+  technical: 3,
+  problem_solving: 3,
+  communication: 3,
+  culture_fit: 3,
+};
+
+const RATING_FIELDS = [
+  { key: 'technical', label: 'Chuyên môn' },
+  { key: 'problem_solving', label: 'Xử lý vấn đề' },
+  { key: 'communication', label: 'Giao tiếp' },
+  { key: 'culture_fit', label: 'Phù hợp văn hóa' },
+];
+
+const RECOMMENDATION_LABELS = {
+  strong_yes: 'Rất nên tuyển',
+  yes: 'Nên tuyển',
+  consider: 'Cân nhắc thêm',
+  no: 'Chưa phù hợp',
+};
+
+function getAverageRating(ratings = DEFAULT_RATINGS) {
+  const values = RATING_FIELDS.map((field) => Number(ratings[field.key] || 0));
+  return values.length ? (values.reduce((sum, value) => sum + value, 0) / values.length).toFixed(1) : '0.0';
+}
+
+function createDefaultEvaluationForm() {
+  return {
+    ratings: { ...DEFAULT_RATINGS },
+    strengths: '',
+    concerns: '',
+    recommendation: 'consider',
+    feedback_to_candidate: '',
+  };
+}
+
+function RatingInput({ label, value, onChange }) {
+  return (
+    <label className="block rounded-xl border border-white/[0.08] bg-white/[0.04] px-4 py-3">
+      <span className="flex items-center justify-between gap-3">
+        <span className="text-sm font-semibold text-slate-200">{label}</span>
+        <span className="rounded-full bg-indigo-500/15 px-2.5 py-1 text-xs font-black text-indigo-200">{value}/5</span>
+      </span>
+      <input
+        type="range"
+        min="1"
+        max="5"
+        value={value}
+        onChange={(event) => onChange(Number(event.target.value))}
+        className="mt-3 w-full accent-indigo-500"
+      />
+    </label>
+  );
+}
+
+function FloatingEvaluationWidget({ room, form, setForm, onSave, saving, notice }) {
+  const candidateName = room?.current_candidate?.candidate_name || room?.candidate_name || 'Ứng viên hiện tại';
+  const quickNotes = [
+    'Câu trả lời có ví dụ cụ thể',
+    'Cần hỏi thêm về kinh nghiệm thực tế',
+    'Giao tiếp rõ, biết lắng nghe',
+  ];
+  const [open, setOpen] = useState(true);
+  const [position, setPosition] = useState(() => {
+    if (typeof window === 'undefined') return { x: 24, y: 120 };
+    return {
+      x: Math.max(16, window.innerWidth - 96),
+      y: Math.max(96, Math.min(window.innerHeight - 176, 180)),
+    };
+  });
+  const dragRef = useRef(null);
+
+  const clampPosition = useCallback((x, y) => {
+    if (typeof window === 'undefined') return { x, y };
+    const size = 64;
+    const margin = 12;
+    return {
+      x: Math.min(Math.max(x, margin), window.innerWidth - size - margin),
+      y: Math.min(Math.max(y, 76), window.innerHeight - size - margin),
+    };
+  }, []);
+
+  useEffect(() => {
+    const handleResize = () => setPosition((current) => clampPosition(current.x, current.y));
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [clampPosition]);
+
+  const appendConcern = (note) => {
+    setForm((prev) => ({
+      ...prev,
+      concerns: prev.concerns ? `${prev.concerns}\n- ${note}` : `- ${note}`,
+    }));
+  };
+
+  const handlePointerDown = (event) => {
+    if (event.button !== 0) return;
+    dragRef.current = {
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      startY: event.clientY,
+      originX: position.x,
+      originY: position.y,
+      moved: false,
+    };
+    event.currentTarget.setPointerCapture?.(event.pointerId);
+  };
+
+  const handlePointerMove = (event) => {
+    const drag = dragRef.current;
+    if (!drag || drag.pointerId !== event.pointerId) return;
+    const deltaX = event.clientX - drag.startX;
+    const deltaY = event.clientY - drag.startY;
+    if (Math.abs(deltaX) + Math.abs(deltaY) > 5) drag.moved = true;
+    setPosition(clampPosition(drag.originX + deltaX, drag.originY + deltaY));
+  };
+
+  const handlePointerEnd = (event) => {
+    const drag = dragRef.current;
+    if (!drag || drag.pointerId !== event.pointerId) return;
+    event.currentTarget.releasePointerCapture?.(event.pointerId);
+    if (!drag.moved) setOpen((current) => !current);
+    dragRef.current = null;
+  };
+
+  const isLeftSide = typeof window !== 'undefined' ? position.x < window.innerWidth / 2 : true;
+  const openBelow = typeof window !== 'undefined' ? position.y < window.innerHeight / 2 : true;
+  const panelMaxHeight = openBelow
+    ? `calc(100vh - ${Math.round(position.y + 88)}px)`
+    : `${Math.max(280, Math.round(position.y - 24))}px`;
+
+  return (
+    <div className="fixed z-[90]" style={{ left: `${position.x}px`, top: `${position.y}px` }}>
+      {open ? (
+        <aside
+          className={`absolute ${isLeftSide ? 'left-0' : 'right-0'} ${openBelow ? 'top-[76px]' : 'bottom-[76px]'} flex w-[calc(100vw-32px)] max-w-[390px] flex-col overflow-y-auto rounded-2xl border border-white/[0.1] bg-[#101528]/95 p-4 shadow-2xl shadow-black/30 backdrop-blur-xl`}
+          style={{ maxHeight: panelMaxHeight }}
+        >
+          <div className="flex items-start gap-3 border-b border-white/[0.06] pb-4">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-500/15 text-indigo-200">
+              <Bot className="h-5 w-5" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-black text-white">Trợ lý phỏng vấn</p>
+              <p className="mt-1 truncate text-xs text-slate-400">{candidateName}</p>
+            </div>
+            <span className="rounded-full bg-white/[0.08] px-2.5 py-1 text-xs font-black text-indigo-100">
+              {getAverageRating(form.ratings)}/5
+            </span>
+          </div>
+
+          <div className="mt-4 rounded-2xl rounded-tl-sm bg-indigo-500/15 px-4 py-3 text-sm leading-6 text-indigo-100">
+            Ghi chú nội bộ cho lượt phỏng vấn này.
+          </div>
+
+          <div className="mt-4 grid gap-3">
+            {RATING_FIELDS.map((field) => (
+              <RatingInput
+                key={field.key}
+                label={field.label}
+                value={form.ratings[field.key]}
+                onChange={(value) => setForm((prev) => ({ ...prev, ratings: { ...prev.ratings, [field.key]: value } }))}
+              />
+            ))}
+          </div>
+
+          <div className="mt-4">
+            <p className="text-xs font-bold uppercase tracking-[0.14em] text-slate-400">Ghi chú nhanh</p>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {quickNotes.map((note) => (
+                <button
+                  key={note}
+                  type="button"
+                  onClick={() => appendConcern(note)}
+                  className="rounded-full border border-white/[0.08] bg-white/[0.05] px-3 py-1.5 text-xs font-semibold text-slate-200 transition hover:bg-white/[0.1]"
+                >
+                  {note}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <label className="mt-4 block">
+            <span className="text-sm font-semibold text-slate-200">Điểm mạnh</span>
+            <textarea
+              value={form.strengths}
+              onChange={(event) => setForm((prev) => ({ ...prev, strengths: event.target.value }))}
+              rows={3}
+              className="mt-2 w-full rounded-xl border border-white/[0.1] bg-white/[0.06] px-4 py-3 text-sm text-white outline-none transition placeholder:text-slate-500 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/20"
+              placeholder="Ghi điểm mạnh trong lúc trao đổi..."
+            />
+          </label>
+
+          <label className="mt-4 block">
+            <span className="text-sm font-semibold text-slate-200">Điểm cần làm rõ</span>
+            <textarea
+              value={form.concerns}
+              onChange={(event) => setForm((prev) => ({ ...prev, concerns: event.target.value }))}
+              rows={3}
+              className="mt-2 w-full rounded-xl border border-white/[0.1] bg-white/[0.06] px-4 py-3 text-sm text-white outline-none transition placeholder:text-slate-500 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/20"
+              placeholder="Ghi rủi ro hoặc câu cần hỏi thêm..."
+            />
+          </label>
+
+          <div className="mt-4 grid gap-3">
+            <label className="block">
+              <span className="text-sm font-semibold text-slate-200">Kết luận tạm</span>
+              <select
+                value={form.recommendation}
+                onChange={(event) => setForm((prev) => ({ ...prev, recommendation: event.target.value }))}
+                className="mt-2 w-full rounded-xl border border-white/[0.1] bg-[#101528] px-4 py-3 text-sm text-white outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/20"
+              >
+                {Object.entries(RECOMMENDATION_LABELS).map(([value, label]) => (
+                  <option key={value} value={value} className="bg-[#101528] text-white">{label}</option>
+                ))}
+              </select>
+            </label>
+            <button
+              type="button"
+              onClick={onSave}
+              disabled={saving}
+              className="inline-flex items-center justify-center gap-2 rounded-xl bg-white/[0.08] px-4 py-3 text-sm font-bold text-white transition hover:bg-white/[0.14] disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+              Lưu đánh giá
+            </button>
+          </div>
+
+          {notice ? <p className="mt-3 text-xs text-emerald-200">{notice}</p> : null}
+        </aside>
+      ) : null}
+
+      <button
+        type="button"
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerEnd}
+        onPointerCancel={handlePointerEnd}
+        className="relative flex h-16 w-16 touch-none select-none items-center justify-center rounded-full border border-indigo-200/30 bg-gradient-to-br from-indigo-500 to-violet-600 text-white shadow-2xl shadow-indigo-900/40 transition hover:scale-105 cursor-grab active:cursor-grabbing"
+        title="Kéo để di chuyển, bấm để mở hoặc đóng trợ lý phỏng vấn"
+        aria-label="Trợ lý phỏng vấn"
+      >
+        <Bot className="h-7 w-7" />
+        <span className="absolute -bottom-1 -right-1 rounded-full border border-white/20 bg-[#101528] px-2 py-0.5 text-[11px] font-black text-indigo-100">
+          {getAverageRating(form.ratings)}
+        </span>
+      </button>
+    </div>
+  );
 }
 
 export default function InterviewRoomPage() {
@@ -43,10 +294,16 @@ export default function InterviewRoomPage() {
   const [camOn, setCamOn] = useState(true);
   const [screenOn, setScreenOn] = useState(false);
   const [peerConnected, setPeerConnected] = useState(false);
+  const [completedCandidate, setCompletedCandidate] = useState(null);
+  const [evaluationForm, setEvaluationForm] = useState(createDefaultEvaluationForm);
+  const [evaluationSaving, setEvaluationSaving] = useState(false);
+  const [evaluationNotice, setEvaluationNotice] = useState('');
 
   // ── Cleanup helpers ──
   const cleanupPeer = useCallback(() => {
     if (pcRef.current) { pcRef.current.close(); pcRef.current = null; }
+    remoteStreamRef.current = null;
+    setPeerConnected(false);
   }, []);
 
   const cleanupMedia = useCallback(() => {
@@ -80,7 +337,6 @@ export default function InterviewRoomPage() {
     };
 
     pc.ontrack = (e) => {
-      console.log('ontrack fired, streams:', e.streams.length, 'track kind:', e.track.kind);
       if (e.streams && e.streams[0]) {
         attachRemoteStream(e.streams[0]);
       } else {
@@ -94,7 +350,6 @@ export default function InterviewRoomPage() {
     };
 
     pc.oniceconnectionstatechange = () => {
-      console.log('ICE state:', pc.iceConnectionState);
       if (pc.iceConnectionState === 'connected' || pc.iceConnectionState === 'completed') {
         setPeerConnected(true);
       }
@@ -138,6 +393,7 @@ export default function InterviewRoomPage() {
                 host_joined_at: hostData.data?.host_joined_at || prev?.host_joined_at,
                 queue_status: hostData.data?.room_status || prev?.queue_status,
                 current_candidate: hostData.data?.current_candidate || prev?.current_candidate,
+                application_id: hostData.data?.current_candidate?.application_id || prev?.application_id,
                 candidate_name: hostData.data?.current_candidate?.candidate_name || prev?.candidate_name,
                 interview_at: hostData.data?.current_candidate?.interview_at || prev?.interview_at,
               }));
@@ -209,7 +465,6 @@ export default function InterviewRoomPage() {
       sock.on('webrtc:existing-peers', ({ peers }) => {
         if (peers.length > 0) {
           const peerId = peers[0];
-          console.log('Found existing peer, creating offer to:', peerId);
           const pc = createPeer(sock, peerId);
           pc.createOffer().then((offer) => pc.setLocalDescription(offer)).then(() => {
             sock.emit('webrtc:offer', { to: peerId, offer: pc.localDescription });
@@ -218,8 +473,7 @@ export default function InterviewRoomPage() {
       });
 
       // When a new peer joins (we are the existing peer → WAIT for their offer)
-      sock.on('webrtc:peer-joined', ({ peerId }) => {
-        console.log('New peer joined, waiting for their offer:', peerId);
+      sock.on('webrtc:peer-joined', () => {
         // Don't create offer here - the new peer will send us one
       });
 
@@ -366,20 +620,40 @@ export default function InterviewRoomPage() {
     if (!res.ok) { setError(data.error || 'Không thể hoàn tất lượt phỏng vấn'); return; }
     handleLeave();
     const admittedCandidate = data.data?.next_candidate || null;
+    const finishedCandidate = data.data?.completed_candidate || null;
+    setCompletedCandidate(finishedCandidate?.application_id ? finishedCandidate : null);
+    setEvaluationNotice('');
     setNextCandidate(admittedCandidate);
     setRoom((prev) => ({
       ...prev,
       queue_status: data.data?.room_status || (admittedCandidate ? 'in_interview' : 'completed'),
+      current_candidate: admittedCandidate || prev?.current_candidate,
+      application_id: admittedCandidate?.application_id || prev?.application_id,
       candidate_name: admittedCandidate?.candidate_name || prev?.candidate_name,
       interview_at: admittedCandidate?.interview_at || prev?.interview_at,
       ended_at: data.data?.room_status === 'completed' ? new Date().toISOString() : prev?.ended_at,
     }));
-    // Auto-rejoin if there's a next candidate
-    if (admittedCandidate) {
-      setTimeout(() => {
-        setNextCandidate(null);
-        setJoining(true);
-      }, 1500);
+  };
+
+  const handleSaveEvaluation = async () => {
+    const applicationId = completedCandidate?.application_id || room?.current_candidate?.application_id || room?.application_id;
+    if (!applicationId || evaluationSaving) return;
+    setEvaluationSaving(true);
+    setEvaluationNotice('');
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/meeting-rooms/access/${token}/applications/${applicationId}/evaluation`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(evaluationForm),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'Không thể lưu đánh giá phỏng vấn');
+      setEvaluationNotice('Đã lưu đánh giá phỏng vấn.');
+      setCompletedCandidate((prev) => prev ? ({ ...prev, evaluation_id: data.id, evaluated_at: data.updated_at }) : prev);
+    } catch (err) {
+      setEvaluationNotice(err.message || 'Không thể lưu đánh giá phỏng vấn');
+    } finally {
+      setEvaluationSaving(false);
     }
   };
 
@@ -492,16 +766,18 @@ export default function InterviewRoomPage() {
 
         <main className={`flex flex-1 flex-col ${joining ? 'py-0' : 'py-5'}`}>
           {!joining ? (
-            <div className="mx-auto flex w-full max-w-xl flex-1 items-center">
+            <div className={`mx-auto flex w-full flex-1 items-center ${completedCandidate ? 'max-w-4xl' : 'max-w-xl'}`}>
               <div className="w-full rounded-2xl border border-white/[0.08] bg-white/[0.04] backdrop-blur-xl p-8 shadow-2xl">
                 <div className="mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-500/20 to-purple-500/20 text-indigo-300 border border-indigo-500/20">
                   <Video className="h-7 w-7" />
                 </div>
                 <h2 className="text-xl font-bold text-white/95">
-                  {interviewCompleted ? 'Lượt phỏng vấn đã hoàn tất' : waiting ? 'Bạn đang ở phòng chờ' : nextCandidate ? 'Đã gọi ứng viên tiếp theo' : 'Phòng phỏng vấn trực tuyến'}
+                  {completedCandidate ? 'Đánh giá ứng viên vừa phỏng vấn' : interviewCompleted ? 'Lượt phỏng vấn đã hoàn tất' : waiting ? 'Bạn đang ở phòng chờ' : nextCandidate ? 'Đã gọi ứng viên tiếp theo' : 'Phòng phỏng vấn trực tuyến'}
                 </h2>
                 <p className="mt-3 text-sm leading-6 text-slate-400">
-                  {interviewCompleted
+                  {completedCandidate
+                    ? 'Lưu phiếu đánh giá ngay tại đây, sau đó chuyển sang ứng viên tiếp theo nếu còn lịch chờ.'
+                    : interviewCompleted
                     ? 'Cảm ơn bạn đã tham gia. Camera và microphone đã được tắt cho lượt phỏng vấn này.'
                     : waiting
                     ? `Bạn đang xếp hàng chờ. Vị trí hiện tại: ${room.queue_position || 'đang cập nhật'}. Nhà tuyển dụng sẽ gọi bạn vào lượt.`
@@ -518,8 +794,8 @@ export default function InterviewRoomPage() {
                       <span>Trang sẽ tự cập nhật mỗi vài giây. Bạn có thể giữ tab này mở.</span>
                     </div>
                   </div>
-                ) : nextCandidate ? (
-                  <button type="button" onClick={() => { setNextCandidate(null); setJoining(true); }} className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 px-5 py-3 text-sm font-bold text-white transition-all hover:shadow-lg hover:shadow-emerald-500/25">
+                ) : nextCandidate && !completedCandidate ? (
+                  <button type="button" onClick={() => { setCompletedCandidate(null); setNextCandidate(null); setEvaluationForm(createDefaultEvaluationForm()); setEvaluationNotice(''); setJoining(true); }} className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 px-5 py-3 text-sm font-bold text-white transition-all hover:shadow-lg hover:shadow-emerald-500/25">
                     <UserCheck className="h-4 w-4" /> Vào lượt tiếp theo
                   </button>
                 ) : role === 'host' ? (
@@ -527,44 +803,155 @@ export default function InterviewRoomPage() {
                     <Video className="h-4 w-4" /> Vào phòng HR
                   </button>
                 ) : null}
+
+                {role === 'host' && completedCandidate?.application_id ? (
+                  <div className="mt-6 rounded-2xl border border-emerald-400/20 bg-emerald-400/10 p-5">
+                    <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                      <div>
+                        <div className="inline-flex items-center gap-2 rounded-full bg-emerald-400/15 px-3 py-1 text-xs font-bold uppercase tracking-[0.14em] text-emerald-200">
+                          <ClipboardCheck className="h-4 w-4" /> Phiếu đánh giá sau phỏng vấn
+                        </div>
+                        <h3 className="mt-3 text-xl font-black text-white">{completedCandidate.candidate_name || 'Ứng viên vừa phỏng vấn'}</h3>
+                        <p className="mt-1 text-sm text-slate-300">{completedCandidate.job_title || room.job_title || room.name}</p>
+                      </div>
+                      <div className="flex items-center gap-2 rounded-xl bg-white/[0.08] px-3 py-2 text-sm font-bold text-indigo-100">
+                        <Star className="h-4 w-4 text-indigo-300" />
+                        {getAverageRating(evaluationForm.ratings)}/5
+                      </div>
+                    </div>
+
+                    <div className="mt-5 grid gap-3 sm:grid-cols-2">
+                      {RATING_FIELDS.map((field) => (
+                        <RatingInput
+                          key={field.key}
+                          label={field.label}
+                          value={evaluationForm.ratings[field.key]}
+                          onChange={(value) => setEvaluationForm((prev) => ({ ...prev, ratings: { ...prev.ratings, [field.key]: value } }))}
+                        />
+                      ))}
+                    </div>
+
+                    <div className="mt-4 grid gap-4 lg:grid-cols-2">
+                      <label className="block">
+                        <span className="text-sm font-semibold text-slate-200">Điểm mạnh nội bộ</span>
+                        <textarea
+                          value={evaluationForm.strengths}
+                          onChange={(event) => setEvaluationForm((prev) => ({ ...prev, strengths: event.target.value }))}
+                          rows={4}
+                          className="mt-2 w-full rounded-xl border border-white/[0.1] bg-white/[0.06] px-4 py-3 text-sm text-white outline-none transition placeholder:text-slate-500 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/20"
+                          placeholder="Ví dụ: nắm quy trình test, giao tiếp rõ..."
+                        />
+                      </label>
+                      <label className="block">
+                        <span className="text-sm font-semibold text-slate-200">Rủi ro cần làm rõ</span>
+                        <textarea
+                          value={evaluationForm.concerns}
+                          onChange={(event) => setEvaluationForm((prev) => ({ ...prev, concerns: event.target.value }))}
+                          rows={4}
+                          className="mt-2 w-full rounded-xl border border-white/[0.1] bg-white/[0.06] px-4 py-3 text-sm text-white outline-none transition placeholder:text-slate-500 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/20"
+                          placeholder="Ví dụ: cần kiểm tra thêm kinh nghiệm thực tế..."
+                        />
+                      </label>
+                    </div>
+
+                    <div className="mt-4 grid gap-4 lg:grid-cols-[0.8fr_1.2fr]">
+                      <label className="block">
+                        <span className="text-sm font-semibold text-slate-200">Kết luận</span>
+                        <select
+                          value={evaluationForm.recommendation}
+                          onChange={(event) => setEvaluationForm((prev) => ({ ...prev, recommendation: event.target.value }))}
+                          className="mt-2 w-full rounded-xl border border-white/[0.1] bg-[#101528] px-4 py-3 text-sm text-white outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/20"
+                        >
+                          {Object.entries(RECOMMENDATION_LABELS).map(([value, label]) => (
+                            <option key={value} value={value} className="bg-[#101528] text-white">{label}</option>
+                          ))}
+                        </select>
+                      </label>
+                      <label className="block">
+                        <span className="text-sm font-semibold text-slate-200">Phản hồi gửi ứng viên</span>
+                        <textarea
+                          value={evaluationForm.feedback_to_candidate}
+                          onChange={(event) => setEvaluationForm((prev) => ({ ...prev, feedback_to_candidate: event.target.value }))}
+                          rows={3}
+                          className="mt-2 w-full rounded-xl border border-white/[0.1] bg-white/[0.06] px-4 py-3 text-sm text-white outline-none transition placeholder:text-slate-500 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-500/20"
+                          placeholder="Nội dung có thể gửi cho ứng viên sau phỏng vấn..."
+                        />
+                      </label>
+                    </div>
+
+                    <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                      <p className={`text-sm ${evaluationNotice.startsWith('Đã') ? 'text-emerald-200' : 'text-amber-200'}`}>
+                        {evaluationNotice || 'Lưu phiếu này trước khi chuyển sang ứng viên tiếp theo để không mất ghi chú.'}
+                      </p>
+                      <div className="flex flex-col gap-2 sm:flex-row">
+                        {nextCandidate ? (
+                          <button type="button" onClick={() => { setCompletedCandidate(null); setNextCandidate(null); setEvaluationForm(createDefaultEvaluationForm()); setEvaluationNotice(''); setJoining(true); }} className="inline-flex items-center justify-center gap-2 rounded-xl border border-white/[0.12] bg-white/[0.08] px-4 py-3 text-sm font-bold text-white transition hover:bg-white/[0.14]">
+                            <UserCheck className="h-4 w-4" /> Vào lượt tiếp theo
+                          </button>
+                        ) : null}
+                        <button
+                          type="button"
+                          onClick={handleSaveEvaluation}
+                          disabled={evaluationSaving}
+                          className="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 px-5 py-3 text-sm font-bold text-white transition hover:shadow-lg hover:shadow-emerald-500/25 disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+                          {evaluationSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                          Lưu đánh giá
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ) : null}
               </div>
             </div>
           ) : (
             /* ── Video call UI ── */
             <div className="relative flex flex-1 flex-col">
               <div className="relative flex flex-1 items-center justify-center bg-black/20 p-3">
-                <div className="relative h-full w-full max-h-[calc(100vh-140px)] overflow-hidden rounded-2xl bg-[#0d1225] border border-white/[0.06]">
-                  <video ref={remoteVideoRef} autoPlay playsInline className="h-full w-full object-cover" style={{ transform: 'scaleX(-1)' }} />
-                  {!peerConnected && (
-                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-5 bg-[#0d1225]/95">
-                    {/* Animated pulse rings */}
-                    <div className="relative flex items-center justify-center">
-                      <div className="absolute h-20 w-20 rounded-full bg-indigo-500/10 animate-ping" />
-                      <div className="absolute h-14 w-14 rounded-full bg-indigo-500/15 animate-ping" style={{ animationDelay: '0.3s' }} />
-                      <div className="h-12 w-12 rounded-full bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center">
-                        <Loader2 className="h-6 w-6 animate-spin text-indigo-400" />
+                <div className="relative flex h-full w-full items-center justify-center">
+                  <div className="relative h-full w-full max-h-[calc(100vh-140px)] overflow-hidden rounded-2xl bg-[#0d1225] border border-white/[0.06]">
+                    <video ref={remoteVideoRef} autoPlay playsInline className="h-full w-full object-cover" style={{ transform: 'scaleX(-1)' }} />
+                    {!peerConnected && (
+                    <div className="absolute inset-0 flex flex-col items-center justify-center gap-5 bg-[#0d1225]/95">
+                      {/* Animated pulse rings */}
+                      <div className="relative flex items-center justify-center">
+                        <div className="absolute h-20 w-20 rounded-full bg-indigo-500/10 animate-ping" />
+                        <div className="absolute h-14 w-14 rounded-full bg-indigo-500/15 animate-ping" style={{ animationDelay: '0.3s' }} />
+                        <div className="h-12 w-12 rounded-full bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center">
+                          <Loader2 className="h-6 w-6 animate-spin text-indigo-400" />
+                        </div>
+                      </div>
+                      <div className="text-center">
+                        <p className="text-base font-semibold text-white/80">Đang chờ đối phương tham gia</p>
+                        <p className="mt-1 text-xs text-slate-500">Micro và camera của bạn đang bật — đối phương sẽ kết nối tự động</p>
+                      </div>
+                      <div className="flex items-center gap-2 rounded-xl border border-amber-500/20 bg-amber-500/10 px-4 py-2">
+                        <span className="h-1.5 w-1.5 rounded-full bg-amber-400 animate-pulse" />
+                        <span className="text-xs text-amber-300 font-medium">Giữ tab này mở để kết nối ngay khi đối phương vào</span>
                       </div>
                     </div>
-                    <div className="text-center">
-                      <p className="text-base font-semibold text-white/80">Đang chờ đối phương tham gia</p>
-                      <p className="mt-1 text-xs text-slate-500">Micro và camera của bạn đang bật — đối phương sẽ kết nối tự động</p>
-                    </div>
-                    <div className="flex items-center gap-2 rounded-xl border border-amber-500/20 bg-amber-500/10 px-4 py-2">
-                      <span className="h-1.5 w-1.5 rounded-full bg-amber-400 animate-pulse" />
-                      <span className="text-xs text-amber-300 font-medium">Giữ tab này mở để kết nối ngay khi đối phương vào</span>
-                    </div>
-                  </div>
-                )}
-                </div>
-                <div className="absolute bottom-6 right-6 h-36 w-48 overflow-hidden rounded-2xl border border-white/[0.1] bg-[#0d1225] shadow-2xl">
-                  <video ref={localVideoRef} autoPlay playsInline muted className="h-full w-full object-cover" style={{ transform: 'scaleX(-1)' }} />
-                  {!camOn && (
-                    <div className="absolute inset-0 flex items-center justify-center bg-[#0d1225]">
-                      <VideoOff className="h-6 w-6 text-slate-600" />
-                    </div>
                   )}
-                  <div className="absolute bottom-1.5 left-2 text-[10px] text-white/50 font-medium">Bạn</div>
+                  </div>
+                  <div className="absolute bottom-6 right-6 h-36 w-48 overflow-hidden rounded-2xl border border-white/[0.1] bg-[#0d1225] shadow-2xl">
+                    <video ref={localVideoRef} autoPlay playsInline muted className="h-full w-full object-cover" style={{ transform: 'scaleX(-1)' }} />
+                    {!camOn && (
+                      <div className="absolute inset-0 flex items-center justify-center bg-[#0d1225]">
+                        <VideoOff className="h-6 w-6 text-slate-600" />
+                      </div>
+                    )}
+                    <div className="absolute bottom-1.5 left-2 text-[10px] text-white/50 font-medium">Bạn</div>
+                  </div>
                 </div>
+                {role === 'host' ? (
+                  <FloatingEvaluationWidget
+                    room={room}
+                    form={evaluationForm}
+                    setForm={setEvaluationForm}
+                    onSave={handleSaveEvaluation}
+                    saving={evaluationSaving}
+                    notice={evaluationNotice}
+                  />
+                ) : null}
               </div>
 
               <div className="flex items-center justify-center gap-3 border-t border-white/[0.06] backdrop-blur-xl bg-white/[0.02] px-4 py-4">

@@ -36,12 +36,8 @@ export const NotificationProvider = ({ children }) => {
         setNotifications(data.data);
       }
 
-      const countRes = await fetch(`${API_BASE_URL}/api/notifications/unread-count`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      const countData = await countRes.json();
-      if (typeof countData.unread === 'number') {
-        setUnreadCount(countData.unread);
+      if (typeof data.unread === 'number') {
+        setUnreadCount(data.unread);
       }
     } catch (err) {
       console.error('Fetch notifications error:', err);
@@ -59,16 +55,11 @@ export const NotificationProvider = ({ children }) => {
         transports: ['websocket', 'polling']
       });
 
-      console.log('Attempting to connect to socket at:', socketUrl || window.location.origin);
-
       newSocket.on('connect', () => {
-        console.log('Connected to notification socket. ID:', newSocket.id);
-        console.log('Joining room for user:', user.id);
         newSocket.emit('join', String(user.id));
       });
 
       newSocket.on('new_notification', (notification) => {
-        console.log('New notification received:', notification);
         setNotifications(prev => [notification, ...prev].slice(0, 50));
         setUnreadCount(prev => prev + 1);
         pushToast(notification);

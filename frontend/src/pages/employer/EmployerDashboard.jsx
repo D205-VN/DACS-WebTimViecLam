@@ -14,6 +14,7 @@ import DashboardTab from '@widgets/employer/DashboardTab';
 import OnboardingTab from '@widgets/employer/OnboardingTab';
 import ManageMeetingRoomsTab from '@widgets/employer/ManageMeetingRoomsTab';
 import AITestManagementContent from '@widgets/employer/AITestManagementContent';
+import InterviewCopilotTab from '@widgets/employer/InterviewCopilotTab';
 import {
   getEmployerDashboardPath,
   getEmployerDashboardState,
@@ -213,6 +214,7 @@ export default function EmployerDashboard() {
             {activeTab === 'company' && <CompanyProfileTab />}
             {activeTab === 'onboarding' && <OnboardingTab />}
             {activeTab === 'ai-tests' && <AITestManagementContent />}
+            {activeTab === 'interview-copilot' && <InterviewCopilotTab />}
             {activeTab === 'meeting-rooms' && <ManageMeetingRoomsTab />}
           </div>
         </div>
@@ -249,6 +251,7 @@ export default function EmployerDashboard() {
                 <button onClick={() => handleTabChange('jobs')} className="group flex items-center gap-2 text-sm text-slate-400 transition-all duration-200 hover:text-white">Quản lý tin tuyển dụng</button>
                 <button onClick={() => handleTabChange('candidates')} className="group flex items-center gap-2 text-sm text-slate-400 transition-all duration-200 hover:text-white">Quản lý ứng viên</button>
                 <button onClick={() => handleTabChange('ai-tests')} className="group flex items-center gap-2 text-sm text-slate-400 transition-all duration-200 hover:text-white">Bài Test AI</button>
+                <button onClick={() => handleTabChange('interview-copilot')} className="group flex items-center gap-2 text-sm text-slate-400 transition-all duration-200 hover:text-white">Interview Copilot</button>
                 <button onClick={() => navigate('/employer/post-job')} className="group flex items-center gap-2 text-sm text-slate-400 transition-all duration-200 hover:text-white">Đăng tin tuyển dụng</button>
               </div>
             </div>

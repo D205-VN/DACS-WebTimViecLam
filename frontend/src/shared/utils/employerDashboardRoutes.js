@@ -8,6 +8,7 @@ const EMPLOYER_DASHBOARD_TABS = new Set([
   'company',
   'onboarding',
   'meeting-rooms',
+  'interview-copilot',
 ]);
 
 export function getEmployerDashboardPath(tab = 'dashboard', params = {}) {

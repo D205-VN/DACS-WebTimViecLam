@@ -1,817 +1,112 @@
-const pool = require('../../infrastructure/database/postgres');
-const crypto = require('crypto');
 const fs = require('fs');
-const { getNearestDistanceForAddress } = require('../../core/utils/locationCoordinates');
-const { createNotification } = require('../notifications/notification.service');
-const { ensureJobStatusSchema, ensurePublicApplicationSchema, ensureJobAnalyticsSchema } = require('./job.model');
+const jobService = require('./job.service');
 
-const SALARY_RANGE_OPTIONS = [
-  { value: '', label: 'Tất cả' },
-  { value: '0-10', label: 'Dưới 10 triệu' },
-  { value: '10-15', label: '10 - 15 triệu' },
-  { value: '15-20', label: '15 - 20 triệu' },
-  { value: '20-30', label: '20 - 30 triệu' },
-  { value: '30+', label: 'Trên 30 triệu' },
-];
-
-function parseListParam(value) {
-  if (!value) return [];
-  const rawValues = Array.isArray(value) ? value : String(value).split(',');
-
-  return rawValues
-    .map((item) => String(item || '').trim())
-    .filter(Boolean);
-}
-
-function appendLikeAnyClause(field, values, params, paramIndex) {
-  if (!values.length) {
-    return { clause: '', nextIndex: paramIndex };
-  }
-
-  const placeholders = values.map((_, index) => `$${paramIndex + index}`).join(', ');
-  params.push(...values.map((value) => `%${value}%`));
-
+function getRequestContext(req) {
   return {
-    clause: ` AND ${field} ILIKE ANY (ARRAY[${placeholders}]::text[])`,
-    nextIndex: paramIndex + values.length,
+    body: req.body || {},
+    host: req.get?.('host') || '',
+    ip: req.ip,
+    query: req.query || {},
+    referer: req.get?.('referer') || '',
+    userAgent: req.get?.('user-agent') || '',
   };
 }
 
-const normalizedSalaryExpr = `regexp_replace(lower(COALESCE(salary, '')), '\\s+', '', 'g')`;
-const salaryLowerTokenExpr = `split_part(${normalizedSalaryExpr}, '-', 1)`;
-const salaryUpperTokenExpr = `CASE
-  WHEN POSITION('-' IN ${normalizedSalaryExpr}) > 0
-    THEN split_part(${normalizedSalaryExpr}, '-', 2)
-  ELSE split_part(${normalizedSalaryExpr}, '-', 1)
-END`;
-
-function buildSalaryValueExpression(tokenExpr) {
-  return `CASE
-    WHEN COALESCE(TRIM(salary), '') = '' THEN NULL
-    WHEN lower(salary) ~ 'th[oỏ]a\\s*thu[aậ]n|thuong\\s*luong|c[aạ]nh\\s*tranh' THEN NULL
-    WHEN NULLIF(regexp_replace(${tokenExpr}, '[^0-9]', '', 'g'), '') IS NULL THEN NULL
-    WHEN lower(salary) ~ '(usd|\\$)' THEN regexp_replace(${tokenExpr}, '[^0-9]', '', 'g')::numeric * 25000
-    WHEN regexp_replace(${tokenExpr}, '[^0-9]', '', 'g')::numeric < 1000 THEN regexp_replace(${tokenExpr}, '[^0-9]', '', 'g')::numeric * 1000000
-    ELSE regexp_replace(${tokenExpr}, '[^0-9]', '', 'g')::numeric
-  END`;
-}
-
-async function ensureOnboardingSchema() {
-  await pool.query(`
-    CREATE TABLE IF NOT EXISTS onboarding_submissions (
-      id SERIAL PRIMARY KEY,
-      application_id INTEGER REFERENCES applied_jobs(id) ON DELETE CASCADE,
-      user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
-      employer_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
-      job_id INTEGER REFERENCES jobs(id) ON DELETE CASCADE,
-      status VARCHAR(30) DEFAULT 'submitted',
-      submitted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-      UNIQUE(application_id)
-    )
-  `);
-
-  await pool.query(`
-    CREATE TABLE IF NOT EXISTS onboarding_documents (
-      id SERIAL PRIMARY KEY,
-      submission_id INTEGER REFERENCES onboarding_submissions(id) ON DELETE CASCADE,
-      doc_type VARCHAR(80) NOT NULL,
-      doc_name VARCHAR(255),
-      file_name VARCHAR(255),
-      file_url TEXT,
-      mime_type VARCHAR(120),
-      file_size INTEGER,
-      ai_result JSONB DEFAULT '{}'::jsonb,
-      status VARCHAR(30) DEFAULT 'pending',
-      feedback TEXT,
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    )
-  `);
-}
-
-const salaryLowerExpr = buildSalaryValueExpression(salaryLowerTokenExpr);
-const salaryUpperExpr = buildSalaryValueExpression(salaryUpperTokenExpr);
-
-function appendSalaryRangeClause(rangeValue, params, paramIndex) {
-  if (!rangeValue) {
-    return { clause: '', nextIndex: paramIndex };
+function sendControllerError(res, err, fallbackMessage, logLabel) {
+  if (err?.isOperational) {
+    return res.status(err.status || 400).json({ error: err.message, code: err.code });
   }
 
-  if (rangeValue === '0-10') {
-    params.push(10000000);
-    return {
-      clause: ` AND ${salaryLowerExpr} IS NOT NULL AND COALESCE(${salaryUpperExpr}, ${salaryLowerExpr}) < $${paramIndex}`,
-      nextIndex: paramIndex + 1,
-    };
-  }
-
-  if (rangeValue === '30+') {
-    params.push(30000000);
-    return {
-      clause: ` AND ${salaryLowerExpr} IS NOT NULL AND COALESCE(${salaryUpperExpr}, ${salaryLowerExpr}) >= $${paramIndex}`,
-      nextIndex: paramIndex + 1,
-    };
-  }
-
-  const [minMillions, maxMillions] = String(rangeValue).split('-').map(Number);
-  if (!Number.isFinite(minMillions) || !Number.isFinite(maxMillions)) {
-    return { clause: '', nextIndex: paramIndex };
-  }
-
-  params.push(minMillions * 1000000, maxMillions * 1000000);
-  return {
-    clause: ` AND ${salaryLowerExpr} IS NOT NULL
-      AND COALESCE(${salaryUpperExpr}, ${salaryLowerExpr}) >= $${paramIndex}
-      AND ${salaryLowerExpr} < $${paramIndex + 1}`,
-    nextIndex: paramIndex + 2,
-  };
+  console.error(logLabel, err);
+  return res.status(500).json({ error: fallbackMessage });
 }
 
-function buildLocationLikePatterns(rawLocation) {
-  const input = (rawLocation || '').trim();
-  if (!input) return [];
-
-  const lower = input.toLowerCase();
-  const patterns = new Set([`%${input}%`]);
-
-  // Handle common Vietnam admin prefixes users may omit
-  const withoutPrefix = input.replace(/^(Thành phố|Tỉnh)\s+/i, '').trim();
-  if (withoutPrefix && withoutPrefix !== input) patterns.add(`%${withoutPrefix}%`);
-
-  // Special-case HCMC: data often stored as HCM / TP.HCM / Sai Gon
-  if (
-    /hồ\s*chí\s*minh/i.test(input) ||
-    /ho\s*chi\s*minh/i.test(lower) ||
-    /\bhcm\b/i.test(lower) ||
-    /sài\s*gòn/i.test(input) ||
-    /sai\s*gon/i.test(lower)
-  ) {
-    [
-      '%Hồ Chí Minh%',
-      '%Ho Chi Minh%',
-      '%HCM%',
-      '%TP.HCM%',
-      '%TP HCM%',
-      '%Sài Gòn%',
-      '%Sai Gon%',
-      '%SG%'
-    ].forEach((p) => patterns.add(p));
-  }
-
-  // Special-case Hanoi
-  if (/hà\s*nội/i.test(input) || /ha\s*noi/i.test(lower) || /\bhn\b/i.test(lower)) {
-    ['%Hà Nội%', '%Ha Noi%', '%HN%'].forEach((p) => patterns.add(p));
-  }
-
-  return Array.from(patterns);
-}
-
-function toFiniteNumber(value) {
-  const parsed = Number(value);
-  return Number.isFinite(parsed) ? parsed : null;
-}
-
-function normalizeInterviewMode(value) {
-  const normalized = String(value || '').trim().toLowerCase();
-  return ['online', 'offline'].includes(normalized) ? normalized : null;
-}
-
-function normalizeTrafficSource(value) {
-  const normalized = String(value || '').trim().toLowerCase();
-  return ['organic', 'referral', 'social', 'email', 'job_alert', 'direct'].includes(normalized)
-    ? normalized
-    : 'organic';
-}
-
-function resolveTrafficSource(req) {
-  const explicitSource = String(req.query.source || req.body?.source || '').trim();
-  if (explicitSource) return normalizeTrafficSource(explicitSource);
-
-  if (req.query.ref || req.query.utm_source) {
-    return 'referral';
-  }
-
-  const referer = String(req.get?.('referer') || '').toLowerCase();
-  const host = String(req.get?.('host') || '').toLowerCase();
-  if (!referer) return 'organic';
-
-  if (/facebook|linkedin|twitter|x\.com|zalo|tiktok/.test(referer)) return 'social';
-  if (host && !referer.includes(host)) return 'referral';
-
-  return 'organic';
-}
-
-async function recordJobView(req, jobId) {
-  const source = resolveTrafficSource(req);
-  const rawViewerKey = [req.ip, req.get?.('user-agent')].filter(Boolean).join('|');
-  const viewerKey = rawViewerKey
-    ? crypto.createHash('sha256').update(rawViewerKey).digest('hex')
-    : null;
-
-  await pool.query(
-    `INSERT INTO job_views (job_id, viewer_key, source)
-     VALUES ($1, $2, $3)`,
-    [jobId, viewerKey, source]
-  );
-}
-
-function buildDeadlineSqlExpression(columnName) {
-  return `
-    CASE
-      WHEN ${columnName} IS NULL OR TRIM(${columnName}) = '' THEN NULL
-      WHEN ${columnName} ~ '^\\d{4}-\\d{2}-\\d{2}$' THEN TO_DATE(${columnName}, 'YYYY-MM-DD')
-      WHEN ${columnName} ~ '^\\d{2}/\\d{2}/\\d{4}$' THEN TO_DATE(${columnName}, 'DD/MM/YYYY')
-      ELSE NULL
-    END
-  `;
-}
-
-function sortJobsByDistance(origin, jobs) {
-  if (!origin) return jobs;
-
-  return jobs
-    .map((job) => {
-      const distanceKm = getNearestDistanceForAddress(
-        origin,
-        [job.location, job.company_address, job.company_name].filter(Boolean).join(' ')
-      );
-
-      return {
-        ...job,
-        distance_km: distanceKm === null ? null : Number(distanceKm.toFixed(1)),
-      };
-    })
-    .sort((left, right) => {
-      const leftHasDistance = Number.isFinite(left.distance_km);
-      const rightHasDistance = Number.isFinite(right.distance_km);
-
-      if (leftHasDistance && rightHasDistance) {
-        return left.distance_km - right.distance_km || new Date(right.created_at || 0) - new Date(left.created_at || 0) || right.id - left.id;
-      }
-
-      if (leftHasDistance) return -1;
-      if (rightHasDistance) return 1;
-
-      return new Date(right.created_at || 0) - new Date(left.created_at || 0) || right.id - left.id;
-    });
-}
-
-// GET /api/jobs — Danh sách jobs (có phân trang)
 exports.getJobs = async (req, res) => {
   try {
-    await ensureJobStatusSchema();
-
-    const page = parseInt(req.query.page) || 1;
-    const limit = parseInt(req.query.limit) || 20;
-    const offset = (page - 1) * limit;
-
-    const keyword = req.query.keyword || req.query.q || '';
-    const location = req.query.location || '';
-    const jobType = req.query.jobType || req.query.job_type || '';
-    const salaryRange = req.query.salaryRange || req.query.salary_range || '';
-    const company = String(req.query.company || '').trim();
-    const levels = parseListParam(req.query.levels);
-    const industries = parseListParam(req.query.industries);
-    const lat = toFiniteNumber(req.query.lat);
-    const lng = toFiniteNumber(req.query.lng);
-    const hasUserCoordinates = lat !== null && lng !== null;
-    const origin = hasUserCoordinates ? { lat, lng } : null;
-
-    let whereClause = '';
-    const params = [];
-    let paramIndex = 1;
-
-    const deadlineDateSql = buildDeadlineSqlExpression('submission_deadline');
-    whereClause += ` AND (${deadlineDateSql} IS NULL OR ${deadlineDateSql} >= CURRENT_DATE)`;
-
-    if (keyword) {
-      whereClause += ` AND (job_title ILIKE $${paramIndex} OR company_name ILIKE $${paramIndex} OR industry ILIKE $${paramIndex} OR job_description ILIKE $${paramIndex} OR job_requirements ILIKE $${paramIndex})`;
-      params.push(`%${keyword}%`);
-      paramIndex++;
-    }
-
-    if (location && !hasUserCoordinates) {
-      const patterns = buildLocationLikePatterns(location);
-      if (patterns.length > 0) {
-        const placeholders = patterns.map((_, i) => `$${paramIndex + i}`).join(', ');
-        whereClause += ` AND job_address ILIKE ANY (ARRAY[${placeholders}]::text[])`;
-        params.push(...patterns);
-        paramIndex += patterns.length;
-      }
-    }
-
-    if (jobType) {
-      whereClause += ` AND job_type ILIKE $${paramIndex}`;
-      params.push(`%${jobType}%`);
-      paramIndex++;
-    }
-
-    if (company) {
-      whereClause += ` AND LOWER(TRIM(company_name)) = LOWER(TRIM($${paramIndex}))`;
-      params.push(company);
-      paramIndex++;
-    }
-
-    const levelClause = appendLikeAnyClause('career_level', levels, params, paramIndex);
-    whereClause += levelClause.clause;
-    paramIndex = levelClause.nextIndex;
-
-    const industryClause = appendLikeAnyClause('industry', industries, params, paramIndex);
-    whereClause += industryClause.clause;
-    paramIndex = industryClause.nextIndex;
-
-    const salaryClause = appendSalaryRangeClause(salaryRange, params, paramIndex);
-    whereClause += salaryClause.clause;
-    paramIndex = salaryClause.nextIndex;
-
-    const selectClause = `SELECT id, job_title as title, job_description as description, job_requirements as requirements,
-              benefits, job_address as location, job_type, years_of_experience as experience,
-              salary, submission_deadline as deadline, company_name, company_overview, company_size,
-              company_address, industry, career_level, created_at 
-              FROM jobs WHERE COALESCE(NULLIF(TRIM(status), ''), 'approved') = 'approved'${whereClause}`;
-
-    let jobs = [];
-    let totalJobs = 0;
-
-    if (hasUserCoordinates) {
-      const result = await pool.query(`${selectClause} ORDER BY created_at DESC NULLS LAST, id DESC`, params);
-      jobs = sortJobsByDistance(origin, result.rows);
-      totalJobs = jobs.length;
-      jobs = jobs.slice(offset, offset + limit);
-    } else {
-      const countQuery = `SELECT COUNT(*) FROM jobs WHERE COALESCE(NULLIF(TRIM(status), ''), 'approved') = 'approved'${whereClause}`;
-      const countResult = await pool.query(countQuery, params);
-      totalJobs = parseInt(countResult.rows[0].count);
-
-      const pagedParams = [...params, limit, offset];
-      const query = `${selectClause} ORDER BY created_at DESC NULLS LAST, id DESC LIMIT $${paramIndex} OFFSET $${paramIndex + 1}`;
-      const result = await pool.query(query, pagedParams);
-      jobs = result.rows;
-    }
-
-    res.json({
-      data: jobs,
-      meta: {
-        total: totalJobs,
-        page,
-        limit,
-        totalPages: Math.ceil(totalJobs / limit)
-      }
-    });
+    res.json(await jobService.listJobs(req.query));
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Internal server error' });
+    sendControllerError(res, err, 'Internal server error', 'Get jobs error:');
   }
 };
 
-// GET /api/jobs/filters — Dữ liệu filter cho frontend
 exports.getJobFilters = async (_req, res) => {
   try {
-    await ensureJobStatusSchema();
-
-    const [levelsResult, industriesResult] = await Promise.all([
-      pool.query(
-        `SELECT career_level as value, COUNT(*)::int as count
-         FROM jobs
-         WHERE COALESCE(NULLIF(TRIM(status), ''), 'approved') = 'approved'
-           AND career_level IS NOT NULL AND TRIM(career_level) <> ''
-         GROUP BY career_level
-         ORDER BY count DESC, value ASC`
-      ),
-      pool.query(
-        `SELECT industry as value, COUNT(*)::int as count
-         FROM jobs
-         WHERE COALESCE(NULLIF(TRIM(status), ''), 'approved') = 'approved'
-           AND industry IS NOT NULL AND TRIM(industry) <> ''
-         GROUP BY industry
-         ORDER BY count DESC, value ASC
-         LIMIT 20`
-      ),
-    ]);
-
-    res.json({
-      data: {
-        salaryRanges: SALARY_RANGE_OPTIONS,
-        levels: levelsResult.rows,
-        industries: industriesResult.rows,
-      },
-    });
+    res.json(await jobService.getJobFilters());
   } catch (err) {
-    console.error('Get job filters error:', err);
-    res.status(500).json({ error: 'Lỗi khi tải bộ lọc' });
+    sendControllerError(res, err, 'Lỗi khi tải bộ lọc', 'Get job filters error:');
   }
 };
 
-// GET /api/jobs/companies — Danh sách công ty đang có tin tuyển dụng
 exports.getCompanies = async (req, res) => {
   try {
-    await ensureJobStatusSchema();
-
-    const keyword = String(req.query.keyword || '').trim();
-    const params = [];
-    const deadlineDateSql = buildDeadlineSqlExpression('submission_deadline');
-    let whereClause = `WHERE COALESCE(NULLIF(TRIM(status), ''), 'approved') = 'approved'
-      AND company_name IS NOT NULL AND TRIM(company_name) <> ''
-      AND (${deadlineDateSql} IS NULL OR ${deadlineDateSql} >= CURRENT_DATE)`;
-
-    if (keyword) {
-      whereClause += ` AND company_name ILIKE $1`;
-      params.push(`%${keyword}%`);
-    }
-
-    const result = await pool.query(
-      `SELECT
-          company_name,
-          MAX(NULLIF(TRIM(company_overview), '')) as company_overview,
-          MAX(NULLIF(TRIM(company_size), '')) as company_size,
-          MAX(NULLIF(TRIM(company_address), '')) as company_address,
-          COUNT(*)::int as job_count
-       FROM jobs
-       ${whereClause}
-       GROUP BY company_name
-       ORDER BY job_count DESC, company_name ASC`,
-      params
-    );
-
-    res.json({ data: result.rows });
+    res.json(await jobService.getCompanies(req.query));
   } catch (err) {
-    console.error('Get companies error:', err);
-    res.status(500).json({ error: 'Lỗi khi tải danh sách công ty' });
+    sendControllerError(res, err, 'Lỗi khi tải danh sách công ty', 'Get companies error:');
   }
 };
 
-// GET /api/jobs/saved — Danh sách job đã lưu (cần JWT)
 exports.getSavedJobs = async (req, res) => {
   try {
-    const result = await pool.query(
-      `SELECT j.id, j.job_title as title, j.company_name, j.job_address as location, j.salary, j.job_type,
-              sj.created_at as saved_at
-       FROM saved_jobs sj
-       JOIN jobs j ON j.id = sj.job_id
-       WHERE sj.user_id = $1
-       ORDER BY sj.created_at DESC`,
-      [req.user.id]
-    );
-    res.json({ data: result.rows });
+    res.json(await jobService.getSavedJobs(req.user.id));
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Lỗi khi tải danh sách đã lưu' });
+    sendControllerError(res, err, 'Lỗi khi tải danh sách đã lưu', 'Get saved jobs error:');
   }
 };
 
-// GET /api/jobs/applied — Danh sách job đã ứng tuyển (cần JWT)
 exports.getAppliedJobs = async (req, res) => {
   try {
-    await ensurePublicApplicationSchema();
-
-    const result = await pool.query(
-      `SELECT j.id, j.job_title as title, j.company_name, j.job_address as location, j.salary,
-              j.company_address,
-              aj.id as application_id,
-              CASE
-                WHEN COALESCE(NULLIF(TRIM(aj.status), ''), 'pending') = 'hired'
-                 AND aj.interview_at IS NULL THEN 'approved'
-                ELSE COALESCE(NULLIF(TRIM(aj.status), ''), 'pending')
-              END as status,
-              aj.created_at as applied_at,
-              aj.updated_at,
-              aj.interview_at,
-              aj.interview_mode,
-              aj.interview_link,
-              aj.candidate_interview_mode,
-              aj.cv_id,
-              aj.cover_letter,
-              ait.id as ai_test_id,
-              ait.title as ai_test_title,
-              ait.description as ai_test_description,
-              ait.duration as ai_test_duration,
-              ait.test_type as ai_test_type,
-              ait.created_at as ai_test_created_at,
-              ais.id as ai_submission_id,
-              ais.status as ai_submission_status,
-              ais.total_score as ai_submission_total_score,
-              ais.started_at as ai_submission_started_at,
-              ais.completed_at as ai_submission_completed_at
-       FROM applied_jobs aj
-       JOIN jobs j ON j.id = aj.job_id
-       LEFT JOIN LATERAL (
-         SELECT id, title, description, duration, test_type, created_at
-         FROM ai_tests
-         WHERE job_id = j.id
-         ORDER BY created_at DESC, id DESC
-         LIMIT 1
-       ) ait ON TRUE
-       LEFT JOIN LATERAL (
-         SELECT id, status, total_score, started_at, completed_at
-         FROM ai_submissions
-         WHERE test_id = ait.id AND candidate_id = aj.user_id
-         ORDER BY completed_at DESC NULLS LAST, started_at DESC NULLS LAST, id DESC
-         LIMIT 1
-       ) ais ON TRUE
-       WHERE aj.user_id = $1
-       ORDER BY aj.created_at DESC`,
-      [req.user.id]
-    );
-    const jobs = result.rows.map((row) => {
-      const {
-        ai_test_id,
-        ai_test_title,
-        ai_test_description,
-        ai_test_duration,
-        ai_test_type,
-        ai_test_created_at,
-        ai_submission_id,
-        ai_submission_status,
-        ai_submission_total_score,
-        ai_submission_started_at,
-        ai_submission_completed_at,
-        ...job
-      } = row;
-
-      return {
-        ...job,
-        ai_test: ai_test_id
-          ? {
-              id: ai_test_id,
-              title: ai_test_title,
-              description: ai_test_description,
-              duration: ai_test_duration,
-              test_type: ai_test_type,
-              created_at: ai_test_created_at,
-              submission: ai_submission_id
-                ? {
-                    id: ai_submission_id,
-                    status: ai_submission_status,
-                    total_score: ai_submission_total_score,
-                    started_at: ai_submission_started_at,
-                    completed_at: ai_submission_completed_at,
-                  }
-                : null,
-            }
-          : null,
-      };
-    });
-    res.json({ data: jobs });
+    res.json(await jobService.getAppliedJobs(req.user.id));
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Lỗi khi tải danh sách đã ứng tuyển' });
+    sendControllerError(res, err, 'Lỗi khi tải danh sách đã ứng tuyển', 'Get applied jobs error:');
   }
 };
 
-// GET /api/jobs/saved-ids — Lấy danh sách job_id đã lưu (dùng cho UI bookmark)
 exports.getSavedJobIds = async (req, res) => {
   try {
-    const result = await pool.query('SELECT job_id FROM saved_jobs WHERE user_id = $1', [req.user.id]);
-    res.json({ ids: result.rows.map(r => r.job_id) });
+    res.json(await jobService.getSavedJobIds(req.user.id));
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Lỗi' });
+    sendControllerError(res, err, 'Lỗi', 'Get saved job ids error:');
   }
 };
 
-// GET /api/jobs/:id — Chi tiết 1 job
 exports.getJobById = async (req, res) => {
   try {
-    await ensureJobStatusSchema();
-    await ensureJobAnalyticsSchema();
-
-    const result = await pool.query(
-      `SELECT id, url_job, job_title as title, job_description as description, job_requirements as requirements,
-              benefits, job_address as location, job_type, years_of_experience as experience,
-              salary, submission_deadline as deadline, company_name, company_overview, company_size,
-              company_address, industry, career_level, number_candidate, created_at
-       FROM jobs
-       WHERE id = $1
-         AND COALESCE(NULLIF(TRIM(status), ''), 'approved') = 'approved'`, 
-      [req.params.id]
-    );
-    if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'Không tìm thấy việc làm' });
-    }
-
-    await recordJobView(req, result.rows[0].id).catch((viewError) => {
-      console.error('Record job view error:', viewError);
-    });
-
-    // Check for linked AI test
-    let linkedTest = null;
-    try {
-      const testResult = await pool.query(
-        'SELECT id, title, duration, test_type FROM ai_tests WHERE job_id = $1 ORDER BY created_at DESC, id DESC LIMIT 1',
-        [result.rows[0].id]
-      );
-      linkedTest = testResult.rows[0] || null;
-    } catch (testErr) {
-      console.error('Error fetching linked AI test:', testErr);
-    }
-
-    res.json({ data: { ...result.rows[0], ai_test: linkedTest } });
+    res.json(await jobService.getJobById(req.params.id, getRequestContext(req)));
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Internal server error' });
+    sendControllerError(res, err, 'Internal server error', 'Get job detail error:');
   }
 };
 
-// POST /api/jobs/:id/save — Toggle lưu/bỏ lưu job (cần JWT)
 exports.toggleSaveJob = async (req, res) => {
   try {
-    const jobId = req.params.id;
-    const userId = req.user.id;
-
-    const existing = await pool.query(
-      'SELECT id FROM saved_jobs WHERE user_id = $1 AND job_id = $2',
-      [userId, jobId]
-    );
-
-    if (existing.rows.length > 0) {
-      await pool.query('DELETE FROM saved_jobs WHERE user_id = $1 AND job_id = $2', [userId, jobId]);
-      res.json({ saved: false, message: 'Đã bỏ lưu việc làm' });
-    } else {
-      await pool.query('INSERT INTO saved_jobs (user_id, job_id) VALUES ($1, $2)', [userId, jobId]);
-      res.json({ saved: true, message: 'Đã lưu việc làm' });
-    }
+    res.json(await jobService.toggleSaveJob(req.user.id, req.params.id));
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Lỗi khi lưu việc làm' });
+    sendControllerError(res, err, 'Lỗi khi lưu việc làm', 'Toggle save job error:');
   }
 };
 
-// POST /api/jobs/:id/apply — Ứng tuyển job (cần JWT)
 exports.applyJob = async (req, res) => {
   try {
-    await ensureJobStatusSchema();
-    await ensureJobAnalyticsSchema();
-
-    const jobId = req.params.id;
-    const userId = req.user.id;
-    const applicationSource = resolveTrafficSource(req);
-    const requestedCvId = Number(req.body?.cv_id);
-    const coverLetter = String(req.body?.cover_letter || '').trim();
-
-    if (coverLetter.length > 2000) {
-      return res.status(400).json({ error: 'Thư giới thiệu không được vượt quá 2000 ký tự' });
-    }
-
-    const jobResult = await pool.query(
-      `SELECT id, employer_id, job_title, company_name
-       FROM jobs
-       WHERE id = $1
-         AND COALESCE(NULLIF(TRIM(status), ''), 'approved') = 'approved'`,
-      [jobId]
-    );
-
-    if (jobResult.rows.length === 0) {
-      return res.status(404).json({ error: 'Không tìm thấy việc làm' });
-    }
-
-    const existing = await pool.query(
-      'SELECT id FROM applied_jobs WHERE user_id = $1 AND job_id = $2',
-      [userId, jobId]
-    );
-
-    if (existing.rows.length > 0) {
-      return res.status(400).json({ error: 'Bạn đã ứng tuyển việc làm này rồi' });
-    }
-
-    let selectedCvId = null;
-
-    if (Number.isInteger(requestedCvId) && requestedCvId > 0) {
-      const requestedCvResult = await pool.query(
-        `SELECT id
-         FROM user_cvs
-         WHERE id = $1 AND user_id = $2
-         LIMIT 1`,
-        [requestedCvId, userId]
-      );
-
-      selectedCvId = requestedCvResult.rows[0]?.id || null;
-      if (!selectedCvId) {
-        return res.status(400).json({ error: 'CV đã chọn không hợp lệ hoặc không thuộc tài khoản của bạn' });
-      }
-    }
-
-    if (!selectedCvId) {
-      const primaryCvResult = await pool.query(
-        `SELECT id
-         FROM user_cvs
-         WHERE user_id = $1
-           AND is_primary = TRUE
-         ORDER BY created_at DESC, id DESC
-         LIMIT 1`,
-        [userId]
-      );
-
-      selectedCvId = primaryCvResult.rows[0]?.id || null;
-    }
-
-    if (!selectedCvId) {
-      const latestCvResult = await pool.query(
-        `SELECT id
-         FROM user_cvs
-         WHERE user_id = $1
-         ORDER BY created_at DESC, id DESC
-         LIMIT 1`,
-        [userId]
-      );
-
-      selectedCvId = latestCvResult.rows[0]?.id || null;
-
-      if (selectedCvId) {
-        await pool.query(
-          `UPDATE user_cvs
-           SET is_primary = TRUE
-           WHERE id = $1 AND user_id = $2`,
-          [selectedCvId, userId]
-        );
-      }
-    }
-
-    if (!selectedCvId) {
-      return res.status(400).json({ error: 'Bạn chưa có CV để nộp hồ sơ. Hãy tạo CV và chọn 1 CV chính trước khi ứng tuyển.' });
-    }
-
-    const applicationResult = await pool.query(
-      `INSERT INTO applied_jobs (user_id, job_id, cv_id, application_source, cover_letter)
-       VALUES ($1, $2, $3, $4, $5)
-       RETURNING id`,
-      [userId, jobId, selectedCvId, applicationSource, coverLetter || null]
-    );
-
-    const job = jobResult.rows[0];
-    if (job?.employer_id) {
-      await createNotification({
-        userId: job.employer_id,
-        type: 'employer_new_candidate',
-        title: 'Có ứng viên mới',
-        message: `${req.user.full_name || 'Một ứng viên'} vừa ứng tuyển vào vị trí ${job.job_title || 'tin tuyển dụng'}.`,
-        to: '/employer/dashboard',
-        tab: 'candidates',
-        meta: {
-          application_id: applicationResult.rows[0]?.id || null,
-          cv_id: selectedCvId,
-          job_id: jobId,
-          company_name: job.company_name || null,
-        },
-      }).catch((notificationError) => {
-        console.error('Create employer application notification error:', notificationError);
-      });
-    }
-
-    res.json({ message: 'Ứng tuyển thành công!', application_id: applicationResult.rows[0]?.id || null, cv_id: selectedCvId });
+    res.json(await jobService.applyJob({
+      jobId: req.params.id,
+      user: req.user,
+      body: req.body,
+      context: getRequestContext(req),
+    }));
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Lỗi khi ứng tuyển' });
+    sendControllerError(res, err, 'Lỗi khi ứng tuyển', 'Apply job error:');
   }
 };
 
 exports.updateInterviewPreference = async (req, res) => {
   try {
-    await ensurePublicApplicationSchema();
-
-    const applicationId = req.params.id;
-    const userId = req.user.id;
-    const interviewMode = normalizeInterviewMode(req.body?.interview_mode);
-
-    if (!interviewMode) {
-      return res.status(400).json({ error: 'Hình thức phỏng vấn không hợp lệ' });
-    }
-
-    const ownership = await pool.query(
-      `SELECT id,
-              COALESCE(NULLIF(TRIM(status), ''), 'pending') as status,
-              interview_mode
-       FROM applied_jobs
-       WHERE id = $1 AND user_id = $2`,
-      [applicationId, userId]
-    );
-
-    if (!ownership.rows.length) {
-      return res.status(404).json({ error: 'Không tìm thấy hồ sơ ứng tuyển' });
-    }
-
-    const application = ownership.rows[0];
-    if (!['approved', 'interview', 'hired'].includes(application.status)) {
-      return res.status(400).json({ error: 'Nhà tuyển dụng chưa duyệt hồ sơ này để chọn hình thức phỏng vấn' });
-    }
-
-    if (normalizeInterviewMode(application.interview_mode)) {
-      return res.status(400).json({ error: 'Nhà tuyển dụng đã chốt hình thức phỏng vấn cho hồ sơ này' });
-    }
-
-    const result = await pool.query(
-      `UPDATE applied_jobs
-       SET candidate_interview_mode = $1,
-           updated_at = NOW()
-       WHERE id = $2 AND user_id = $3
-       RETURNING id, candidate_interview_mode, updated_at`,
-      [interviewMode, applicationId, userId]
-    );
-
-    res.json({ message: 'Đã lưu lựa chọn phỏng vấn', data: result.rows[0] });
+    res.json(await jobService.updateInterviewPreference({
+      userId: req.user.id,
+      applicationId: req.params.id,
+      interviewMode: req.body?.interview_mode,
+    }));
   } catch (err) {
-    console.error('Update interview preference error:', err);
-    res.status(500).json({ error: 'Lỗi khi lưu lựa chọn phỏng vấn' });
+    sendControllerError(res, err, 'Lỗi khi lưu lựa chọn phỏng vấn', 'Update interview preference error:');
   }
 };
 
@@ -819,174 +114,34 @@ exports.submitOnboardingDocuments = async (req, res) => {
   const uploadedFiles = req.files || [];
 
   try {
-    await ensurePublicApplicationSchema();
-    await ensureOnboardingSchema();
+    const payload = await jobService.submitOnboardingDocuments({
+      applicationId: req.params.id,
+      user: req.user,
+      body: req.body,
+      files: uploadedFiles,
+    });
 
-    const applicationId = Number(req.params.id);
-    const userId = req.user.id;
-    if (!Number.isInteger(applicationId) || applicationId <= 0) {
-      return res.status(400).json({ error: 'Mã hồ sơ ứng tuyển không hợp lệ' });
-    }
-
-    let docTypes = [];
-    let aiResults = {};
-    try {
-      docTypes = JSON.parse(req.body?.doc_types || '[]');
-      aiResults = JSON.parse(req.body?.ai_results || '{}');
-    } catch {
-      return res.status(400).json({ error: 'Dữ liệu hồ sơ onboarding không hợp lệ' });
-    }
-
-    if (!uploadedFiles.length) {
-      return res.status(400).json({ error: 'Bạn cần tải lên ít nhất một giấy tờ' });
-    }
-
-    const ownershipResult = await pool.query(
-      `SELECT aj.id, aj.job_id,
-              COALESCE(NULLIF(TRIM(aj.status), ''), 'pending') AS status,
-              j.employer_id, j.job_title, j.company_name
-       FROM applied_jobs aj
-       JOIN jobs j ON j.id = aj.job_id
-       WHERE aj.id = $1 AND aj.user_id = $2
-       LIMIT 1`,
-      [applicationId, userId]
-    );
-
-    if (!ownershipResult.rows.length) {
-      return res.status(404).json({ error: 'Không tìm thấy hồ sơ ứng tuyển của bạn' });
-    }
-
-    const application = ownershipResult.rows[0];
-    if (!['hired', 'onboarding'].includes(application.status)) {
-      return res.status(400).json({ error: 'Chỉ ứng viên đã trúng tuyển mới được gửi hồ sơ onboarding' });
-    }
-
-    const client = await pool.connect();
-    try {
-      await client.query('BEGIN');
-
-      const submissionResult = await client.query(
-        `INSERT INTO onboarding_submissions (application_id, user_id, employer_id, job_id, status, submitted_at, updated_at)
-         VALUES ($1, $2, $3, $4, 'submitted', NOW(), NOW())
-         ON CONFLICT (application_id)
-         DO UPDATE SET status = 'submitted', submitted_at = NOW(), updated_at = NOW()
-         RETURNING id`,
-        [applicationId, userId, application.employer_id, application.job_id]
-      );
-
-      const submissionId = submissionResult.rows[0].id;
-      await client.query('DELETE FROM onboarding_documents WHERE submission_id = $1', [submissionId]);
-
-      for (let index = 0; index < uploadedFiles.length; index += 1) {
-        const file = uploadedFiles[index];
-        const docType = String(docTypes[index] || `document_${index + 1}`).trim();
-        const fileUrl = `/uploads/onboarding/${file.filename}`;
-
-        await client.query(
-          `INSERT INTO onboarding_documents (
-             submission_id, doc_type, doc_name, file_name, file_url, mime_type, file_size, ai_result, status
-           )
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8::jsonb, 'pending')`,
-          [
-            submissionId,
-            docType,
-            docType,
-            file.originalname,
-            fileUrl,
-            file.mimetype,
-            file.size,
-            JSON.stringify(aiResults[docType] || {}),
-          ]
-        );
-      }
-
-      await client.query(
-        `UPDATE applied_jobs
-         SET status = 'onboarding', updated_at = NOW()
-         WHERE id = $1 AND user_id = $2`,
-        [applicationId, userId]
-      );
-
-      await client.query('COMMIT');
-
-      await createNotification({
-        userId: application.employer_id,
-        type: 'onboarding_submitted',
-        title: 'Ứng viên đã gửi hồ sơ onboarding',
-        message: `${req.user.full_name || 'Ứng viên'} đã gửi hồ sơ nhận việc cho vị trí ${application.job_title || 'ứng tuyển'}.`,
-        to: '/employer/dashboard',
-        tab: 'onboarding',
-        meta: {
-          application_id: applicationId,
-          job_id: application.job_id,
-          company_name: application.company_name || null,
-        },
-      }).catch((notificationError) => {
-        console.error('Create onboarding notification error:', notificationError);
-      });
-
-      res.status(201).json({
-        message: 'Đã gửi hồ sơ onboarding cho nhà tuyển dụng xét duyệt',
-        data: {
-          submission_id: submissionId,
-          document_count: uploadedFiles.length,
-        },
-      });
-    } catch (err) {
-      await client.query('ROLLBACK').catch(() => {});
-      throw err;
-    } finally {
-      client.release();
-    }
+    res.status(201).json(payload);
   } catch (err) {
     uploadedFiles.forEach((file) => {
       if (file.path) fs.unlink(file.path, () => {});
     });
-    console.error('Submit onboarding documents error:', err);
-    res.status(500).json({ error: err.message || 'Không thể gửi hồ sơ onboarding' });
+    sendControllerError(res, err, 'Không thể gửi hồ sơ onboarding', 'Submit onboarding documents error:');
   }
 };
 
-// GET /api/jobs/alert-ids — Lấy danh sách job_id đã đăng ký nhận thông báo tương tự (dùng cho UI)
 exports.getJobAlertIds = async (req, res) => {
   try {
-    await ensurePublicApplicationSchema();
-    const result = await pool.query(
-      'SELECT job_id FROM job_alerts WHERE user_id = $1 AND job_id IS NOT NULL',
-      [req.user.id]
-    );
-    res.json({ ids: result.rows.map(r => r.job_id) });
+    res.json(await jobService.getJobAlertIds(req.user.id));
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Lỗi' });
+    sendControllerError(res, err, 'Lỗi', 'Get job alert ids error:');
   }
 };
 
-// POST /api/jobs/:id/alert — Toggle đăng ký nhận thông báo việc tương tự (cần JWT)
 exports.toggleJobAlert = async (req, res) => {
   try {
-    await ensurePublicApplicationSchema();
-    const jobId = req.params.id;
-    const userId = req.user.id;
-
-    const existing = await pool.query(
-      'SELECT id FROM job_alerts WHERE user_id = $1 AND job_id = $2',
-      [userId, jobId]
-    );
-
-    if (existing.rows.length > 0) {
-      await pool.query('DELETE FROM job_alerts WHERE user_id = $1 AND job_id = $2', [userId, jobId]);
-      res.json({ subscribed: false, message: 'Đã hủy nhận thông báo việc tương tự' });
-    } else {
-      await pool.query(
-        `INSERT INTO job_alerts (user_id, job_id, frequency, is_active, updated_at)
-         VALUES ($1, $2, 'weekly', TRUE, NOW())`,
-        [userId, jobId]
-      );
-      res.json({ subscribed: true, message: 'Đã đăng ký nhận thông báo việc tương tự' });
-    }
+    res.json(await jobService.toggleJobAlert(req.user.id, req.params.id));
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Lỗi khi đăng ký nhận thông báo' });
+    sendControllerError(res, err, 'Lỗi khi đăng ký nhận thông báo', 'Toggle job alert error:');
   }
 };

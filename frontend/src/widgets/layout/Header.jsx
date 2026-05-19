@@ -164,6 +164,14 @@ function getUserMenuLinks(roleCode) {
       match: (pathname) => pathname.startsWith('/applied-jobs') || pathname.startsWith('/seeker/applied-jobs'),
     },
     {
+      to: getRouteByRole(roleCode, 'skillPassport'),
+      label: 'Skill Passport',
+      description: 'Hồ sơ năng lực thông minh',
+      icon: Hash,
+      iconClass: 'bg-violet-50 text-violet-500',
+      match: (pathname) => pathname.startsWith('/seeker/skill-passport'),
+    },
+    {
       to: getRouteByRole(roleCode, 'myScores'),
       label: 'Bảng điểm',
       description: 'Kết quả bài test AI',
@@ -329,7 +337,7 @@ function getTopNavClass(isActive) {
 }
 
 function getMenuItemClass(isActive) {
-  return `flex items-center gap-3 px-4 py-2.5 text-sm transition-all duration-200 ${
+  return `flex items-center gap-3 px-4 py-2 text-sm transition-all duration-200 ${
     isActive
       ? 'bg-gradient-to-r from-indigo-50 to-violet-50 text-indigo-700'
       : 'text-gray-700 hover:bg-indigo-50/50 hover:text-indigo-700'
@@ -464,6 +472,15 @@ export default function Header() {
                         <p className="text-sm font-bold text-gray-800">{notificationPanelMeta.title}</p>
                         <p className="text-xs text-gray-500">{notificationPanelMeta.subtitle}</p>
                       </div>
+                      {unreadCount > 0 ? (
+                        <button
+                          type="button"
+                          onClick={handleMarkAllRead}
+                          className="rounded-md px-2 py-1 text-xs font-semibold text-indigo-600 transition-colors hover:bg-indigo-50 hover:text-indigo-800"
+                        >
+                          Đã đọc
+                        </button>
+                      ) : null}
                     </div>
 
                     <div className="max-h-[360px] overflow-y-auto py-2">
@@ -531,31 +548,31 @@ export default function Header() {
                   </button>
 
                   <div
-                    className={`absolute right-0 top-full mt-2 w-72 origin-top-right overflow-hidden rounded-xl border border-indigo-100/60 bg-white/95 backdrop-blur-xl shadow-xl shadow-indigo-100/40 transition-all duration-200 ${
+                    className={`absolute right-0 top-full mt-2 flex max-h-[calc(100vh-4.5rem)] w-80 origin-top-right flex-col overflow-hidden rounded-xl border border-indigo-100/60 bg-white/95 backdrop-blur-xl shadow-xl shadow-indigo-100/40 transition-all duration-200 ${
                       dropdownOpen ? 'translate-y-0 scale-100 opacity-100' : 'pointer-events-none -translate-y-2 scale-95 opacity-0'
                     }`}
                   >
-                    <div className="border-b border-indigo-50 bg-gradient-to-r from-indigo-50/80 to-violet-50/80 px-4 py-4">
+                    <div className="shrink-0 border-b border-indigo-50 bg-gradient-to-r from-indigo-50/80 to-violet-50/80 px-4 py-3">
                       <div className="flex items-center gap-3">
                         <UserAvatar
                           src={user?.avatar_url}
                           alt={user?.full_name}
-                          className="h-11 w-11 rounded-full object-cover ring-2 ring-white shadow-sm"
-                          fallbackClassName="flex h-11 w-11 items-center justify-center rounded-full bg-gradient-to-br from-indigo-600 to-violet-600 ring-2 ring-white shadow-sm"
-                          iconClassName="h-5 w-5 text-white"
+                          className="h-10 w-10 rounded-full object-cover ring-2 ring-white shadow-sm"
+                          fallbackClassName="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-indigo-600 to-violet-600 ring-2 ring-white shadow-sm"
+                          iconClassName="h-4 w-4 text-white"
                         />
                         <div className="min-w-0 flex-1">
                           <p className="truncate text-sm font-bold text-gray-800">{user?.full_name}</p>
                           <p className="truncate text-xs text-gray-500">{user?.email}</p>
                         </div>
                       </div>
-                      <div className="mt-3 flex w-fit items-center gap-1.5 rounded-lg bg-white/80 px-2.5 py-1">
+                      <div className="mt-2 flex w-fit items-center gap-1.5 rounded-lg bg-white/80 px-2.5 py-0.5">
                         <Hash className="h-3 w-3 text-indigo-400" />
                         <span className="font-mono text-[11px] text-indigo-600">ID: {user?.id}</span>
                       </div>
                     </div>
 
-                    <div className="py-1.5">
+                    <div className="min-h-0 flex-1 overflow-y-auto py-1 overscroll-contain">
                       {userMenuLinks.map((link) => {
                         const isActive = link.match(location.pathname);
 
@@ -570,19 +587,19 @@ export default function Header() {
                             <div className={`flex h-8 w-8 items-center justify-center rounded-lg transition-all duration-200 ${isActive ? 'bg-indigo-100 text-indigo-700' : link.iconClass}`}>
                               <link.icon className="h-4 w-4" />
                             </div>
-                            <div>
-                              <p className="font-medium">{link.label}</p>
-                              <p className="text-[11px] text-gray-400">{link.description}</p>
+                            <div className="min-w-0 flex-1">
+                              <p className="truncate font-medium">{link.label}</p>
+                              <p className="truncate text-[11px] leading-tight text-gray-400">{link.description}</p>
                             </div>
                           </Link>
                         );
                       })}
                     </div>
 
-                    <div className="border-t border-gray-100 py-1.5">
+                    <div className="shrink-0 border-t border-gray-100 py-1">
                       <button
                         onClick={handleLogout}
-                        className="flex w-full items-center gap-3 px-4 py-2.5 text-sm text-red-600 transition-colors hover:bg-red-50"
+                        className="flex w-full items-center gap-3 px-4 py-2 text-sm text-red-600 transition-colors hover:bg-red-50"
                       >
                         <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-red-50">
                           <LogOut className="h-4 w-4 text-red-500" />
@@ -620,7 +637,7 @@ export default function Header() {
         </div>
       </div>
 
-      <div className={`overflow-hidden transition-all duration-300 ease-in-out md:hidden ${mobileMenuOpen ? 'max-h-[900px] opacity-100' : 'max-h-0 opacity-0'}`}>
+      <div className={`overflow-y-auto overscroll-contain transition-all duration-300 ease-in-out md:hidden ${mobileMenuOpen ? 'max-h-[calc(100vh-3.5rem)] opacity-100' : 'max-h-0 opacity-0'}`}>
         <div className="space-y-1 border-t border-gray-50 bg-white px-4 pb-4 pt-2">
           {navLinks.map((link) => {
             const isActive = link.match(location.pathname);
@@ -648,9 +665,9 @@ export default function Header() {
                   fallbackClassName="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-indigo-600 to-violet-600 ring-2 ring-violet-200"
                   iconClassName="h-4 w-4 text-white"
                 />
-                <div>
-                  <p className="text-sm font-bold text-gray-800">{user?.full_name}</p>
-                  <p className="text-xs text-gray-400">{user?.email}</p>
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-bold text-gray-800">{user?.full_name}</p>
+                  <p className="truncate text-xs text-gray-400">{user?.email}</p>
                 </div>
               </div>
 
@@ -695,9 +712,9 @@ export default function Header() {
                     <div className={`flex h-8 w-8 items-center justify-center rounded-lg transition-all duration-200 ${isActive ? 'bg-indigo-100 text-indigo-700' : link.iconClass}`}>
                       <link.icon className="h-4 w-4" />
                     </div>
-                    <div>
-                      <p className="font-medium">{link.label}</p>
-                      <p className="text-[11px] text-gray-400">{link.description}</p>
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate font-medium">{link.label}</p>
+                      <p className="truncate text-[11px] leading-tight text-gray-400">{link.description}</p>
                     </div>
                   </Link>
                 );

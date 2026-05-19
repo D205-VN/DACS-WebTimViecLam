@@ -1,190 +1,107 @@
-const {
-  ensureNotificationsSchema,
-  ensureJobAlertSchema,
-  getNotificationsByUser,
-  getUnreadNotificationCount,
-  markAllNotificationsAsRead,
-  markNotificationAsRead: markNotificationAsReadService,
-  deleteNotificationByUser,
-  getUserJobAlertRules,
-  createJobAlertRule,
-  updateJobAlertRule,
-  deleteJobAlertRule,
-  findJobsForAlert,
-} = require('./notification.service');
+const notificationService = require('./notification.service');
 
-function requireSeeker(req, res) {
-  if (req.user?.role_code !== 'seeker') {
-    res.status(403).json({ error: 'Chỉ ứng viên mới có thể quản lý job alerts' });
-    return false;
-  }
-
-  return true;
+function sendError(res, err, fallbackMessage) {
+  const status = err.statusCode || err.status || 500;
+  res.status(status).json({ error: status === 500 ? fallbackMessage : err.message });
 }
 
 async function getNotifications(req, res) {
   try {
-    await ensureNotificationsSchema();
-
-    const limit = Number.parseInt(req.query.limit, 10) || 20;
-    const notifications = await getNotificationsByUser(req.user.id, limit);
-
-    res.json({ data: notifications });
+    const result = await notificationService.listNotificationsForUser(req.user.id, req.query.limit);
+    res.json(result);
   } catch (err) {
     console.error('Get notifications error:', err);
-    res.status(500).json({ error: 'Lỗi khi tải thông báo' });
+    sendError(res, err, 'Lỗi khi tải thông báo');
   }
 }
 
 async function getUnreadCount(req, res) {
   try {
-    await ensureNotificationsSchema();
-
-    const unread = await getUnreadNotificationCount(req.user.id);
-    res.json({ unread });
+    const result = await notificationService.getUnreadCountForUser(req.user.id);
+    res.json(result);
   } catch (err) {
     console.error('Get unread notifications count error:', err);
-    res.status(500).json({ error: 'Lỗi khi tải số thông báo chưa đọc' });
+    sendError(res, err, 'Lỗi khi tải số thông báo chưa đọc');
   }
 }
 
 async function markAllAsRead(req, res) {
   try {
-    await ensureNotificationsSchema();
-
-    const updated = await markAllNotificationsAsRead(req.user.id);
-    res.json({ message: 'Đã đánh dấu thông báo đã xem', updated });
+    const result = await notificationService.markAllAsReadForUser(req.user.id);
+    res.json(result);
   } catch (err) {
     console.error('Mark notifications as read error:', err);
-    res.status(500).json({ error: 'Lỗi khi cập nhật trạng thái thông báo' });
+    sendError(res, err, 'Lỗi khi cập nhật trạng thái thông báo');
   }
 }
 
 async function markNotificationAsRead(req, res) {
   try {
-    await ensureNotificationsSchema();
-
-    const updated = await markNotificationAsReadService(req.user.id, req.params.id);
-    if (!updated) {
-      return res.status(404).json({ error: 'Không tìm thấy thông báo' });
-    }
-
-    res.json({ message: 'Đã đánh dấu thông báo đã đọc' });
+    const result = await notificationService.markOneAsReadForUser(req.user.id, req.params.id);
+    res.json(result);
   } catch (err) {
     console.error('Mark notification as read error:', err);
-    res.status(500).json({ error: 'Lỗi khi cập nhật trạng thái thông báo' });
+    sendError(res, err, 'Lỗi khi cập nhật trạng thái thông báo');
   }
 }
 
 async function deleteNotification(req, res) {
   try {
-    await ensureNotificationsSchema();
-
-    const deleted = await deleteNotificationByUser(req.user.id, req.params.id);
-    if (!deleted) {
-      return res.status(404).json({ error: 'Không tìm thấy thông báo' });
-    }
-
-    res.json({ message: 'Đã xóa thông báo' });
+    const result = await notificationService.deleteNotificationForUser(req.user.id, req.params.id);
+    res.json(result);
   } catch (err) {
     console.error('Delete notification error:', err);
-    res.status(500).json({ error: 'Lỗi khi xóa thông báo' });
+    sendError(res, err, 'Lỗi khi xóa thông báo');
   }
 }
 
 async function getJobAlertRules(req, res) {
   try {
-    if (!requireSeeker(req, res)) return;
-
-    await ensureJobAlertSchema();
-    const alerts = await getUserJobAlertRules(req.user.id);
-    res.json({ data: alerts });
+    const result = await notificationService.listJobAlertRulesForUser(req.user);
+    res.json(result);
   } catch (err) {
     console.error('Get job alerts error:', err);
-    res.status(500).json({ error: 'Lỗi khi tải job alerts' });
+    sendError(res, err, 'Lỗi khi tải job alerts');
   }
 }
 
 async function createJobAlert(req, res) {
   try {
-    if (!requireSeeker(req, res)) return;
-
-    await ensureJobAlertSchema();
-    const alert = await createJobAlertRule(req.user.id, req.body || {});
-    const matches = await findJobsForAlert(alert, 3);
-    res.status(201).json({
-      message: 'Đã tạo job alert',
-      data: {
-        ...alert,
-        preview_matches: matches,
-        preview_count: matches.length,
-      },
-    });
+    const result = await notificationService.createJobAlertForUser(req.user, req.body || {});
+    res.status(201).json(result);
   } catch (err) {
     console.error('Create job alert error:', err);
-    res.status(err.status || 500).json({ error: err.status ? err.message : 'Lỗi khi tạo job alert' });
+    sendError(res, err, 'Lỗi khi tạo job alert');
   }
 }
 
 async function updateJobAlert(req, res) {
   try {
-    if (!requireSeeker(req, res)) return;
-
-    await ensureJobAlertSchema();
-    const alert = await updateJobAlertRule(req.user.id, req.params.id, req.body || {});
-    if (!alert) {
-      return res.status(404).json({ error: 'Không tìm thấy job alert' });
-    }
-
-    const matches = await findJobsForAlert(alert, 3);
-    res.json({
-      message: 'Đã cập nhật job alert',
-      data: {
-        ...alert,
-        preview_matches: matches,
-        preview_count: matches.length,
-      },
-    });
+    const result = await notificationService.updateJobAlertForUser(req.user, req.params.id, req.body || {});
+    res.json(result);
   } catch (err) {
     console.error('Update job alert error:', err);
-    res.status(err.status || 500).json({ error: err.status ? err.message : 'Lỗi khi cập nhật job alert' });
+    sendError(res, err, 'Lỗi khi cập nhật job alert');
   }
 }
 
 async function deleteJobAlert(req, res) {
   try {
-    if (!requireSeeker(req, res)) return;
-
-    await ensureJobAlertSchema();
-    const deleted = await deleteJobAlertRule(req.user.id, req.params.id);
-    if (!deleted) {
-      return res.status(404).json({ error: 'Không tìm thấy job alert' });
-    }
-
-    res.json({ message: 'Đã hủy nhận thông báo việc tương tự' });
+    const result = await notificationService.deleteJobAlertForUser(req.user, req.params.id);
+    res.json(result);
   } catch (err) {
     console.error('Delete job alert error:', err);
-    res.status(500).json({ error: 'Lỗi khi xóa job alert' });
+    sendError(res, err, 'Lỗi khi xóa job alert');
   }
 }
 
 async function getJobAlertMatches(req, res) {
   try {
-    if (!requireSeeker(req, res)) return;
-
-    await ensureJobAlertSchema();
-    const alerts = await getUserJobAlertRules(req.user.id);
-    const alert = alerts.find((item) => Number(item.id) === Number(req.params.id));
-    if (!alert) {
-      return res.status(404).json({ error: 'Không tìm thấy job alert' });
-    }
-
-    const limit = Number.parseInt(req.query.limit, 10) || 12;
-    const matches = await findJobsForAlert(alert, limit);
-    res.json({ data: matches });
+    const result = await notificationService.listJobAlertMatchesForUser(req.user, req.params.id, req.query.limit);
+    res.json(result);
   } catch (err) {
     console.error('Get job alert matches error:', err);
-    res.status(500).json({ error: 'Lỗi khi tải việc phù hợp' });
+    sendError(res, err, 'Lỗi khi tải việc phù hợp');
   }
 }
 

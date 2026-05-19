@@ -1,19 +1,32 @@
 import { useState, useRef, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, Sparkles, Download, Loader2, User, Mail, Phone, Target, GraduationCap, Briefcase, Wrench, Award, Heart, Plus, Save, CheckCircle, ImageUp, Trash2, ClipboardCheck, MapPin, LocateFixed } from 'lucide-react';
+import { ArrowLeft, Sparkles, Download, Loader2, User, Mail, Phone, Target, GraduationCap, Briefcase, Wrench, Award, Heart, Plus, Save, CheckCircle, ImageUp, Trash2, ClipboardCheck, MapPin, LocateFixed, GitBranch } from 'lucide-react';
 import { useAuth } from '@features/auth/AuthContext';
 import SeekerToolsNav from '@features/seeker-tools/SeekerToolsNav';
 import CVReviewModal from '@features/seeker-tools/CVReviewModal';
 import { getBackLabelByRole, getDefaultRouteByRole } from '@shared/utils/roleRedirect';
 import API_BASE_URL from '@shared/api/baseUrl';
 import { requestCurrentLocation } from '@shared/geo/currentLocation';
+import { VIETNAM_UNIVERSITIES } from '@shared/data/vietnamUniversities';
 
 const API = `${API_BASE_URL}/api/cv`;
+const CV_LANGUAGE = 'en';
+const CURRENT_YEAR = new Date().getFullYear();
+const EDUCATION_YEARS = Array.from({ length: 61 }, (_, index) => String(CURRENT_YEAR + 8 - index));
+
+function buildEducationValue({ startYear = '', endYear = '', university = '', major = '' } = {}) {
+  const yearText = [startYear, endYear].filter(Boolean).join(' - ');
+  const schoolText = university.trim();
+  const majorText = major.trim();
+  const firstLine = [yearText, schoolText].filter(Boolean).join(yearText && schoolText ? ': ' : '');
+
+  return [firstLine, majorText ? `- ${majorText}` : ''].filter(Boolean).join('\n');
+}
 
 export default function CVBuilderPage() {
   const { token, user } = useAuth();
   const [form, setForm] = useState({
-    fullName: user?.full_name || '', email: user?.email || '', phone: '',
+    fullName: user?.full_name || '', email: user?.email || '', phone: '', githubUrl: '',
     role: '', objective: '', education: '', experience: '', skills: '', certifications: '', hobbies: '', portraitDataUrl: '',
   });
   
@@ -35,6 +48,12 @@ export default function CVBuilderPage() {
   const [currentCoordinates, setCurrentCoordinates] = useState(null);
   const [locationNotice, setLocationNotice] = useState(null);
   const [detectingLocation, setDetectingLocation] = useState(false);
+  const [educationDraft, setEducationDraft] = useState({
+    startYear: '',
+    endYear: '',
+    university: '',
+    major: '',
+  });
   const cvRef = useRef(null);
   const portraitInputRef = useRef(null);
 
@@ -74,6 +93,12 @@ export default function CVBuilderPage() {
       const separator = current ? (field === 'skills' ? ', ' : '\n- ') : (field === 'skills' ? '' : '- ');
       return { ...p, [field]: current + separator + text };
     });
+  };
+
+  const handleEducationDraftChange = (field, value) => {
+    const next = { ...educationDraft, [field]: value };
+    setEducationDraft(next);
+    setForm((prev) => ({ ...prev, education: buildEducationValue(next) }));
   };
 
   const resizeImageToDataUrl = (file) => new Promise((resolve, reject) => {
@@ -157,6 +182,7 @@ export default function CVBuilderPage() {
         method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({
           ...form,
+          cvLanguage: CV_LANGUAGE,
           currentLocation,
           currentLat: currentCoordinates?.lat || null,
           currentLng: currentCoordinates?.lng || null,
@@ -232,6 +258,7 @@ export default function CVBuilderPage() {
         body: JSON.stringify({
           html_content: cvHtml,
           target_role: form.role,
+          cvLanguage: CV_LANGUAGE,
         }),
       });
       const data = await res.json().catch(() => ({}));
@@ -259,6 +286,7 @@ export default function CVBuilderPage() {
         body: JSON.stringify({
           html_content: cvHtml,
           target_role: form.role,
+          cvLanguage: CV_LANGUAGE,
           suggestions: [suggestion],
         }),
       });
@@ -349,6 +377,17 @@ export default function CVBuilderPage() {
                   <label className="flex items-center gap-1.5 text-sm font-semibold text-gray-700 mb-1.5"><Phone className="w-4 h-4 text-gray-400" /> Số điện thoại</label>
                   <input type="tel" value={form.phone} onChange={e => handleChange('phone', e.target.value)} placeholder="0912 345 678" className={inputClass} />
                 </div>
+              </div>
+
+              <div>
+                <label className="flex items-center gap-1.5 text-sm font-semibold text-gray-700 mb-1.5"><GitBranch className="w-4 h-4 text-gray-400" /> Link GitHub</label>
+                <input
+                  type="url"
+                  value={form.githubUrl}
+                  onChange={e => handleChange('githubUrl', e.target.value)}
+                  placeholder="https://github.com/username"
+                  className={inputClass}
+                />
               </div>
 
               <div>
@@ -458,7 +497,53 @@ export default function CVBuilderPage() {
 
               <div>
                 <label className="flex items-center gap-1.5 text-sm font-semibold text-gray-700 mb-1.5"><GraduationCap className="w-4 h-4 text-gray-400" /> Học vấn</label>
-                <textarea value={form.education} onChange={e => handleChange('education', e.target.value)} rows={2} className={textareaClass} />
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                  <select
+                    value={educationDraft.startYear}
+                    onChange={(e) => handleEducationDraftChange('startYear', e.target.value)}
+                    className={inputClass}
+                  >
+                    <option value="">Năm bắt đầu</option>
+                    {EDUCATION_YEARS.map((year) => (
+                      <option key={`start-${year}`} value={year}>{year}</option>
+                    ))}
+                  </select>
+                  <select
+                    value={educationDraft.endYear}
+                    onChange={(e) => handleEducationDraftChange('endYear', e.target.value)}
+                    className={inputClass}
+                  >
+                    <option value="">Năm kết thúc</option>
+                    <option value="Present">Hiện tại</option>
+                    {EDUCATION_YEARS.map((year) => (
+                      <option key={`end-${year}`} value={year}>{year}</option>
+                    ))}
+                  </select>
+                  <input
+                    list="vietnam-universities"
+                    value={educationDraft.university}
+                    onChange={(e) => handleEducationDraftChange('university', e.target.value)}
+                    placeholder="Chọn hoặc nhập trường"
+                    className={`${inputClass} sm:col-span-2`}
+                  />
+                  <datalist id="vietnam-universities">
+                    {VIETNAM_UNIVERSITIES.map((university) => (
+                      <option key={university} value={university} />
+                    ))}
+                  </datalist>
+                </div>
+                <input
+                  value={educationDraft.major}
+                  onChange={(e) => handleEducationDraftChange('major', e.target.value)}
+                  placeholder="Ngành học, ví dụ: Công nghệ thông tin"
+                  className={`${inputClass} mt-3`}
+                />
+                <textarea
+                  value={form.education}
+                  onChange={(e) => handleChange('education', e.target.value)}
+                  rows={2}
+                  className={`${textareaClass} mt-3`}
+                />
               </div>
 
               <div className="grid grid-cols-2 gap-4">

@@ -15,6 +15,7 @@ router.patch('/access/:token/confirm', meetingController.ensureMeetingRoomSchema
 router.patch('/access/:token/host-start', meetingController.ensureMeetingRoomSchemaForRequest, meetingController.markHostJoined);
 router.patch('/access/:token/recording', meetingController.ensureMeetingRoomSchemaForRequest, meetingController.updateRecordingStatus);
 router.patch('/access/:token/complete', meetingController.ensureMeetingRoomSchemaForRequest, meetingController.completeCurrentInterview);
+router.patch('/access/:token/applications/:applicationId/evaluation', meetingController.ensureMeetingRoomSchemaForRequest, meetingController.saveHostInterviewEvaluation);
 
 router.use(authenticateToken);
 router.use(meetingController.ensureMeetingRoomSchemaForRequest);

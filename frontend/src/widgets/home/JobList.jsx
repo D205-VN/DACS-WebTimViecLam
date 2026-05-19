@@ -4,6 +4,7 @@ import { MapPin, DollarSign, Clock, Bookmark, BookmarkCheck, Briefcase } from 'l
 import { useAuth } from '@features/auth/AuthContext';
 import { getCompanyFilterRoute, getJobDetailRoute } from '@shared/utils/roleRedirect';
 import API_BASE_URL from '@shared/api/baseUrl';
+import { cachedJsonFetch } from '@shared/api/requestCache';
 
 const API = `${API_BASE_URL}/api/jobs`;
 
@@ -78,8 +79,7 @@ export default function JobList({ searchParams, title, emptyMessage }) {
         params.set('locationSource', 'geolocation');
       }
 
-      const res = await fetch(`${API}?${params.toString()}`);
-      const payload = await res.json();
+      const payload = await cachedJsonFetch(`${API}?${params.toString()}`, {}, { ttlMs: 20 * 1000 });
 
       if (isAppend) setJobsData((prev) => [...prev, ...(payload.data || [])]);
       else setJobsData(payload.data || []);

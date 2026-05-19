@@ -2,6 +2,7 @@ const { Server } = require('socket.io');
 
 let io;
 const userSockets = new Map(); // userId -> Set of socket IDs
+const isDev = process.env.NODE_ENV !== 'production';
 
 function init(httpServer, allowedOrigins) {
   io = new Server(httpServer, {
@@ -13,12 +14,12 @@ function init(httpServer, allowedOrigins) {
   });
 
   io.on('connection', (socket) => {
-    console.log('A user connected:', socket.id);
+    if (isDev) console.log('A user connected:', socket.id);
 
     socket.on('join', (userId) => {
       if (userId) {
         const userIdStr = String(userId);
-        console.log(`User ${userIdStr} joined room`);
+        if (isDev) console.log(`User ${userIdStr} joined room`);
         socket.join(`user_${userIdStr}`);
         
         if (!userSockets.has(userIdStr)) {
@@ -67,7 +68,7 @@ function init(httpServer, allowedOrigins) {
     // ──────────────────────────────────────────────────────────────
 
     socket.on('disconnect', () => {
-      console.log('User disconnected:', socket.id);
+      if (isDev) console.log('User disconnected:', socket.id);
       // Remove socket from userSockets map
       for (const [userId, sockets] of userSockets.entries()) {
         if (sockets.has(socket.id)) {
@@ -100,7 +101,7 @@ function getIO() {
 function emitToUser(userId, event, data) {
   if (io && userId) {
     const userIdStr = String(userId);
-    console.log(`Emitting ${event} to user_${userIdStr}`);
+    if (isDev) console.log(`Emitting ${event} to user_${userIdStr}`);
     io.to(`user_${userIdStr}`).emit(event, data);
   }
 }

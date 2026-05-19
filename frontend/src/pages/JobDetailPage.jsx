@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate, useLocation } from 'react-router-dom';
-import { MapPin, DollarSign, Clock, Bookmark, BookmarkCheck, Briefcase, ArrowLeft, Send, CheckCircle2, Loader2, GraduationCap, Calendar, Bell, X, FileText, Sparkles, Target, BrainCircuit } from 'lucide-react';
+import { MapPin, DollarSign, Clock, Bookmark, BookmarkCheck, Briefcase, ArrowLeft, Send, CheckCircle2, Loader2, GraduationCap, Calendar, Bell, X, FileText, Sparkles, Target, BrainCircuit, ShieldCheck, BriefcaseBusiness } from 'lucide-react';
 import { useAuth } from '@features/auth/AuthContext';
 import { findProvinceByName, normalizeProvinceName, normalizeSearchText } from '@shared/geo/provinceCoordinates';
 import { getCompanyFilterRoute, getDefaultRouteByRole, getJobDetailRoute } from '@shared/utils/roleRedirect';
 import { getSeekerAiTestPath } from '@shared/utils/aiTestRoutes';
 import API_BASE_URL from '@shared/api/baseUrl';
+import { talentInsightsApi } from '@shared/api/talentInsightsApi';
 
 const API = `${API_BASE_URL}/api/jobs`;
 
@@ -42,6 +43,26 @@ const stripHtml = (value = '') => String(value || '')
   .replace(/&amp;/gi, '&')
   .replace(/\s+/g, ' ')
   .trim();
+
+const splitContentLines = (text = '') => String(text || '')
+  .replace(/<br\s*\/?>/gi, '\n')
+  .replace(/&nbsp;/gi, ' ')
+  .replace(/&amp;/gi, '&')
+  .split(/\r?\n/)
+  .flatMap((rawLine) => {
+    const line = rawLine.trim();
+    if (!line) return [];
+
+    const withBulletBreaks = line
+      .replace(/(^|\s)-(?=\s*[0-9A-Za-zÀ-ỹ])/g, '$1\n- ')
+      .replace(/([:;])\s*\+(?=\s*[0-9A-Za-zÀ-ỹ])/g, '$1\n+ ')
+      .replace(/\s\+(?=\s*[0-9A-Za-zÀ-ỹ])/g, '\n+ ');
+
+    return withBulletBreaks
+      .split('\n')
+      .map(item => item.trim())
+      .filter(Boolean);
+  });
 
 const tokenize = (value = '') => normalizeSearchText(stripHtml(value))
   .split(/[^a-z0-9à-ỹ]+/i)
@@ -96,6 +117,12 @@ function buildCvJobFit(cv, job) {
   };
 }
 
+function getFitTone(score) {
+  if (score >= 75) return 'text-emerald-700';
+  if (score >= 55) return 'text-amber-700';
+  return 'text-red-700';
+}
+
 export default function JobDetailPage() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -116,6 +143,8 @@ export default function JobDetailPage() {
   const [selectedCvId, setSelectedCvId] = useState('');
   const [coverLetter, setCoverLetter] = useState('');
   const [applyError, setApplyError] = useState('');
+  const [jobFitInsight, setJobFitInsight] = useState(null);
+  const [trustInsight, setTrustInsight] = useState(null);
 
   const tabs = [
     { id: 'description', label: 'Mô tả' },
@@ -171,6 +200,26 @@ export default function JobDetailPage() {
       .catch(() => setSimilarJobs([]))
       .finally(() => setSimilarLoading(false));
   }, [job]);
+
+  useEffect(() => {
+    setTrustInsight(null);
+    talentInsightsApi
+      .getEmployerTrustForJob(id)
+      .then(setTrustInsight)
+      .catch((err) => console.error('Load employer trust score error:', err));
+  }, [id]);
+
+  useEffect(() => {
+    if (!token || user?.role_code !== 'seeker') {
+      setJobFitInsight(null);
+      return;
+    }
+
+    talentInsightsApi
+      .getJobFit(id)
+      .then(setJobFitInsight)
+      .catch((err) => console.error('Load job fit insight error:', err));
+  }, [id, token, user?.role_code]);
 
   useEffect(() => {
     if (!token || user?.role_code !== 'seeker') {
@@ -276,13 +325,21 @@ export default function JobDetailPage() {
 
   const renderContentText = (text) => {
     if (!text) return null;
-    const lines = text.split(/\r?\n/).map(line => line.trim()).filter(Boolean);
-    if (lines.length === 1) return <p className="text-sm text-gray-600 leading-relaxed whitespace-pre-line">{text}</p>;
+    const lines = splitContentLines(text);
+    if (lines.length === 1) return <p className="text-sm leading-relaxed text-gray-600 whitespace-pre-line">{lines[0]}</p>;
     return (
-      <div className="space-y-3 text-sm text-gray-600">
-        {lines.map((line, index) => (
-          <p key={index} className="whitespace-pre-line">{line}</p>
-        ))}
+      <div className="space-y-2 text-sm leading-relaxed text-gray-600">
+        {lines.map((line, index) => {
+          const isBullet = /^[-+•]/.test(line);
+          const content = isBullet ? line.replace(/^[-+•]\s*/, '').trim() : line;
+
+          return (
+            <div key={`${content}-${index}`} className={isBullet ? 'flex gap-2' : 'whitespace-pre-line'}>
+              {isBullet ? <span className="mt-0.5 text-slate-400">-</span> : null}
+              <span className="min-w-0">{content}</span>
+            </div>
+          );
+        })}
       </div>
     );
   };
@@ -312,7 +369,7 @@ export default function JobDetailPage() {
   const remainingDays = getRemainingDays(jobDeadline);
   const backRoute = getDefaultRouteByRole(user?.role_code);
   const selectedCv = cvs.find(cv => String(cv.id) === String(selectedCvId)) || null;
-  const cvFit = buildCvJobFit(selectedCv, {
+  const fallbackCvFit = buildCvJobFit(selectedCv, {
     title: jobTitle,
     description: jobDescription,
     requirements: jobRequirements,
@@ -321,6 +378,16 @@ export default function JobDetailPage() {
     location: jobLocation,
     company_address: companyAddress,
   });
+  const apiFit = jobFitInsight?.fit;
+  const cvFit = apiFit ? {
+    score: apiFit.score,
+    tone: getFitTone(apiFit.score),
+    label: apiFit.label,
+    matches: apiFit.matched_skills || [],
+    missingSkills: apiFit.missing_skills || [],
+    reasons: apiFit.reasons || [],
+    tips: apiFit.cv_tips || [],
+  } : fallbackCvFit;
 
   const handleCompanyClick = () => {
     if (!companyName) return;
@@ -461,6 +528,26 @@ export default function JobDetailPage() {
                   Làm bài Test AI
                 </button>
               )}
+              {isAuthenticated && user?.role_code === 'seeker' ? (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => navigate(`/seeker/interview-copilot/${id}`)}
+                    className="inline-flex items-center justify-center gap-2 rounded-lg border border-violet-200 bg-violet-50 px-4 py-3 text-sm font-semibold text-violet-700 transition hover:bg-violet-100"
+                  >
+                    <BrainCircuit className="w-4 h-4" />
+                    Luyện phỏng vấn
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => navigate(`/seeker/work-simulation/${id}`)}
+                    className="inline-flex items-center justify-center gap-2 rounded-lg border border-cyan-200 bg-cyan-50 px-4 py-3 text-sm font-semibold text-cyan-700 transition hover:bg-cyan-100"
+                  >
+                    <BriefcaseBusiness className="w-4 h-4" />
+                    Mini simulation
+                  </button>
+                </>
+              ) : null}
             </div>
             <div className="mt-3 rounded-lg border border-indigo-100/60 bg-indigo-50/50 px-4 py-3 text-sm text-gray-600">
               Nhận thông báo phù hợp khi có việc tương tự.
@@ -471,14 +558,36 @@ export default function JobDetailPage() {
                   <div>
                     <p className="font-semibold">Điểm phù hợp CV/job</p>
                     <p className="mt-1 text-cyan-700/80">
-                      {selectedCv ? `Đang dùng ${selectedCv.title}` : 'Chọn CV khi ứng tuyển để tính điểm chi tiết.'}
+                      {apiFit?.reasons?.[0] || (selectedCv ? `Đang dùng ${selectedCv.title}` : 'Chọn CV khi ứng tuyển để tính điểm chi tiết.')}
                     </p>
                   </div>
                   <span className="inline-flex w-fit items-center gap-2 rounded-full bg-white px-3 py-1.5 text-xs font-bold text-slate-900">
                     <Target className="h-4 w-4 text-cyan-600" />
-                    {selectedCv ? `${cvFit.score}% - ${cvFit.label}` : 'Chưa có CV'}
+                    {apiFit || selectedCv ? `${cvFit.score}% - ${cvFit.label}` : 'Chưa có CV'}
                   </span>
                 </div>
+                {apiFit ? (
+                  <div className="mt-3 grid gap-3 lg:grid-cols-2">
+                    <div className="rounded-lg bg-white/70 p-3">
+                      <p className="text-xs font-bold uppercase tracking-[0.14em] text-cyan-700">Vì sao phù hợp</p>
+                      <div className="mt-2 space-y-1 text-sm text-cyan-800">
+                        {(cvFit.reasons || []).slice(0, 3).map(reason => <p key={reason}>{reason}</p>)}
+                      </div>
+                    </div>
+                    <div className="rounded-lg bg-white/70 p-3">
+                      <p className="text-xs font-bold uppercase tracking-[0.14em] text-amber-700">Kỹ năng còn thiếu</p>
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        {(cvFit.missingSkills || []).length ? (
+                          cvFit.missingSkills.slice(0, 5).map(skill => (
+                            <span key={skill} className="rounded-full bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-700">{skill}</span>
+                          ))
+                        ) : (
+                          <span className="text-sm text-cyan-800">CV đã khớp các yêu cầu chính đang nhận diện.</span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ) : null}
               </div>
             ) : null}
 
@@ -600,6 +709,30 @@ export default function JobDetailPage() {
             ) : (
               <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 p-6 text-sm text-slate-500 text-center">Thông tin về công ty đang được cập nhật.</div>
             )}
+            {trustInsight ? (
+              <div className="mt-5 rounded-lg border border-emerald-100 bg-emerald-50 p-4">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-11 w-11 items-center justify-center rounded-lg bg-white text-emerald-700">
+                      <ShieldCheck className="h-6 w-6" />
+                    </div>
+                    <div>
+                      <p className="font-bold text-emerald-950">Employer Trust Score</p>
+                      <p className="text-sm text-emerald-800">{trustInsight.label}</p>
+                    </div>
+                  </div>
+                  <span className="w-fit rounded-full bg-white px-4 py-2 text-sm font-black text-emerald-700">{trustInsight.score}%</span>
+                </div>
+                <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                  {(trustInsight.signals || []).map(signal => (
+                    <div key={signal.label} className="rounded-lg bg-white px-3 py-2 text-sm">
+                      <p className="text-xs font-semibold text-slate-500">{signal.label}</p>
+                      <p className={`mt-1 font-bold ${signal.good ? 'text-emerald-700' : 'text-amber-700'}`}>{signal.value}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : null}
           </section>
 
           <section className="aw-surface p-6">
@@ -728,7 +861,7 @@ export default function JobDetailPage() {
                   <div className="flex items-center justify-between gap-3">
                     <div>
                       <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Phù hợp</p>
-                      <h4 className={`mt-2 text-4xl font-black ${cvFit.tone}`}>{selectedCv ? `${cvFit.score}%` : '--'}</h4>
+                      <h4 className={`mt-2 text-4xl font-black ${cvFit.tone}`}>{apiFit || selectedCv ? `${cvFit.score}%` : '--'}</h4>
                     </div>
                     <div className="flex h-14 w-14 items-center justify-center rounded-lg bg-cyan-50 text-cyan-700">
                       <Sparkles className="h-7 w-7" />
@@ -749,6 +882,16 @@ export default function JobDetailPage() {
                       {cvFit.tips.map(tip => <li key={tip} className="rounded-lg bg-slate-50 px-3 py-2">{tip}</li>)}
                     </ul>
                   </div>
+                  {cvFit.missingSkills?.length ? (
+                    <div className="mt-5">
+                      <p className="text-sm font-semibold text-slate-700">Kỹ năng còn thiếu</p>
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        {cvFit.missingSkills.map(skill => (
+                          <span key={skill} className="rounded-full bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-700">{skill}</span>
+                        ))}
+                      </div>
+                    </div>
+                  ) : null}
                 </div>
 
                 <div className="mt-5 flex flex-col gap-3 sm:flex-row">

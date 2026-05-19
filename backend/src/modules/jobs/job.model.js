@@ -3,6 +3,7 @@ const pool = require('../../infrastructure/database/postgres');
 let publicJobSchemaReady = false;
 let publicApplicationSchemaReady = false;
 let publicJobAnalyticsSchemaReady = false;
+let onboardingSchemaReady = false;
 
 async function ensureJobStatusSchema() {
   if (publicJobSchemaReady) return;
@@ -16,6 +17,17 @@ async function ensureJobStatusSchema() {
     UPDATE jobs
     SET status = 'approved'
     WHERE status IS NULL OR TRIM(status) = ''
+  `);
+
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS idx_jobs_status_created_at
+    ON jobs((COALESCE(NULLIF(TRIM(status), ''), 'approved')), created_at DESC, id DESC)
+  `);
+
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS idx_jobs_company_name_normalized
+    ON jobs(LOWER(TRIM(company_name)))
+    WHERE company_name IS NOT NULL AND TRIM(company_name) <> ''
   `);
 
   publicJobSchemaReady = true;
@@ -110,6 +122,21 @@ async function ensurePublicApplicationSchema() {
     ADD COLUMN IF NOT EXISTS current_lng DOUBLE PRECISION
   `);
 
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS idx_applied_jobs_user_created_at
+    ON applied_jobs(user_id, created_at DESC)
+  `);
+
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS idx_applied_jobs_job_status
+    ON applied_jobs(job_id, status)
+  `);
+
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS idx_user_cvs_user_primary_created_at
+    ON user_cvs(user_id, is_primary, created_at DESC, id DESC)
+  `);
+
   publicApplicationSchemaReady = true;
 }
 
@@ -142,8 +169,47 @@ async function ensureJobAnalyticsSchema() {
   publicJobAnalyticsSchemaReady = true;
 }
 
+async function ensureOnboardingSchema() {
+  if (onboardingSchemaReady) return;
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS onboarding_submissions (
+      id SERIAL PRIMARY KEY,
+      application_id INTEGER REFERENCES applied_jobs(id) ON DELETE CASCADE,
+      user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+      employer_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
+      job_id INTEGER REFERENCES jobs(id) ON DELETE CASCADE,
+      status VARCHAR(30) DEFAULT 'submitted',
+      submitted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE(application_id)
+    )
+  `);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS onboarding_documents (
+      id SERIAL PRIMARY KEY,
+      submission_id INTEGER REFERENCES onboarding_submissions(id) ON DELETE CASCADE,
+      doc_type VARCHAR(80) NOT NULL,
+      doc_name VARCHAR(255),
+      file_name VARCHAR(255),
+      file_url TEXT,
+      mime_type VARCHAR(120),
+      file_size INTEGER,
+      ai_result JSONB DEFAULT '{}'::jsonb,
+      status VARCHAR(30) DEFAULT 'pending',
+      feedback TEXT,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
+  onboardingSchemaReady = true;
+}
+
 module.exports = {
   ensureJobStatusSchema,
   ensurePublicApplicationSchema,
   ensureJobAnalyticsSchema,
+  ensureOnboardingSchema,
 };

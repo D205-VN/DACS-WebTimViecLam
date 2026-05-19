@@ -39,10 +39,19 @@ function hasSslMode(connectionString) {
   }
 }
 
+function readPositiveIntegerEnv(name, fallback) {
+  const value = Number.parseInt(process.env[name], 10);
+  return Number.isFinite(value) && value > 0 ? value : fallback;
+}
+
 const connectionString = getDatabaseUrl();
 
 const pool = new Pool({
   connectionString,
+  max: readPositiveIntegerEnv('PG_POOL_MAX', 10),
+  idleTimeoutMillis: readPositiveIntegerEnv('PG_IDLE_TIMEOUT_MS', 30_000),
+  connectionTimeoutMillis: readPositiveIntegerEnv('PG_CONNECTION_TIMEOUT_MS', 10_000),
+  maxLifetimeSeconds: readPositiveIntegerEnv('PG_MAX_LIFETIME_SECONDS', 60 * 30),
   ssl: connectionString?.includes('neon.tech') && !hasSslMode(connectionString)
     ? { rejectUnauthorized: false }
     : undefined,

@@ -5,6 +5,7 @@ import FilterSidebar from '@widgets/home/FilterSidebar';
 import JobList from '@widgets/home/JobList';
 import RightSidebar from '@widgets/home/RightSidebar';
 import API_BASE_URL from '@shared/api/baseUrl';
+import { cachedJsonFetch } from '@shared/api/requestCache';
 
 const fallbackFilterOptions = {
   salaryRanges: [
@@ -46,8 +47,7 @@ export default function HomePage() {
   const [filterOptions, setFilterOptions] = useState(fallbackFilterOptions);
 
   useEffect(() => {
-    fetch(`${API_BASE_URL}/api/jobs/filters`)
-      .then((res) => res.json())
+    cachedJsonFetch(`${API_BASE_URL}/api/jobs/filters`, {}, { ttlMs: 5 * 60 * 1000 })
       .then((payload) => {
         if (payload?.data) {
           setFilterOptions(payload.data);

@@ -1,11 +1,33 @@
 const memoryCache = new Map();
 const inflightRequests = new Map();
 const DEFAULT_TTL_MS = 30 * 1000;
+const MAX_CACHE_ENTRIES = 120;
+
+function getHeaderValue(headers, name) {
+  if (!headers) return '';
+  if (typeof Headers !== 'undefined' && headers instanceof Headers) {
+    return headers.get(name) || '';
+  }
+
+  return headers[name] || headers[name.toLowerCase()] || '';
+}
 
 function getCacheKey(url, options = {}) {
-  const method = options.method || 'GET';
-  const auth = options.headers?.Authorization || '';
+  const method = (options.method || 'GET').toUpperCase();
+  const auth = getHeaderValue(options.headers, 'Authorization');
   return `${method}:${url}:${auth}`;
+}
+
+function pruneCache(now = Date.now()) {
+  for (const [key, entry] of memoryCache.entries()) {
+    if (entry.expiresAt <= now) memoryCache.delete(key);
+  }
+
+  while (memoryCache.size > MAX_CACHE_ENTRIES) {
+    const oldestKey = memoryCache.keys().next().value;
+    if (!oldestKey) break;
+    memoryCache.delete(oldestKey);
+  }
 }
 
 export function clearRequestCache(predicate) {
@@ -26,7 +48,9 @@ export function clearRequestCacheByUrl(partialUrl) {
 export function readCachedJson(url, options = {}) {
   const key = getCacheKey(url, options);
   const entry = memoryCache.get(key);
-  if (!entry || entry.expiresAt <= Date.now()) {
+  const now = Date.now();
+
+  if (!entry || entry.expiresAt <= now) {
     if (entry) memoryCache.delete(key);
     return null;
   }
@@ -34,7 +58,7 @@ export function readCachedJson(url, options = {}) {
 }
 
 export async function cachedJsonFetch(url, options = {}, config = {}) {
-  const method = options.method || 'GET';
+  const method = (options.method || 'GET').toUpperCase();
   const ttlMs = config.ttlMs ?? DEFAULT_TTL_MS;
   const cacheKey = getCacheKey(url, options);
 
@@ -61,6 +85,7 @@ export async function cachedJsonFetch(url, options = {}, config = {}) {
           data,
           expiresAt: Date.now() + ttlMs,
         });
+        pruneCache();
       }
 
       return data;

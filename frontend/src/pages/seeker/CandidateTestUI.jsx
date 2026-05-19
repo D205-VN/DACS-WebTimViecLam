@@ -1,10 +1,11 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { useLocation, useParams, useNavigate } from 'react-router-dom';
 import { AlertTriangle, ArrowRight, Award, Bot, CheckCircle, CheckSquare, Clock, Mic, Send, Square, Trophy, Video, XCircle } from 'lucide-react';
-import HeyGenLiveAvatar from '@shared/ui/HeyGenLiveAvatar';
 import { aiTestApi } from '@shared/api/aiTestApi';
 import { getAiTestKind, getSeekerAiTestPath } from '@shared/utils/aiTestRoutes';
 import { useAuth } from '@features/auth/AuthContext';
+
+const HeyGenLiveAvatar = lazy(() => import('@shared/ui/HeyGenLiveAvatar'));
 
 const formatTime = (seconds) => {
   const m = Math.floor(seconds / 60);
@@ -474,7 +475,6 @@ const CandidateTestUI = () => {
                   const score = answer.final_score;
                   const isCorrect = score >= 10;
                   const isMcq = answer.question_type === 'mcq';
-                  const details = answer.scoring_details || {};
                   return (
                     <div
                       key={answer.question_id || index}
@@ -1004,10 +1004,18 @@ const CandidateTestUI = () => {
         <div className="w-[55%] min-w-0 relative overflow-hidden rounded-2xl border border-white/[0.06] bg-black/30 backdrop-blur-sm shadow-2xl flex flex-col group">
           <div className="flex-1 flex items-center justify-center relative w-full h-full">
             {usesAvatarLive3D ? (
-              <HeyGenLiveAvatar
-                questionText={currentQ?.content}
-                speakKey={`${currentQIdx}`}
-              />
+              <Suspense
+                fallback={(
+                  <div className="flex h-full w-full items-center justify-center text-slate-300">
+                    <div className="h-10 w-10 animate-spin rounded-full border-b-2 border-violet-400"></div>
+                  </div>
+                )}
+              >
+                <HeyGenLiveAvatar
+                  questionText={currentQ?.content}
+                  speakKey={`${currentQIdx}`}
+                />
+              </Suspense>
             ) : test.test_type === 'video_ai' ? (
               currentQ?.video_url?.match(/\.(jpeg|jpg|gif|png|webp)$/i) ? (
                 <img 
