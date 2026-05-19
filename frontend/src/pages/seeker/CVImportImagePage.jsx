@@ -37,10 +37,7 @@ export default function CVImportImagePage() {
 
   const pickFile = () => fileInputRef.current?.click();
 
-  const hasCurrentLocation =
-    Boolean(currentLocation) &&
-    Number.isFinite(currentCoordinates?.lat) &&
-    Number.isFinite(currentCoordinates?.lng);
+  const hasCurrentLocation = Boolean(currentLocation.trim());
 
   const handleDetectCurrentLocation = async () => {
     setDetectingLocation(true);
@@ -56,11 +53,10 @@ export default function CVImportImagePage() {
         message: `Đã lấy vị trí hiện tại tại ${result.location}${result.accuracy ? ` (sai số khoảng ${result.accuracy}m)` : ''}.`,
       });
     } catch (err) {
-      setCurrentLocation('');
       setCurrentCoordinates(null);
       setLocationNotice({
         type: 'error',
-        message: err.message || 'Không thể lấy vị trí hiện tại.',
+        message: `${err.message || 'Không thể lấy vị trí hiện tại.'} Bạn có thể nhập tỉnh/thành thủ công.`,
       });
     } finally {
       setDetectingLocation(false);
@@ -131,8 +127,8 @@ export default function CVImportImagePage() {
           target_role: extracted?.role || '',
           html_content: cvHtml,
           currentLocation,
-          currentLat: currentCoordinates.lat,
-          currentLng: currentCoordinates.lng,
+          currentLat: currentCoordinates?.lat || null,
+          currentLng: currentCoordinates?.lng || null,
         }),
       });
       const data = await res.json().catch(() => ({}));
@@ -196,8 +192,12 @@ export default function CVImportImagePage() {
             <input
               type="text"
               value={currentLocation}
-              readOnly
-              placeholder="Bắt buộc lấy vị trí hiện tại trước khi lưu CV"
+              onChange={(e) => {
+                setCurrentLocation(e.target.value);
+                setCurrentCoordinates(null);
+                setLocationNotice(null);
+              }}
+              placeholder="VD: Hồ Chí Minh, Hà Nội..."
               className="w-full rounded-lg border border-indigo-100/60 bg-white px-4 py-3 text-sm text-gray-700 placeholder:text-gray-400 transition-all focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-violet-200"
             />
             {locationNotice ? (

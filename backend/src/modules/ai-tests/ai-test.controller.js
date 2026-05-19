@@ -1,5 +1,6 @@
 const pool = require('../../infrastructure/database/postgres');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
+const { generateTextWithLmStudio, isLmStudioEnabled } = require('../../infrastructure/ai/lmstudio.service');
 
 // Initialize Gemini for scoring mock
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || 'mock-api-key');
@@ -8,6 +9,11 @@ const MCQ_KEYS = ['A', 'B', 'C', 'D'];
 const ALLOWED_QUESTION_TYPES = new Set(['mcq', 'essay']);
 const ALLOWED_DIFFICULTIES = new Set(['easy', 'medium', 'hard']);
 const LIVEAVATAR_API_URL = (process.env.LIVEAVATAR_API_URL || 'https://api.liveavatar.com').replace(/\/+$/, '');
+
+function addLmStudioModelHints(prompt = '') {
+  const modelId = String(process.env.LMSTUDIO_MODEL || '').toLowerCase();
+  return modelId.includes('qwen3') ? `${prompt}\n/no_think` : prompt;
+}
 
 function parseBooleanEnv(value, fallback = false) {
   if (value === undefined || value === null || value === '') return fallback;
@@ -511,6 +517,25 @@ function parseGeneratedQuestionList(responseText) {
   return [];
 }
 
+function parseScoreFromModelText(responseText, fallback = 7.5) {
+  const cleaned = compactText(responseText);
+  const jsonMatch = cleaned.match(/\{[\s\S]*\}/);
+
+  if (jsonMatch) {
+    try {
+      const parsed = JSON.parse(jsonMatch[0]);
+      const score = Number(parsed.score ?? parsed.semantic_score ?? parsed.value);
+      if (Number.isFinite(score)) return Math.max(0, Math.min(10, score));
+    } catch {
+      // Try plain number parsing below.
+    }
+  }
+
+  const numberMatch = cleaned.match(/(?:score|điểm|semantic_score)?\s*[:=]?\s*([0-9]+(?:\.[0-9]+)?)/i);
+  const score = Number(numberMatch?.[1]);
+  return Number.isFinite(score) ? Math.max(0, Math.min(10, score)) : fallback;
+}
+
 const aiTestController = {
   // ==================== TEST MANAGEMENT ====================
   createTest: async (req, res) => {
@@ -911,17 +936,34 @@ const aiTestController = {
     }
 
     try {
-      if (process.env.GEMINI_API_KEY) {
+      if (isLmStudioEnabled()) {
+        const prompt = `Bạn là giám khảo chấm bài phỏng vấn tuyển dụng.
+Hãy chấm mức độ đúng và đầy đủ của câu trả lời theo đáp án kỳ vọng trên thang 0.0 đến 10.0.
+
+Đáp án kỳ vọng:
+${answer.expected_answer || '(không có)'}
+
+Câu trả lời ứng viên:
+${contentToScore || '(trống)'}
+
+Chỉ trả về JSON hợp lệ dạng {"score": number}. Không markdown, không giải thích.`;
+        const responseText = await generateTextWithLmStudio(addLmStudioModelHints(prompt), {
+          systemPrompt: 'Bạn là hệ thống chấm điểm. Chỉ trả về JSON hợp lệ, không markdown, không giải thích.',
+          temperature: 0.1,
+          maxTokens: 120,
+        });
+        semanticScore = parseScoreFromModelText(responseText, 7.5);
+      } else if (process.env.GEMINI_API_KEY) {
         const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
         const prompt = `Rate the similarity and correctness of the answer based on the expected answer on a scale of 0.0 to 10.0. Only return a number.\nExpected: ${answer.expected_answer}\nAnswer: ${contentToScore}`;
         const result = await model.generateContent(prompt);
         const responseText = result.response.text();
         semanticScore = parseFloat(responseText.trim()) || 7.5;
       } else {
-        semanticScore = Math.random() * 4 + 6;
+        semanticScore = contentToScore ? 6.5 : 0;
       }
     } catch(e) {
-      console.log('Gemini scoring failed, using fallback', e.message);
+      console.log('AI scoring failed, using fallback', e.message);
       semanticScore = 7.5;
     }
 
@@ -1170,7 +1212,21 @@ TRẢ VỀ DUY NHẤT MỘT MẢNG JSON HỢP LỆ. KHÔNG CÓ MARKDOWN HAY BẤ
 
       let generatedQuestions = [];
 
-      if (process.env.GEMINI_API_KEY) {
+      if (isLmStudioEnabled()) {
+        try {
+          const responseText = await generateTextWithLmStudio(addLmStudioModelHints(prompt), {
+            systemPrompt: 'Bạn là hệ thống tạo câu hỏi tuyển dụng. Chỉ trả về một mảng JSON hợp lệ, không markdown, không giải thích.',
+            temperature: 0.35,
+            maxTokens: Math.min(6000, Math.max(1800, requestedCount * 420)),
+          });
+          generatedQuestions = parseGeneratedQuestionList(responseText);
+          if (!generatedQuestions.length) console.log('No valid JSON question list found in LM Studio response');
+        } catch (aiErr) {
+          console.error('LM Studio question generation failed:', aiErr.message);
+        }
+      }
+
+      if (!generatedQuestions.length && !isLmStudioEnabled() && process.env.GEMINI_API_KEY) {
         try {
           const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
           const result = await model.generateContent(prompt);

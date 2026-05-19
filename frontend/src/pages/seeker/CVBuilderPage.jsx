@@ -116,10 +116,7 @@ export default function CVBuilderPage() {
     }
   };
 
-  const hasCurrentLocation =
-    Boolean(currentLocation) &&
-    Number.isFinite(currentCoordinates?.lat) &&
-    Number.isFinite(currentCoordinates?.lng);
+  const hasCurrentLocation = Boolean(currentLocation.trim());
 
   const handleDetectCurrentLocation = async () => {
     setDetectingLocation(true);
@@ -135,11 +132,10 @@ export default function CVBuilderPage() {
         message: `Đã lấy vị trí hiện tại tại ${result.location}${result.accuracy ? ` (sai số khoảng ${result.accuracy}m)` : ''}.`,
       });
     } catch (err) {
-      setCurrentLocation('');
       setCurrentCoordinates(null);
       setLocationNotice({
         type: 'error',
-        message: err.message || 'Không thể lấy vị trí hiện tại.',
+        message: `${err.message || 'Không thể lấy vị trí hiện tại.'} Bạn có thể nhập tỉnh/thành thủ công.`,
       });
     } finally {
       setDetectingLocation(false);
@@ -162,8 +158,8 @@ export default function CVBuilderPage() {
         body: JSON.stringify({
           ...form,
           currentLocation,
-          currentLat: currentCoordinates.lat,
-          currentLng: currentCoordinates.lng,
+          currentLat: currentCoordinates?.lat || null,
+          currentLng: currentCoordinates?.lng || null,
         }),
       });
       const data = await res.json();
@@ -199,8 +195,8 @@ export default function CVBuilderPage() {
           target_role: form.role,
           html_content: cvHtml,
           currentLocation,
-          currentLat: currentCoordinates.lat,
-          currentLng: currentCoordinates.lng,
+          currentLat: currentCoordinates?.lat || null,
+          currentLng: currentCoordinates?.lng || null,
         }),
       });
       const data = await res.json().catch(() => ({}));
@@ -363,8 +359,12 @@ export default function CVBuilderPage() {
                   <input
                     type="text"
                     value={currentLocation}
-                    readOnly
-                    placeholder="Bắt buộc lấy vị trí hiện tại"
+                    onChange={(e) => {
+                      setCurrentLocation(e.target.value);
+                      setCurrentCoordinates(null);
+                      setLocationNotice(null);
+                    }}
+                    placeholder="VD: Hồ Chí Minh, Hà Nội..."
                     className={inputClass}
                   />
                   <button
