@@ -425,7 +425,12 @@ async function sendJobAlertDigestEmail(to, {
     `,
   };
 
-  await transporter.sendMail(mailOptions);
+  if (process.env.RESEND_API_KEY) {
+    const from = mailOptions.from || (`AptertekWork.vn <${process.env.SMTP_EMAIL}>`);
+    await sendEmailResend({ from, to: mailOptions.to, subject: mailOptions.subject, html: mailOptions.html });
+  } else {
+    await transporter.sendMail(mailOptions);
+  }
 }
 
 module.exports = {

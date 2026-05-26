@@ -2,8 +2,29 @@ const https = require('https');
 
 function sendEmailResend({ from, to, subject, html }) {
   return new Promise((resolve, reject) => {
+    let resolvedFrom = from || process.env.EMAIL_FROM || process.env.SMTP_EMAIL || 'onboarding@resend.dev';
+
+    // If EMAIL_FROM is defined and different from the resolvedFrom's email,
+    // let's ensure we use EMAIL_FROM for the sending address if resolvedFrom contains a gmail or unverified address
+    if (process.env.EMAIL_FROM) {
+      const emailRegex = /<([^>]+)>/;
+      const match = resolvedFrom.match(emailRegex);
+      if (match) {
+        const email = match[1].trim();
+        // If the email is Gmail (which can never be verified on Resend) or matches SMTP_EMAIL, replace it
+        if (email.endsWith('@gmail.com') || email === process.env.SMTP_EMAIL) {
+          resolvedFrom = resolvedFrom.replace(emailRegex, `<${process.env.EMAIL_FROM}>`);
+        }
+      } else {
+        const email = resolvedFrom.trim();
+        if (email.endsWith('@gmail.com') || email === process.env.SMTP_EMAIL) {
+          resolvedFrom = process.env.EMAIL_FROM;
+        }
+      }
+    }
+
     const payload = {
-      from: from || (process.env.EMAIL_FROM || process.env.SMTP_EMAIL),
+      from: resolvedFrom,
       to: Array.isArray(to) ? to : [to],
       subject: subject || '',
       html: html || '',
