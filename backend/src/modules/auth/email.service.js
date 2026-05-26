@@ -13,6 +13,7 @@ const transporter = nodemailer.createTransport({
   connectionTimeout: getMailTimeoutMs(),
   greetingTimeout: getMailTimeoutMs(),
   socketTimeout: getMailTimeoutMs(),
+  family: 4,
   auth: {
     user: process.env.SMTP_EMAIL,
     pass: process.env.SMTP_PASSWORD,
