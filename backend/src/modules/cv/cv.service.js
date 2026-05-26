@@ -137,7 +137,7 @@ function splitCvLines(value = '') {
 function renderCvParagraph(value = '') {
   const lines = splitCvLines(value);
   const text = lines.length ? lines.join('\n') : String(value || '').trim();
-  return `<p style="margin: 0; color: #314155; font-size: 13px; line-height: 1.65;">${formatSafeHtmlText(text)}</p>`;
+  return `<p style="margin: 0; color: #111111; font-size: 13px; line-height: 1.6;">${formatSafeHtmlText(text)}</p>`;
 }
 
 function renderCvBullets(value = '') {
@@ -145,7 +145,7 @@ function renderCvBullets(value = '') {
   if (!lines.length) return '';
 
   return `
-    <ul style="margin: 0; padding-left: 18px; color: #314155; font-size: 13px; line-height: 1.6;">
+    <ul style="margin: 0; padding-left: 18px; color: #111111; font-size: 13px; line-height: 1.55;">
       ${lines.map((line) => `<li style="margin: 0 0 7px 0;">${formatSafeHtmlText(line)}</li>`).join('')}
     </ul>
   `;
@@ -158,25 +158,15 @@ function renderCvTags(value = '') {
     .filter(Boolean)
     .slice(0, 28);
 
-  if (!tags.length) return renderCvParagraph(value);
-
-  return `
-    <div style="display: flex; flex-wrap: wrap; gap: 7px;">
-      ${tags.map((tag) => `
-        <span style="display: inline-flex; align-items: center; border: 1px solid #bfd0df; background: #f3f8fb; color: #1e3a5f; padding: 5px 8px; border-radius: 6px; font-size: 11px; font-weight: 700; line-height: 1.2;">
-          ${formatSafeHtmlText(tag)}
-        </span>
-      `).join('')}
-    </div>
-  `;
+  return renderCvParagraph(tags.length ? tags.join(', ') : value);
 }
 
 function renderCvSection(title, bodyHtml) {
   return `
     <section style="margin: 0 0 22px 0;">
       <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
-        <div style="height: 1px; width: 22px; background: #1e3a5f;"></div>
-        <h2 style="margin: 0; color: #1e3a5f; font-size: 14px; line-height: 1.2; font-weight: 800; text-transform: uppercase; letter-spacing: 0;">${formatSafeHtmlText(title)}</h2>
+        <div style="height: 1px; width: 22px; border-top: 1px solid #111111;"></div>
+        <h2 style="margin: 0; color: #111111; font-size: 14px; line-height: 1.2; font-weight: 800; text-transform: uppercase; letter-spacing: 0;">${formatSafeHtmlText(title)}</h2>
       </div>
       ${bodyHtml}
     </section>
@@ -185,8 +175,8 @@ function renderCvSection(title, bodyHtml) {
 
 function renderClassicSection(title, bodyHtml) {
   return `
-    <section style="margin: 0 0 22px 0;">
-      <h2 style="font-family: Georgia, 'Times New Roman', serif; margin: 0 0 8px 0; padding-bottom: 4px; border-bottom: 1.5px solid #111111; color: #111111; font-size: 24px; line-height: 1.1; font-weight: 700;">
+    <section style="margin: 0 0 24px 0;">
+      <h2 style="font-family: Georgia, 'Times New Roman', serif; margin: 0 0 10px 0; padding-bottom: 4px; border-bottom: 1.4px solid #111111; color: #111111; font-size: 24px; line-height: 1.1; font-weight: 700;">
         ${formatSafeHtmlText(title)}
       </h2>
       ${bodyHtml}
@@ -199,7 +189,7 @@ function renderClassicBullets(value = '') {
   if (!lines.length) return '';
 
   return `
-    <ul style="margin: 7px 0 0 0; padding-left: 18px; color: #111111; font-size: 14px; line-height: 1.34; list-style-position: outside;">
+    <ul style="margin: 7px 0 0 0; padding-left: 18px; color: #111111; font-size: 14px; line-height: 1.36; list-style-position: outside;">
       ${lines.map((line) => `<li style="margin: 0 0 5px 0; padding-left: 2px;">${formatSafeHtmlText(line)}</li>`).join('')}
     </ul>
   `;
@@ -227,7 +217,7 @@ function renderClassicEntry({
   const normalizedTitle = title || fallbackTitle;
 
   return `
-    <div style="margin: 0 0 18px 0;">
+    <div style="margin: 0 0 20px 0;">
       <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 16px;">
         <p style="flex: 1; min-width: 0; margin: 0; color: #111111; font-size: 15px; line-height: 1.25; font-weight: 700; overflow-wrap: anywhere;">
           ${formatSafeHtmlText(normalizedTitle)}
@@ -245,6 +235,27 @@ function renderClassicEntry({
       ${body || ''}
     </div>
   `;
+}
+
+function normalizeCvTemplateText(value = '') {
+  if (Array.isArray(value)) {
+    return value.map((item) => normalizeCvTemplateText(item)).filter(Boolean).join('\n');
+  }
+
+  if (value && typeof value === 'object') {
+    return Object.values(value).map((item) => normalizeCvTemplateText(item)).filter(Boolean).join('\n');
+  }
+
+  return String(value || '').trim();
+}
+
+function normalizeInlineCvList(value = '') {
+  return splitCvLines(normalizeCvTemplateText(value))
+    .flatMap((line) => line.split(/[,;]+/))
+    .map((item) => item.trim())
+    .filter(Boolean)
+    .filter((item, index, items) => items.findIndex((candidate) => candidate.toLowerCase() === item.toLowerCase()) === index)
+    .join(', ');
 }
 
 function parseEducationDetails(value = '') {
@@ -297,71 +308,110 @@ function buildLocalCvHtml({
   cvLanguage = '',
 } = {}) {
   const copy = getCvCopy(cvLanguage);
+  const language = getCvLanguage(cvLanguage);
+  const safeFullName = normalizeCvTemplateText(fullName || copy.nameFallback);
+  const safeEmail = normalizeCvTemplateText(email);
+  const safePhone = normalizeCvTemplateText(phone);
+  const safeGithubUrl = normalizeCvTemplateText(githubUrl);
+  const safeRole = normalizeCvTemplateText(role);
+  const safeLocation = normalizeCvTemplateText(currentLocation);
   const resolvedObjective =
-    objective?.trim() ||
+    normalizeCvTemplateText(objective) ||
     copy.objectiveFallback(role);
-  const resolvedEducation = education?.trim() || copy.educationFallback;
-  const resolvedExperience = experience?.trim() || copy.experienceFallback;
-  const resolvedSkills = skills?.trim() || copy.skillsFallback;
-  const resolvedCertifications = certifications?.trim() || copy.certificationsFallback;
-  const resolvedHobbies = hobbies?.trim() || copy.hobbiesFallback;
+  const resolvedEducation = normalizeCvTemplateText(education) || copy.educationFallback;
+  const resolvedExperience = normalizeCvTemplateText(experience) || copy.experienceFallback;
+  const resolvedSkills = normalizeInlineCvList(skills) || copy.skillsFallback;
+  const resolvedCertifications = normalizeInlineCvList(certifications) || copy.certificationsFallback;
+  const resolvedHobbies = normalizeInlineCvList(hobbies) || copy.hobbiesFallback;
   const headerMeta = [
-    email,
-    githubUrl,
-    phone,
-    currentLocation,
+    safeEmail || 'Email Address',
+    safeGithubUrl || 'LinkedIn Url / Portfolio / GitHub Url',
+    safePhone,
+    safeLocation,
   ]
     .filter(Boolean)
     .join(' • ');
-  const profileLabel = getCvLanguage(cvLanguage) === 'en' ? 'Profile' : 'Hồ sơ';
-  const workSubtitle = getCvLanguage(cvLanguage) === 'en' ? 'Relevant projects and practical experience' : 'Dự án và kinh nghiệm thực tế liên quan';
-  const educationTitle = getCvLanguage(cvLanguage) === 'en' ? '[add school name]' : '[điền tên trường]';
-  const educationSubtitle = getCvLanguage(cvLanguage) === 'en' ? '[degree/major]' : '[bằng cấp/chuyên ngành]';
-  const datePlaceholder = getCvLanguage(cvLanguage) === 'en' ? '[add dates]' : '[điền thời gian]';
+  const workSubtitle = language === 'en' ? 'Professional experience and relevant projects' : 'Kinh nghiệm và dự án liên quan';
+  const educationTitle = language === 'en' ? '[add school name]' : '[điền tên trường]';
+  const educationSubtitle = language === 'en' ? '[degree/major]' : '[bằng cấp/chuyên ngành]';
+  const datePlaceholder = language === 'en' ? '[add dates]' : '[điền thời gian]';
+  const sectionTitles = language === 'en'
+    ? {
+      experience: 'Work Experience',
+      education: 'Education',
+      honors: 'Honors and Awards',
+      additional: 'Additional Information',
+      skills: 'Technologies',
+      certifications: 'Certifications',
+      interests: 'Interests',
+      location: 'Location',
+    }
+    : {
+      experience: 'Kinh Nghiệm Làm Việc',
+      education: 'Học Vấn',
+      honors: 'Chứng Chỉ Và Giải Thưởng',
+      additional: 'Thông Tin Bổ Sung',
+      skills: 'Kỹ Năng',
+      certifications: 'Chứng Chỉ',
+      interests: 'Sở Thích',
+      location: 'Khu Vực',
+    };
   const educationDetails = parseEducationDetails(resolvedEducation);
-  const educationHeading = educationDetails.school && educationDetails.years
-    ? `${educationDetails.years}: ${educationDetails.school}`
-    : (educationDetails.school || educationTitle);
+  const educationHeading = educationDetails.school || educationTitle;
+  const shouldShowHonors = resolvedCertifications
+    && !/^(not updated|none|không có|chưa cập nhật)$/i.test(resolvedCertifications);
 
   return `
-    <div style="font-family: Arial, Helvetica, sans-serif; width: 794px; max-width: 100%; min-height: 1122px; margin: 0 auto; padding: 32px 46px 42px 46px; box-sizing: border-box; color: #111111; background: #ffffff; line-height: 1.35; overflow-wrap: break-word;">
-      <header style="text-align: center; margin: 0 0 26px 0;">
-        <h1 style="font-family: Georgia, 'Times New Roman', serif; margin: 0; color: #111111; font-size: 32px; line-height: 1.05; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">
-          ${formatSafeHtmlText(fullName || copy.nameFallback)}
+    <div style="font-family: Arial, Helvetica, sans-serif; width: 794px; max-width: 100%; min-height: 1122px; margin: 0 auto; padding: 34px 48px 42px 48px; box-sizing: border-box; color: #111111; background: #ffffff; line-height: 1.35; overflow-wrap: break-word;">
+      <header style="text-align: center; margin: 0 0 28px 0;">
+        <h1 style="font-family: Georgia, 'Times New Roman', serif; margin: 0; color: #111111; font-size: 32px; line-height: 1.05; font-weight: 700; text-transform: uppercase; letter-spacing: 0;">
+          ${formatSafeHtmlText(safeFullName)}
         </h1>
-        <p style="display: inline-block; margin: 6px 0 0 0; padding: 1px 4px; color: #111111; background: #eeeeee; font-size: 14px; line-height: 1.25;">
-          ${formatSafeHtmlText(headerMeta || 'Email Address • LinkedIn Url • Portfolio / GitHub Url')}
+        <p style="margin: 7px 0 0 0; color: #111111; font-size: 14px; line-height: 1.25;">
+          ${formatSafeHtmlText(headerMeta)}
         </p>
       </header>
 
-      ${renderClassicSection(copy.experienceTitle, `
+      ${renderClassicSection(sectionTitles.experience, `
         ${renderClassicEntry({
-          title: role || 'Work Title',
+          title: safeRole || 'Work Title',
           subtitle: workSubtitle,
-          rightTop: currentLocation || 'City, Country',
+          rightTop: safeLocation || 'City, Country',
           rightBottom: datePlaceholder,
           body: renderClassicBullets(resolvedExperience),
           fallbackTitle: 'Work Title',
         })}
       `)}
 
-      ${renderClassicSection(copy.educationTitle, `
+      ${renderClassicSection(sectionTitles.education, `
         ${renderClassicEntry({
           title: educationHeading,
           subtitle: educationDetails.school ? '' : educationSubtitle,
-          rightTop: educationDetails.school && educationDetails.years ? '' : datePlaceholder,
-          rightBottom: '',
+          rightTop: safeLocation || 'City, Country',
+          rightBottom: educationDetails.years || datePlaceholder,
           body: renderClassicBullets(educationDetails.details) || (!educationDetails.school ? `<p style="margin: 7px 0 0 0; color: #111111; font-size: 14px; line-height: 1.34;">${formatSafeHtmlText(copy.educationFallback)}</p>` : ''),
           fallbackTitle: educationTitle,
         })}
       `)}
 
-      ${renderClassicSection('Additional Information', `
-        ${renderClassicInfoLine(profileLabel, resolvedObjective)}
-        ${renderClassicInfoLine('Role', role)}
-        ${renderClassicInfoLine(copy.skillsTitle, resolvedSkills)}
-        ${renderClassicInfoLine(copy.certificationsTitle, resolvedCertifications)}
-        ${renderClassicInfoLine(copy.hobbiesTitle, resolvedHobbies)}
+      ${shouldShowHonors ? renderClassicSection(sectionTitles.honors, `
+        ${renderClassicEntry({
+          title: resolvedCertifications,
+          subtitle: language === 'en' ? 'Certification / award' : 'Chứng chỉ / giải thưởng',
+          rightTop: '',
+          rightBottom: '',
+          body: '',
+          fallbackTitle: sectionTitles.honors,
+        })}
+      `) : ''}
+
+      ${renderClassicSection(sectionTitles.additional, `
+        ${renderClassicInfoLine(language === 'en' ? 'Summary' : 'Tóm Tắt', resolvedObjective)}
+        ${renderClassicInfoLine(language === 'en' ? 'Target Role' : 'Vị Trí Ứng Tuyển', safeRole)}
+        ${renderClassicInfoLine(sectionTitles.skills, resolvedSkills)}
+        ${!shouldShowHonors ? renderClassicInfoLine(sectionTitles.certifications, resolvedCertifications) : ''}
+        ${renderClassicInfoLine(sectionTitles.interests, resolvedHobbies)}
+        ${safeLocation ? renderClassicInfoLine(sectionTitles.location, safeLocation) : ''}
       `)}
     </div>
   `.trim();
@@ -406,7 +456,7 @@ Formatting requirements:
 2. Design a modern, professional CV that reads well on A4.
 3. Header must clearly show full name, target role, and contact details.
 4. Main sections: Career Objective, Work Experience, Education, Skills, Certifications, Interests.
-5. Use navy (#1e3a5f) as the main accent color.
+5. Use a strict black-and-white ATS style. Do not use colored highlights, badges, chips, shaded spans, or accent blocks.
 6. Translate Vietnamese descriptive content to English, but keep proper nouns such as school names, company names, locations, and certificates in their original wording.
 7. If information is missing, write short natural placeholders using [add real information].
 8. If a portrait exists, place it in the header with a clean professional size.
@@ -436,7 +486,7 @@ Yêu cầu format CV:
 2. Thiết kế hiện đại, chuyên nghiệp, đọc tốt trên khổ A4, có thể 1 cột hoặc 2 cột nếu hợp lý.
 3. Header phải có họ tên nổi bật, vị trí ứng tuyển và thông tin liên hệ rõ ràng.
 4. Các section chính: Mục tiêu, Kinh nghiệm, Học vấn, Kỹ năng, Chứng chỉ, Sở thích.
-5. Dùng màu xanh navy (#1e3a5f) làm accent color chính.
+5. Dùng phong cách ATS đen trắng. Không dùng highlight màu, badge, chip, span tô nền hoặc khối màu nhấn.
 6. Nếu thông tin nào còn thiếu thì viết gợi ý mẫu ngắn, tự nhiên và phù hợp vị trí ứng tuyển.
 7. Nếu có ảnh chân dung thì đặt ảnh ở header, kích thước gọn, chuyên nghiệp.
 8. TUYỆT ĐỐI KHÔNG chèn bất kỳ ảnh placeholder nào từ các nguồn bên ngoài (như via.placeholder.com).
@@ -556,7 +606,7 @@ Thông tin ứng viên trích xuất từ ảnh:
 
 Gợi ý bố cục đã nhận diện:
 - Phong cách bố cục: ${layoutStyle || 'Không xác định rõ'}
-- Màu nhấn chính: ${primaryColor || '#1e3a5f'}
+- Màu nhấn chính: bỏ qua, CV đầu ra dùng đen trắng
 - Thứ tự section nổi bật: ${sectionOrder || 'Tên, liên hệ, mục tiêu, kinh nghiệm, học vấn, kỹ năng'}
 
 Text thô tham khảo thêm:
@@ -640,6 +690,29 @@ function sanitizeLmStudioCvContent(rawContent = {}, fallbackPayload = {}) {
     certifications: normalizeCvContentField(safeContent.certifications, fallbackPayload.certifications, 1000),
     hobbies: normalizeCvContentField(safeContent.hobbies, fallbackPayload.hobbies, 800),
   };
+}
+
+function buildTemplateCvFromModelText(text = '', payload = {}) {
+  try {
+    const parsed = extractJsonObject(text);
+    const content = sanitizeLmStudioCvContent(parsed, payload);
+    return buildLocalCvHtml({ ...payload, ...content });
+  } catch {
+    const cleanedHtml = cleanModelHtml(text);
+    const extractedPayload = /<\w+[\s\S]*>/i.test(cleanedHtml)
+      ? extractCvPayloadFromHtml(cleanedHtml, {
+        targetRole: payload.role,
+        cvLanguage: payload.cvLanguage,
+      })
+      : {};
+
+    return buildLocalCvHtml({
+      ...payload,
+      ...extractedPayload,
+      role: payload.role || extractedPayload.role,
+      cvLanguage: payload.cvLanguage,
+    });
+  }
 }
 
 function getPlainCvLines(htmlContent = '') {
@@ -1391,7 +1464,7 @@ exports.generateCV = async (req, res) => {
     currentLocation: resolvedLocation.location,
     cvLanguage: getCvLanguage(req.body.cvLanguage || req.body.cv_language),
   };
-  const prompt = buildGeneratePrompt(payload);
+  const prompt = buildLmStudioCvContentPrompt(payload);
 
   try {
     if (isLmStudioEnabled()) {
@@ -1418,8 +1491,8 @@ exports.generateCV = async (req, res) => {
         
         if (customRes.ok) {
           const customData = await customRes.json();
-          let html = cleanModelHtml(customData.cv || customData.response || '');
-          html = mergePortraitIntoHtml(html, portraitDataUrl, fullName);
+          const rawModelText = customData.cv || customData.response || JSON.stringify(customData);
+          const html = buildTemplateCvFromModelText(rawModelText, payload);
           return res.json({ cv: html });
         }
         console.warn('Custom API failed, falling back to Gemini.');
@@ -1430,17 +1503,14 @@ exports.generateCV = async (req, res) => {
 
     // Fallback: Gemini
     if (!process.env.GEMINI_API_KEY) {
-      return res.status(500).json({ error: 'Chưa cấu hình API Key cho AI. Vui lòng thêm GEMINI_API_KEY hoặc bật Kaggle Model.' });
+      return res.json({ cv: buildLocalCvHtml(payload), provider: 'local-template' });
     }
 
     const model = genAI.getGenerativeModel({ model: 'gemini-flash-latest' });
     const result = await model.generateContent(prompt);
-    const response = result.response;
-    let text = cleanModelHtml(response.text());
+    const html = buildTemplateCvFromModelText(result.response.text(), payload);
 
-    text = mergePortraitIntoHtml(text, portraitDataUrl, fullName);
-
-    res.json({ cv: text });
+    res.json({ cv: html });
   } catch (err) {
     console.error('CV Generate error, falling back to local template:', err.message);
 
@@ -1641,14 +1711,11 @@ Nếu không chắc trường nào, để chuỗi rỗng.
       skills = '',
       certifications = '',
       hobbies = '',
-      rawText = '',
-      layoutStyle = '',
-      primaryColor = '',
-      sectionOrder = '',
     } = extracted || {};
 
-    try {
-      const buildPrompt = buildImportHtmlPrompt({
+    return res.json({
+      extracted,
+      cv: buildLocalCvHtml({
         fullName,
         email,
         phone,
@@ -1659,38 +1726,9 @@ Nếu không chắc trường nào, để chuỗi rỗng.
         skills,
         certifications,
         hobbies,
-        rawText,
-        layoutStyle,
-        primaryColor,
-        sectionOrder,
-      });
-
-      const buildResult = await model.generateContent([
-        { text: buildPrompt },
-        { inlineData: { data: base64, mimeType } },
-      ]);
-      const html = cleanModelHtml(buildResult.response.text());
-
-      return res.json({ extracted, cv: html });
-    } catch (buildError) {
-      console.error('Build CV HTML from image error, using local fallback:', buildError);
-
-      return res.json({
-        extracted,
-        cv: buildLocalCvHtml({
-          fullName,
-          email,
-          phone,
-          role,
-          objective,
-          education,
-          experience,
-          skills,
-          certifications,
-          hobbies,
-        }),
-      });
-    }
+        cvLanguage: 'en',
+      }),
+    });
   } catch (err) {
     console.error('Import CV from image error:', err);
     if (extracted) {
