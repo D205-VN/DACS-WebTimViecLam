@@ -1,5 +1,6 @@
 const nodemailer = require('nodemailer');
 require('dotenv').config();
+const { sendEmailResend } = require('../../utils/mailer/resend');
 
 const DEFAULT_MAIL_TIMEOUT_MS = 15000;
 
@@ -21,12 +22,12 @@ const transporter = nodemailer.createTransport({
 });
 
 function isEmailConfigured() {
-  return Boolean(process.env.SMTP_EMAIL && process.env.SMTP_PASSWORD);
+  return Boolean(process.env.RESEND_API_KEY || (process.env.SMTP_EMAIL && process.env.SMTP_PASSWORD));
 }
 
 function ensureEmailConfigured() {
   if (!isEmailConfigured()) {
-    throw new Error('SMTP_EMAIL hoặc SMTP_PASSWORD chưa được cấu hình');
+    throw new Error('SMTP_EMAIL/SMTP_PASSWORD hoặc RESEND_API_KEY chưa được cấu hình');
   }
 }
 
@@ -108,7 +109,12 @@ async function sendOTPEmail(to, otp) {
     `,
   };
 
-  await transporter.sendMail(mailOptions);
+  if (process.env.RESEND_API_KEY) {
+    const from = mailOptions.from || (`AptertekWork.vn <${process.env.SMTP_EMAIL}>`);
+    await sendEmailResend({ from, to: mailOptions.to, subject: mailOptions.subject, html: mailOptions.html });
+  } else {
+    await transporter.sendMail(mailOptions);
+  }
 }
 
 /**
@@ -165,7 +171,12 @@ async function sendPasswordResetOTPEmail(to, otp) {
     `,
   };
 
-  await transporter.sendMail(mailOptions);
+  if (process.env.RESEND_API_KEY) {
+    const from = mailOptions.from || (`AptertekWork.vn <${process.env.SMTP_EMAIL}>`);
+    await sendEmailResend({ from, to: mailOptions.to, subject: mailOptions.subject, html: mailOptions.html });
+  } else {
+    await transporter.sendMail(mailOptions);
+  }
 }
 
 async function sendInterviewReminderEmail(to, {
@@ -242,7 +253,12 @@ async function sendInterviewReminderEmail(to, {
     `,
   };
 
-  await transporter.sendMail(mailOptions);
+  if (process.env.RESEND_API_KEY) {
+    const from = mailOptions.from || (`AptertekWork.vn <${process.env.SMTP_EMAIL}>`);
+    await sendEmailResend({ from, to: mailOptions.to, subject: mailOptions.subject, html: mailOptions.html });
+  } else {
+    await transporter.sendMail(mailOptions);
+  }
 }
 
 async function sendInterviewInvitationEmail(to, {
@@ -312,7 +328,12 @@ async function sendInterviewInvitationEmail(to, {
     `,
   };
 
-  await transporter.sendMail(mailOptions);
+  if (process.env.RESEND_API_KEY) {
+    const from = mailOptions.from || (`AptertekWork.vn <${process.env.SMTP_EMAIL}>`);
+    await sendEmailResend({ from, to: mailOptions.to, subject: mailOptions.subject, html: mailOptions.html });
+  } else {
+    await transporter.sendMail(mailOptions);
+  }
 }
 
 function formatJobAlertCriteria(alert = {}) {

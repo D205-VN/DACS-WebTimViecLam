@@ -8,6 +8,7 @@ const { ensureJobAnalyticsSchema } = require('../jobs/job.model');
 const { ensureMeetingRoomSchema } = require('../meeting-rooms/meeting-room.model');
 const { isEmailConfigured, sendInterviewInvitationEmail } = require('../auth/email.service');
 const nodemailer = require('nodemailer');
+const { sendEmailResend } = require('../../utils/mailer/resend');
 
 async function ensureOnboardingSchema() {
   await pool.query(`
@@ -53,7 +54,7 @@ function getMailTransporter() {
 async function sendHiredEmail(to, { candidateName, jobTitle, companyName }) {
   if (!isEmailConfigured()) return;
   const safe = (v) => String(v || '').replace(/[&<>"']/g, (c) => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
-  await getMailTransporter().sendMail({
+  const mailOptions = {
     from: `"AptertekWork.vn" <${process.env.SMTP_EMAIL}>`,
     to,
     subject: `[AptertekWork.vn] Chúc mừng! Bạn đã trúng tuyển vị trí ${jobTitle || ''}`,
@@ -77,13 +78,20 @@ async function sendHiredEmail(to, { candidateName, jobTitle, companyName }) {
           <p style="margin:0;color:#9ca3af;font-size:11px;">© 2026 AptertekWork.vn — Email tự động, vui lòng không trả lời.</p>
         </div>
       </div>`,
-  });
+  };
+
+  if (process.env.RESEND_API_KEY) {
+    const from = mailOptions.from || (`AptertekWork.vn <${process.env.SMTP_EMAIL}>`);
+    await sendEmailResend({ from, to: mailOptions.to, subject: mailOptions.subject, html: mailOptions.html });
+  } else {
+    await getMailTransporter().sendMail(mailOptions);
+  }
 }
 
 async function sendApprovedEmail(to, { candidateName, jobTitle, companyName }) {
   if (!isEmailConfigured()) return;
   const safe = (v) => String(v || '').replace(/[&<>"']/g, (c) => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
-  await getMailTransporter().sendMail({
+  const mailOptions = {
     from: `"AptertekWork.vn" <${process.env.SMTP_EMAIL}>`,
     to,
     subject: `[AptertekWork.vn] Hồ sơ của bạn đã qua vòng sàng lọc - ${jobTitle || ''}`,
@@ -106,13 +114,20 @@ async function sendApprovedEmail(to, { candidateName, jobTitle, companyName }) {
           <p style="margin:0;color:#9ca3af;font-size:11px;">© 2026 AptertekWork.vn — Email tự động, vui lòng không trả lời.</p>
         </div>
       </div>`,
-  });
+  };
+
+  if (process.env.RESEND_API_KEY) {
+    const from = mailOptions.from || (`AptertekWork.vn <${process.env.SMTP_EMAIL}>`);
+    await sendEmailResend({ from, to: mailOptions.to, subject: mailOptions.subject, html: mailOptions.html });
+  } else {
+    await getMailTransporter().sendMail(mailOptions);
+  }
 }
 
 async function sendRejectedEmail(to, { candidateName, jobTitle, companyName }) {
   if (!isEmailConfigured()) return;
   const safe = (v) => String(v || '').replace(/[&<>"']/g, (c) => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
-  await getMailTransporter().sendMail({
+  const mailOptions = {
     from: `"AptertekWork.vn" <${process.env.SMTP_EMAIL}>`,
     to,
     subject: `[AptertekWork.vn] Kết quả ứng tuyển vị trí ${jobTitle || ''}`,
@@ -136,7 +151,14 @@ async function sendRejectedEmail(to, { candidateName, jobTitle, companyName }) {
           <p style="margin:0;color:#9ca3af;font-size:11px;">© 2026 AptertekWork.vn — Email tự động, vui lòng không trả lời.</p>
         </div>
       </div>`,
-  });
+  };
+
+  if (process.env.RESEND_API_KEY) {
+    const from = mailOptions.from || (`AptertekWork.vn <${process.env.SMTP_EMAIL}>`);
+    await sendEmailResend({ from, to: mailOptions.to, subject: mailOptions.subject, html: mailOptions.html });
+  } else {
+    await getMailTransporter().sendMail(mailOptions);
+  }
 }
 const {
   ensureEmployerJobSchema,
