@@ -21,6 +21,8 @@ function getAllowedOrigins() {
     'http://127.0.0.1:5173',
     'https://aptertekwork.pages.dev',
     'https://aptertekwork.vercel.app',
+    'https://aptertekwork.io.vn',
+    'https://www.aptertekwork.io.vn',
     ...parseOriginList(process.env.FRONTEND_URL),
     ...parseOriginList(process.env.FRONTEND_URLS),
   ])];

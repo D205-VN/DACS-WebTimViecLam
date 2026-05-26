@@ -27,18 +27,32 @@ function sendEmailResend({ from, to, subject, html }) {
       res.setEncoding('utf8');
       res.on('data', (chunk) => { body += chunk; });
       res.on('end', () => {
+        let parsed = null;
+        try { parsed = JSON.parse(body); } catch (e) { /* ignore parse errors */ }
+
         if (res.statusCode >= 200 && res.statusCode < 300) {
-          try {
-            const json = JSON.parse(body);
-            resolve(json);
-          } catch (err) {
-            resolve({ raw: body });
-          }
-        } else {
-          const err = new Error(`Resend API error: ${res.statusCode} ${body}`);
-          err.statusCode = res.statusCode;
-          reject(err);
+          resolve(parsed || { raw: body });
+          return;
         }
+
+        // Friendly handling for unverified sending domain (common when using gmail.com)
+        if (res.statusCode === 403 && parsed && parsed.message && /domain is not verified/i.test(parsed.message)) {
+          const friendly = new Error(
+            `Resend domain verification error: ${parsed.message}. ` +
+            'Please add and verify your sending domain at https://resend.com/domains and set EMAIL_FROM to the verified address. ' +
+            'Also move RESEND_API_KEY into your production secrets (Render environment variables) and remove it from the repository.'
+          );
+          friendly.code = 'RESEND_DOMAIN_NOT_VERIFIED';
+          friendly.statusCode = res.statusCode;
+          friendly.response = parsed;
+          reject(friendly);
+          return;
+        }
+
+        const err = new Error(`Resend API error: ${res.statusCode} ${body}`);
+        err.statusCode = res.statusCode;
+        err.response = parsed || body;
+        reject(err);
       });
     });
 
