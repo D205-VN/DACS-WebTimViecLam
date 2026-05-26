@@ -740,6 +740,29 @@ function parseScoreFromModelText(responseText, fallback = 7.5) {
   return Number.isFinite(score) ? Math.max(0, Math.min(10, score)) : fallback;
 }
 
+async function getOwnedSubmission(submissionId, candidateId) {
+  const result = await pool.query(
+    `SELECT id, test_id, status
+     FROM ai_submissions
+     WHERE id = $1 AND candidate_id = $2`,
+    [submissionId, candidateId]
+  );
+
+  return result.rows[0] || null;
+}
+
+async function questionBelongsToTest(testId, questionId) {
+  const result = await pool.query(
+    `SELECT 1
+     FROM ai_test_questions
+     WHERE test_id = $1 AND question_id = $2
+     LIMIT 1`,
+    [testId, questionId]
+  );
+
+  return result.rowCount > 0;
+}
+
 const aiTestController = {
   // ==================== TEST MANAGEMENT ====================
   createTest: async (req, res) => {
@@ -985,6 +1008,25 @@ const aiTestController = {
   submitAnswer: async (req, res) => {
     try {
       const { submission_id, question_id, text_answer, audio_url, transcript, suspicious_flag, tab_switch_count } = req.body;
+      const candidate_id = req.user.id;
+
+      if (!submission_id || !question_id) {
+        return res.status(400).json({ error: 'Thiếu submission_id hoặc question_id' });
+      }
+
+      const submission = await getOwnedSubmission(submission_id, candidate_id);
+      if (!submission) {
+        return res.status(404).json({ error: 'Không tìm thấy lượt làm bài của bạn' });
+      }
+
+      if (submission.status !== 'in_progress') {
+        return res.status(400).json({ error: 'Lượt làm bài này đã kết thúc' });
+      }
+
+      const isQuestionInTest = await questionBelongsToTest(submission.test_id, question_id);
+      if (!isQuestionInTest) {
+        return res.status(400).json({ error: 'Câu hỏi không thuộc bài test này' });
+      }
 
       // Log anti-cheat data if provided
       if (suspicious_flag !== undefined || tab_switch_count !== undefined) {
@@ -992,8 +1034,8 @@ const aiTestController = {
           `UPDATE ai_submissions SET
             suspicious_flag = COALESCE($1, suspicious_flag),
             tab_switch_count = tab_switch_count + COALESCE($2, 0)
-           WHERE id = $3`,
-          [suspicious_flag, tab_switch_count || 0, submission_id]
+           WHERE id = $3 AND candidate_id = $4`,
+          [suspicious_flag, tab_switch_count || 0, submission_id, candidate_id]
         );
       }
 
@@ -1016,9 +1058,22 @@ const aiTestController = {
   completeSubmission: async (req, res) => {
     try {
       const { submission_id } = req.body;
+      const candidate_id = req.user.id;
+
+      if (!submission_id) {
+        return res.status(400).json({ error: 'Thiếu submission_id' });
+      }
+
+      const submissionOwner = await getOwnedSubmission(submission_id, candidate_id);
+      if (!submissionOwner) {
+        return res.status(404).json({ error: 'Không tìm thấy lượt làm bài của bạn' });
+      }
+
       await pool.query(
-        `UPDATE ai_submissions SET status = 'completed', completed_at = CURRENT_TIMESTAMP WHERE id = $1`,
-        [submission_id]
+        `UPDATE ai_submissions
+         SET status = 'completed', completed_at = COALESCE(completed_at, CURRENT_TIMESTAMP)
+         WHERE id = $1 AND candidate_id = $2`,
+        [submission_id, candidate_id]
       );
 
       // Wait a moment for async scoring to finish
@@ -1036,8 +1091,8 @@ const aiTestController = {
                 (SELECT COUNT(*) FROM ai_test_questions WHERE test_id = s.test_id) as total_questions
          FROM ai_submissions s
          JOIN ai_tests t ON s.test_id = t.id
-         WHERE s.id = $1`,
-        [submission_id]
+         WHERE s.id = $1 AND s.candidate_id = $2`,
+        [submission_id, candidate_id]
       );
 
       if (submissionRes.rows.length === 0) {

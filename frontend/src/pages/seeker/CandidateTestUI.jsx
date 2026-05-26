@@ -2,6 +2,7 @@ import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react'
 import { useLocation, useParams, useNavigate } from 'react-router-dom';
 import { AlertTriangle, ArrowRight, Award, Bot, CheckCircle, CheckSquare, Clock, Mic, Send, Square, Trophy, Video, XCircle } from 'lucide-react';
 import { aiTestApi } from '@shared/api/aiTestApi';
+import API_BASE_URL from '@shared/api/baseUrl';
 import { getAiTestKind, getSeekerAiTestPath } from '@shared/utils/aiTestRoutes';
 import { useAuth } from '@features/auth/AuthContext';
 
@@ -130,19 +131,24 @@ const CandidateTestUI = () => {
   }, [submissionId, test]);
 
   useEffect(() => {
-    // Auto-submit on page close/refresh via sendBeacon
+    // Auto-submit on page close/refresh.
     const handleBeforeUnload = (e) => {
       const sid = submissionIdRef.current;
       if (sid && !hasFinishedRef.current) {
         hasFinishedRef.current = true;
         const token = localStorage.getItem('token') || '';
-        navigator.sendBeacon(
-          `${import.meta.env.VITE_API_URL || ''}/api/ai-tests/complete-submission`,
-          new Blob([JSON.stringify({ submission_id: sid, token })], { type: 'application/json' })
-        );
+        fetch(`${API_BASE_URL}/api/ai-tests/complete-submission`, {
+          method: 'POST',
+          keepalive: true,
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+          body: JSON.stringify({ submission_id: sid }),
+        }).catch(() => {});
+        e.preventDefault();
+        e.returnValue = '';
       }
-      e.preventDefault();
-      e.returnValue = '';
     };
     window.addEventListener('beforeunload', handleBeforeUnload);
     
@@ -308,6 +314,8 @@ const CandidateTestUI = () => {
 
   const handleSubmitAnswer = async () => {
     if (!submissionId) return;
+    if (isRecording || !textAnswer.trim()) return;
+
     const currentQ = test.questions[currentQIdx];
 
     // Prefer the browser transcript already displayed in the textarea.
@@ -546,6 +554,8 @@ const CandidateTestUI = () => {
 
   const currentQ = test.questions[currentQIdx];
   const currentOptions = parseQuestionOptions(currentQ?.options);
+  const isLastQuestion = currentQIdx >= test.questions.length - 1;
+  const canSubmitCurrentAnswer = !isRecording && Boolean(textAnswer.trim());
   const usesAvatarLive3D = isAvatarLive3DType(test.test_type);
   const typeMeta = getTestTypeMeta(test.test_type);
   const TypeIcon = typeMeta.icon;
@@ -711,15 +721,29 @@ const CandidateTestUI = () => {
               </div>
 
               <div className="flex items-center justify-end border-t border-slate-100 bg-slate-50 p-5">
-                <button
-                  type="button"
-                  onClick={handleSubmitAnswer}
-                  disabled={!textAnswer.trim()}
-                  className="inline-flex min-w-44 items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 px-7 py-3.5 text-sm font-black text-white shadow-lg shadow-emerald-200 transition-all hover:-translate-y-0.5 hover:from-emerald-700 hover:to-teal-700 disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:translate-y-0"
-                >
-                  {currentQIdx < test?.questions.length - 1 ? 'Câu tiếp theo' : 'Nộp bài'}
-                  <Send size={17} />
-                </button>
+                {isLastQuestion ? (
+                  <button
+                    key="submit-mcq"
+                    type="button"
+                    onClick={handleSubmitAnswer}
+                    disabled={!canSubmitCurrentAnswer}
+                    className="inline-flex min-w-36 shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 px-7 py-3.5 text-sm font-black text-white shadow-lg shadow-emerald-200 transition-all hover:-translate-y-0.5 hover:from-emerald-700 hover:to-teal-700 disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:translate-y-0"
+                  >
+                    <span>Nộp bài</span>
+                    <Send size={17} />
+                  </button>
+                ) : (
+                  <button
+                    key="next-mcq"
+                    type="button"
+                    onClick={handleSubmitAnswer}
+                    disabled={!canSubmitCurrentAnswer}
+                    className="inline-flex min-w-44 shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 px-7 py-3.5 text-sm font-black text-white shadow-lg shadow-emerald-200 transition-all hover:-translate-y-0.5 hover:from-emerald-700 hover:to-teal-700 disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:translate-y-0"
+                  >
+                    <span>Câu tiếp theo</span>
+                    <Send size={17} />
+                  </button>
+                )}
               </div>
             </section>
           </main>
@@ -934,15 +958,29 @@ const CandidateTestUI = () => {
               </div>
 
               <div className="flex items-center justify-end border-t border-sky-50 bg-slate-50 p-5">
-                <button
-                  type="button"
-                  onClick={handleSubmitAnswer}
-                  disabled={isRecording || !textAnswer.trim()}
-                  className="inline-flex min-w-44 items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-sky-600 to-blue-600 px-7 py-3.5 text-sm font-black text-white shadow-lg shadow-sky-200 transition-all hover:-translate-y-0.5 hover:from-sky-700 hover:to-blue-700 disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:translate-y-0"
-                >
-                  {currentQIdx < test?.questions.length - 1 ? 'Câu tiếp theo' : 'Nộp bài'}
-                  <Send size={17} />
-                </button>
+                {isLastQuestion ? (
+                  <button
+                    key="submit-video"
+                    type="button"
+                    onClick={handleSubmitAnswer}
+                    disabled={!canSubmitCurrentAnswer}
+                    className="inline-flex min-w-36 shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-2xl bg-gradient-to-r from-sky-600 to-blue-600 px-7 py-3.5 text-sm font-black text-white shadow-lg shadow-sky-200 transition-all hover:-translate-y-0.5 hover:from-sky-700 hover:to-blue-700 disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:translate-y-0"
+                  >
+                    <span>Nộp bài</span>
+                    <Send size={17} />
+                  </button>
+                ) : (
+                  <button
+                    key="next-video"
+                    type="button"
+                    onClick={handleSubmitAnswer}
+                    disabled={!canSubmitCurrentAnswer}
+                    className="inline-flex min-w-44 shrink-0 items-center justify-center gap-2 whitespace-nowrap rounded-2xl bg-gradient-to-r from-sky-600 to-blue-600 px-7 py-3.5 text-sm font-black text-white shadow-lg shadow-sky-200 transition-all hover:-translate-y-0.5 hover:from-sky-700 hover:to-blue-700 disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:translate-y-0"
+                  >
+                    <span>Câu tiếp theo</span>
+                    <Send size={17} />
+                  </button>
+                )}
               </div>
             </section>
           </main>
@@ -1185,14 +1223,29 @@ const CandidateTestUI = () => {
 
           {/* Action Footer */}
           <div className="p-5 border-t border-white/[0.06] flex justify-end relative z-10">
-            <button 
-              onClick={handleSubmitAnswer}
-              disabled={isRecording || !textAnswer.trim()}
-              className="group disabled:opacity-40 disabled:cursor-not-allowed bg-gradient-to-r from-indigo-500 to-purple-500 text-white px-8 py-3.5 rounded-xl font-semibold flex items-center gap-3 text-sm transition-all hover:shadow-lg hover:shadow-indigo-500/25 hover:from-indigo-400 hover:to-purple-400"
-            >
-              <span>{currentQIdx < test?.questions.length - 1 ? 'Câu tiếp theo' : 'Nộp bài'}</span>
-              <Send size={18} className="group-hover:translate-x-0.5 transition-transform" />
-            </button>
+            {isLastQuestion ? (
+              <button
+                key="submit-avatar"
+                type="button"
+                onClick={handleSubmitAnswer}
+                disabled={!canSubmitCurrentAnswer}
+                className="group inline-flex min-w-36 shrink-0 items-center justify-center gap-3 whitespace-nowrap rounded-xl bg-gradient-to-r from-indigo-500 to-purple-500 px-8 py-3.5 text-sm font-semibold text-white transition-all hover:from-indigo-400 hover:to-purple-400 hover:shadow-lg hover:shadow-indigo-500/25 disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                <span>Nộp bài</span>
+                <Send size={18} className="group-hover:translate-x-0.5 transition-transform" />
+              </button>
+            ) : (
+              <button
+                key="next-avatar"
+                type="button"
+                onClick={handleSubmitAnswer}
+                disabled={!canSubmitCurrentAnswer}
+                className="group inline-flex min-w-44 shrink-0 items-center justify-center gap-3 whitespace-nowrap rounded-xl bg-gradient-to-r from-indigo-500 to-purple-500 px-8 py-3.5 text-sm font-semibold text-white transition-all hover:from-indigo-400 hover:to-purple-400 hover:shadow-lg hover:shadow-indigo-500/25 disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                <span>Câu tiếp theo</span>
+                <Send size={18} className="group-hover:translate-x-0.5 transition-transform" />
+              </button>
+            )}
           </div>
         </div>
       </div>

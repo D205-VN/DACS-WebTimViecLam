@@ -5,7 +5,7 @@ React/Vite application for the job search platform.
 ## Source Layout
 
 - `src/app/`: app bootstrap, providers, layouts, and router setup.
-- `src/features/`: stateful product capabilities such as auth, messages, notifications, and seeker tools.
+- `src/features/`: stateful product capabilities such as auth, notifications, and seeker tools.
 - `src/pages/`: route-level screens.
 - `src/pages/auth/`: login, register, forgot password, and change password screens.
 - `src/pages/admin/`: admin-only route screens.

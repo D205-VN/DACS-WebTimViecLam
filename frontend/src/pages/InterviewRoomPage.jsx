@@ -387,6 +387,7 @@ export default function InterviewRoomPage() {
           try {
             const hostRes = await fetch(`${API_BASE_URL}/api/meeting-rooms/access/${token}/host-start`, { method: 'PATCH' });
             const hostData = await hostRes.json();
+            if (!hostRes.ok) throw new Error(hostData.error || 'Không thể mở phòng HR');
             if (hostRes.ok && isMounted) {
               setRoom((prev) => ({
                 ...prev,
@@ -398,7 +399,14 @@ export default function InterviewRoomPage() {
                 interview_at: hostData.data?.current_candidate?.interview_at || prev?.interview_at,
               }));
             }
-          } catch (err) { console.error('Mark host joined error:', err); }
+          } catch (err) {
+            console.error('Mark host joined error:', err);
+            if (isMounted) {
+              setError(err.message || 'Không thể mở phòng HR');
+              setJoining(false);
+            }
+            return;
+          }
           if (isMounted) setJoining(true);
           return;
         }
@@ -407,6 +415,15 @@ export default function InterviewRoomPage() {
           try {
             const confirmRes = await fetch(`${API_BASE_URL}/api/meeting-rooms/access/${token}/confirm`, { method: 'PATCH' });
             const confirmData = await confirmRes.json();
+            if (!confirmRes.ok) {
+              if (confirmRes.status === 410 && isMounted) {
+                setRoom((prev) => prev ? ({ ...prev, queue_status: 'completed', ended_at: new Date().toISOString() }) : prev);
+                setWaiting(false);
+                setJoining(false);
+                return;
+              }
+              throw new Error(confirmData.error || 'Không thể xác nhận tham gia phỏng vấn');
+            }
             if (confirmRes.ok && isMounted) {
               setRoom((prev) => ({ ...prev, ...confirmData.data }));
               setWaiting(confirmData.data.queue_status !== 'in_interview' && confirmData.data.queue_status !== 'completed');
@@ -504,15 +521,13 @@ export default function InterviewRoomPage() {
       });
 
       sock.on('webrtc:interview-completed', () => {
-        if (role === 'candidate') {
-          cleanupPeer();
-          cleanupMedia();
-          setJoining(false);
-          setWaiting(false);
-          setPeerConnected(false);
-          if (remoteVideoRef.current) remoteVideoRef.current.srcObject = null;
-          setRoom((prev) => prev ? ({ ...prev, queue_status: 'completed', ended_at: new Date().toISOString() }) : prev);
-        }
+        cleanupPeer();
+        cleanupMedia();
+        setJoining(false);
+        setWaiting(false);
+        setPeerConnected(false);
+        if (remoteVideoRef.current) remoteVideoRef.current.srcObject = null;
+        setRoom((prev) => prev ? ({ ...prev, queue_status: 'completed', ended_at: new Date().toISOString() }) : prev);
       });
     };
 
@@ -543,6 +558,10 @@ export default function InterviewRoomPage() {
           const shouldWait = Boolean(data.data.room.confirmed_at) && !data.data.room.can_join && data.data.room.queue_status !== 'completed';
           setWaiting(shouldWait);
           if (data.data.room.can_join && !joining) { setWaiting(false); setJoining(true); }
+        } else if (res.status === 410) {
+          setWaiting(false);
+          setJoining(false);
+          setRoom((prev) => prev ? ({ ...prev, queue_status: 'completed', ended_at: new Date().toISOString() }) : prev);
         }
       } catch (err) { console.error('Poll error:', err); }
     }, 5000);
@@ -617,21 +636,25 @@ export default function InterviewRoomPage() {
     if (role !== 'host') return;
     const res = await fetch(`${API_BASE_URL}/api/meeting-rooms/access/${token}/complete`, { method: 'PATCH' });
     const data = await res.json().catch(() => ({}));
-    if (!res.ok) { setError(data.error || 'Không thể hoàn tất lượt phỏng vấn'); return; }
+    if (!res.ok) {
+      if (res.status === 410) {
+        handleLeave();
+        setNextCandidate(null);
+        setRoom((prev) => prev ? ({ ...prev, queue_status: 'completed', ended_at: new Date().toISOString() }) : prev);
+        return;
+      }
+      setError(data.error || 'Không thể hoàn tất lượt phỏng vấn');
+      return;
+    }
     handleLeave();
-    const admittedCandidate = data.data?.next_candidate || null;
     const finishedCandidate = data.data?.completed_candidate || null;
     setCompletedCandidate(finishedCandidate?.application_id ? finishedCandidate : null);
     setEvaluationNotice('');
-    setNextCandidate(admittedCandidate);
+    setNextCandidate(null);
     setRoom((prev) => ({
       ...prev,
-      queue_status: data.data?.room_status || (admittedCandidate ? 'in_interview' : 'completed'),
-      current_candidate: admittedCandidate || prev?.current_candidate,
-      application_id: admittedCandidate?.application_id || prev?.application_id,
-      candidate_name: admittedCandidate?.candidate_name || prev?.candidate_name,
-      interview_at: admittedCandidate?.interview_at || prev?.interview_at,
-      ended_at: data.data?.room_status === 'completed' ? new Date().toISOString() : prev?.ended_at,
+      queue_status: data.data?.room_status || 'completed',
+      ended_at: new Date().toISOString(),
     }));
   };
 
@@ -757,7 +780,7 @@ export default function InterviewRoomPage() {
                 </span>
                 <div className="flex-1" />
                 <button type="button" onClick={handleCompleteInterview} className="inline-flex items-center gap-1.5 rounded-lg bg-gradient-to-r from-emerald-500 to-teal-500 px-3 py-1 text-xs font-semibold text-white hover:shadow-lg hover:shadow-emerald-500/20 transition-all">
-                  <CheckCircle2 className="h-3 w-3" /> Hoàn tất lượt
+                  <CheckCircle2 className="h-3 w-3" /> Kết thúc & đóng phòng
                 </button>
               </div>
             )}
@@ -776,7 +799,7 @@ export default function InterviewRoomPage() {
                 </h2>
                 <p className="mt-3 text-sm leading-6 text-slate-400">
                   {completedCandidate
-                    ? 'Lưu phiếu đánh giá ngay tại đây, sau đó chuyển sang ứng viên tiếp theo nếu còn lịch chờ.'
+                    ? 'Lưu phiếu đánh giá ngay tại đây. Phòng đã được đóng, link tham gia không còn hiệu lực.'
                     : interviewCompleted
                     ? 'Cảm ơn bạn đã tham gia. Camera và microphone đã được tắt cho lượt phỏng vấn này.'
                     : waiting
@@ -794,11 +817,11 @@ export default function InterviewRoomPage() {
                       <span>Trang sẽ tự cập nhật mỗi vài giây. Bạn có thể giữ tab này mở.</span>
                     </div>
                   </div>
-                ) : nextCandidate && !completedCandidate ? (
+                ) : nextCandidate && !completedCandidate && !interviewCompleted ? (
                   <button type="button" onClick={() => { setCompletedCandidate(null); setNextCandidate(null); setEvaluationForm(createDefaultEvaluationForm()); setEvaluationNotice(''); setJoining(true); }} className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 px-5 py-3 text-sm font-bold text-white transition-all hover:shadow-lg hover:shadow-emerald-500/25">
                     <UserCheck className="h-4 w-4" /> Vào lượt tiếp theo
                   </button>
-                ) : role === 'host' ? (
+                ) : role === 'host' && !interviewCompleted ? (
                   <button type="button" onClick={handleJoin} className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-500 px-5 py-3 text-sm font-bold text-white transition-all hover:shadow-lg hover:shadow-indigo-500/25">
                     <Video className="h-4 w-4" /> Vào phòng HR
                   </button>
@@ -881,10 +904,10 @@ export default function InterviewRoomPage() {
 
                     <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                       <p className={`text-sm ${evaluationNotice.startsWith('Đã') ? 'text-emerald-200' : 'text-amber-200'}`}>
-                        {evaluationNotice || 'Lưu phiếu này trước khi chuyển sang ứng viên tiếp theo để không mất ghi chú.'}
+                        {evaluationNotice || 'Lưu phiếu này để hoàn tất ghi chú nội bộ sau phỏng vấn.'}
                       </p>
                       <div className="flex flex-col gap-2 sm:flex-row">
-                        {nextCandidate ? (
+                        {nextCandidate && !interviewCompleted ? (
                           <button type="button" onClick={() => { setCompletedCandidate(null); setNextCandidate(null); setEvaluationForm(createDefaultEvaluationForm()); setEvaluationNotice(''); setJoining(true); }} className="inline-flex items-center justify-center gap-2 rounded-xl border border-white/[0.12] bg-white/[0.08] px-4 py-3 text-sm font-bold text-white transition hover:bg-white/[0.14]">
                             <UserCheck className="h-4 w-4" /> Vào lượt tiếp theo
                           </button>
@@ -965,7 +988,7 @@ export default function InterviewRoomPage() {
                   {screenOn ? <MonitorOff className="h-5 w-5" /> : <Monitor className="h-5 w-5" />}
                 </button>
                 <div className="w-px h-8 bg-white/[0.08] mx-1" />
-                <button type="button" onClick={handleLeave} className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-rose-500 to-pink-600 transition-all hover:shadow-lg hover:shadow-rose-500/25 hover:scale-105" title="Rời phòng">
+                <button type="button" onClick={role === 'host' ? handleCompleteInterview : handleLeave} className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-rose-500 to-pink-600 transition-all hover:shadow-lg hover:shadow-rose-500/25 hover:scale-105" title={role === 'host' ? 'Kết thúc và đóng phòng' : 'Rời phòng'}>
                   <PhoneOff className="h-5 w-5" />
                 </button>
               </div>

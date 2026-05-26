@@ -38,6 +38,13 @@ function getQueueStatus(room) {
   return null;
 }
 
+function isRoomClosed(room) {
+  const candidates = Array.isArray(room.candidates) ? room.candidates : [];
+  return Boolean(room.ended_at)
+    || room.queue_status === 'completed'
+    || (candidates.length > 0 && candidates.every((candidate) => candidate.queue_status === 'completed' || candidate.ended_at));
+}
+
 function getCandidateQueueStatus(candidate) {
   if (candidate.queue_status === 'completed' || candidate.ended_at) {
     return { label: 'Đã phỏng vấn', className: 'bg-slate-100 text-slate-600' };
@@ -204,6 +211,7 @@ export default function ManageMeetingRoomsTab() {
               const activeCandidate = candidates.find((candidate) => candidate.queue_status === 'in_interview');
               const waitingCount = candidates.filter((candidate) => candidate.queue_status === 'waiting').length;
               const isAutoRoom = Boolean(room.job_id);
+              const roomClosed = isRoomClosed(room);
 
               return (
               <article
@@ -304,7 +312,12 @@ export default function ManageMeetingRoomsTab() {
                     Cập nhật lúc {formatDateTime(room.updated_at || room.created_at)}
                   </div>
 
-                  {room.host_token || room.meeting_link ? (
+                  {roomClosed ? (
+                    <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-slate-500">
+                      <CheckCircle2 className="w-4 h-4" />
+                      Phòng đã đóng
+                    </span>
+                  ) : room.host_token || room.meeting_link ? (
                     <a
                       href={room.host_token ? `/interview-room/${room.host_token}` : room.meeting_link}
                       className="inline-flex items-center gap-1.5 text-sm font-semibold text-blue-600 transition hover:text-blue-700"

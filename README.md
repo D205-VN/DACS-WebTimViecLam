@@ -25,6 +25,17 @@ npm install
 npm run dev
 ```
 
+Checks:
+
+```bash
+cd frontend
+npm run lint
+npm run build
+
+cd ../backend
+npm test
+```
+
 Local AI with LM Studio:
 
 ```env

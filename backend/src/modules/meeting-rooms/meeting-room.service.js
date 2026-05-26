@@ -41,6 +41,24 @@ function getCurrentCandidate(candidates = []) {
         || null;
 }
 
+function isClosedQueueStatus(status) {
+    return ['completed', 'closed'].includes(String(status || '').toLowerCase());
+}
+
+function isRoomClosed(room = {}) {
+    const endedAt = room.room_ended_at || room.ended_at;
+    const status = room.room_queue_status || room.queue_status;
+    return Boolean(endedAt) || isClosedQueueStatus(status);
+}
+
+function isScheduleClosed(schedule = {}) {
+    return Boolean(schedule.ended_at) || isClosedQueueStatus(schedule.queue_status);
+}
+
+function sendClosedRoomResponse(res) {
+    return res.status(410).json({ error: 'Phòng phỏng vấn đã đóng. Link này không còn hiệu lực.' });
+}
+
 async function getCandidateQueuePosition(client, scheduleId) {
     const result = await client.query(
         `SELECT ranked.position
@@ -285,7 +303,7 @@ exports.getRoomByAccessToken = async (req, res) => {
                 mr.id, mr.name, mr.location, mr.description, mr.meeting_link,
                 mr.jitsi_room_id, mr.recording_status, mr.recording_url,
                 mr.queue_status, mr.host_joined_at, mr.start_time, mr.end_time,
-                mr.host_token,
+                mr.ended_at, mr.host_token,
                 j.job_title,
                 j.company_name
              FROM meeting_rooms mr
@@ -306,6 +324,7 @@ exports.getRoomByAccessToken = async (req, res) => {
             room.candidate_name = currentCandidate?.candidate_name || null;
             room.interview_at = currentCandidate?.interview_at || room.start_time;
             room.queue_status = deriveRoomQueueStatus(room, candidates);
+            if (isRoomClosed(room)) return sendClosedRoomResponse(res);
             room.can_join = true;
             room.daily_token = room.host_token;
             delete room.host_token;
@@ -318,6 +337,8 @@ exports.getRoomByAccessToken = async (req, res) => {
                 mr.id, mr.name, mr.location, mr.description, mr.meeting_link,
                 mr.jitsi_room_id, mr.recording_status, mr.recording_url,
                 mr.host_joined_at, mr.start_time, mr.end_time,
+                mr.queue_status AS room_queue_status,
+                mr.ended_at AS room_ended_at,
                 ms.id AS schedule_id,
                 ms.application_id,
                 ms.queue_status,
@@ -343,9 +364,12 @@ exports.getRoomByAccessToken = async (req, res) => {
 
         if (scheduleResult.rows.length) {
             const room = scheduleResult.rows[0];
+            if (isRoomClosed(room) || isScheduleClosed(room)) return sendClosedRoomResponse(res);
             const queuePosition = await getCandidateQueuePosition(pool, room.schedule_id);
             room.queue_position = queuePosition;
             room.can_join = Boolean(room.host_joined_at) && room.queue_status === 'in_interview';
+            delete room.room_queue_status;
+            delete room.room_ended_at;
             return res.json({ data: { role: 'candidate', room } });
         }
 
@@ -373,6 +397,7 @@ exports.getRoomByAccessToken = async (req, res) => {
 
         const legacyRoom = legacyResult.rows[0];
         if (!legacyRoom) return res.status(404).json({ error: 'Phòng phỏng vấn không tồn tại hoặc link đã hết hiệu lực' });
+        if (isRoomClosed(legacyRoom)) return sendClosedRoomResponse(res);
 
         legacyRoom.queue_position = await getLegacyRoomQueuePosition(pool, legacyRoom.id);
         legacyRoom.can_join = legacyRoom.queue_status === 'in_interview';
@@ -393,7 +418,11 @@ exports.confirmRoomAccess = async (req, res) => {
         await client.query('BEGIN');
 
         const scheduleResult = await client.query(
-            `SELECT ms.id, ms.meeting_room_id, ms.queue_status, ms.ended_at, mr.host_joined_at
+            `SELECT
+                ms.id, ms.meeting_room_id, ms.queue_status, ms.ended_at,
+                mr.host_joined_at,
+                mr.queue_status AS room_queue_status,
+                mr.ended_at AS room_ended_at
              FROM meeting_schedules ms
              JOIN meeting_rooms mr ON mr.id = ms.meeting_room_id
              WHERE ms.access_token = $1
@@ -403,6 +432,11 @@ exports.confirmRoomAccess = async (req, res) => {
 
         const schedule = scheduleResult.rows[0];
         if (schedule) {
+            if (isRoomClosed(schedule) || isScheduleClosed(schedule)) {
+                await client.query('ROLLBACK');
+                return sendClosedRoomResponse(res);
+            }
+
             await client.query(
                 `UPDATE meeting_schedules
                  SET confirmed_at = COALESCE(confirmed_at, NOW()),
@@ -450,7 +484,7 @@ exports.confirmRoomAccess = async (req, res) => {
         }
 
         const legacyRoomResult = await client.query(
-            `SELECT id, employer_id, job_id, interview_date, queue_status
+            `SELECT id, employer_id, job_id, interview_date, queue_status, ended_at
              FROM meeting_rooms
              WHERE access_token = $1
              FOR UPDATE`,
@@ -461,6 +495,10 @@ exports.confirmRoomAccess = async (req, res) => {
         if (!room) {
             await client.query('ROLLBACK');
             return res.status(404).json({ error: 'Không thể xác nhận phòng phỏng vấn' });
+        }
+        if (isRoomClosed(room)) {
+            await client.query('ROLLBACK');
+            return sendClosedRoomResponse(res);
         }
 
         await client.query(
@@ -516,14 +554,29 @@ exports.updateRecordingStatus = async (req, res) => {
         const allowedStatuses = ['idle', 'recording', 'stored', 'failed'];
         const normalizedStatus = allowedStatuses.includes(recording_status) ? recording_status : 'idle';
 
+        const roomResult = await pool.query(
+            `SELECT id, queue_status, ended_at
+             FROM meeting_rooms
+             WHERE host_token = $1
+             LIMIT 1`,
+            [token]
+        );
+        const room = roomResult.rows[0];
+        if (!room) {
+            return res.status(404).json({ error: 'Không có quyền cập nhật ghi hình phòng này' });
+        }
+        if (isRoomClosed(room)) {
+            return sendClosedRoomResponse(res);
+        }
+
         const result = await pool.query(
             `UPDATE meeting_rooms
              SET recording_status = $1,
                  recording_url = COALESCE($2, recording_url),
                  updated_at = NOW()
-             WHERE host_token = $3
+             WHERE id = $3
              RETURNING id, recording_status, recording_url`,
-            [normalizedStatus, recording_url || null, token]
+            [normalizedStatus, recording_url || null, room.id]
         );
 
         if (!result.rows.length) {
@@ -545,11 +598,10 @@ exports.markHostJoined = async (req, res) => {
         await client.query('BEGIN');
 
         const roomResult = await client.query(
-            `UPDATE meeting_rooms
-             SET host_joined_at = COALESCE(host_joined_at, NOW()),
-                 updated_at = NOW()
+            `SELECT id, host_joined_at, queue_status, ended_at
+             FROM meeting_rooms
              WHERE host_token = $1
-             RETURNING id, host_joined_at`,
+             FOR UPDATE`,
             [token]
         );
 
@@ -558,6 +610,20 @@ exports.markHostJoined = async (req, res) => {
             await client.query('ROLLBACK');
             return res.status(404).json({ error: 'Không có quyền mở phòng HR' });
         }
+        if (isRoomClosed(room)) {
+            await client.query('ROLLBACK');
+            return sendClosedRoomResponse(res);
+        }
+
+        const updatedRoomResult = await client.query(
+            `UPDATE meeting_rooms
+             SET host_joined_at = COALESCE(host_joined_at, NOW()),
+                 updated_at = NOW()
+             WHERE id = $1
+             RETURNING id, host_joined_at`,
+            [room.id]
+        );
+        const updatedRoom = updatedRoomResult.rows[0];
 
         const admitted = await admitFirstWaitingCandidate(client, room.id);
         const candidates = await getRoomCandidates(client, room.id);
@@ -576,7 +642,7 @@ exports.markHostJoined = async (req, res) => {
         return res.json({
             data: {
                 room_id: room.id,
-                host_joined_at: room.host_joined_at,
+                host_joined_at: updatedRoom.host_joined_at,
                 room_status: roomStatus,
                 admitted_schedule_id: admitted?.id || null,
                 current_candidate: currentCandidate,
@@ -599,7 +665,7 @@ exports.completeCurrentInterview = async (req, res) => {
         await client.query('BEGIN');
 
         const roomResult = await client.query(
-            `SELECT id, employer_id, job_id, interview_date
+            `SELECT id, employer_id, job_id, interview_date, queue_status, ended_at
              FROM meeting_rooms
              WHERE host_token = $1
              FOR UPDATE`,
@@ -610,6 +676,10 @@ exports.completeCurrentInterview = async (req, res) => {
         if (!room) {
             await client.query('ROLLBACK');
             return res.status(404).json({ error: 'Không có quyền hoàn tất phòng này' });
+        }
+        if (isRoomClosed(room)) {
+            await client.query('ROLLBACK');
+            return sendClosedRoomResponse(res);
         }
 
         const completed = await client.query(
@@ -629,8 +699,6 @@ exports.completeCurrentInterview = async (req, res) => {
              RETURNING id, application_id`,
             [room.id]
         );
-
-        const admitted = await admitFirstWaitingCandidate(client, room.id);
 
         let completedCandidate = null;
         const completedScheduleId = completed.rows[0]?.id || null;
@@ -656,49 +724,23 @@ exports.completeCurrentInterview = async (req, res) => {
             completedCandidate = { application_id: completedApplicationId };
         }
 
-        let nextCandidate = null;
-        if (admitted?.id) {
-            const nextResult = await client.query(
-                `SELECT
-                    ms.id AS schedule_id,
-                    ms.application_id,
-                    u.full_name AS candidate_name,
-                    aj.interview_at
-                 FROM meeting_schedules ms
-                 LEFT JOIN applied_jobs aj ON aj.id = ms.application_id
-                 LEFT JOIN users u ON u.id = COALESCE(ms.seeker_id, aj.user_id)
-                 WHERE ms.id = $1`,
-                [admitted.id]
-            );
-            nextCandidate = nextResult.rows[0] || null;
-        }
-
-        const statusResult = await client.query(
-            `SELECT
-                COUNT(*)::int AS total,
-                COUNT(*) FILTER (WHERE queue_status = 'in_interview')::int AS active_count,
-                COUNT(*) FILTER (WHERE queue_status = 'waiting')::int AS waiting_count,
-                COUNT(*) FILTER (WHERE queue_status = 'completed' OR ended_at IS NOT NULL)::int AS completed_count
-             FROM meeting_schedules
-             WHERE meeting_room_id = $1`,
+        await client.query(
+            `UPDATE meeting_schedules
+             SET queue_status = 'completed',
+                 ended_at = COALESCE(ended_at, NOW()),
+                 updated_at = NOW()
+             WHERE meeting_room_id = $1
+               AND ended_at IS NULL`,
             [room.id]
         );
-        const status = statusResult.rows[0] || {};
-        const roomStatus = status.active_count > 0
-            ? 'in_interview'
-            : status.waiting_count > 0
-                ? 'waiting'
-                : status.total > 0 && status.completed_count === status.total
-                    ? 'completed'
-                    : 'invited';
 
         await client.query(
             `UPDATE meeting_rooms
-             SET queue_status = $1::varchar,
-                 ended_at = CASE WHEN $1::varchar = 'completed' THEN COALESCE(ended_at, NOW()) ELSE ended_at END,
+             SET queue_status = 'completed',
+                 ended_at = COALESCE(ended_at, NOW()),
                  updated_at = NOW()
-             WHERE id = $2`,
-            [roomStatus, room.id]
+             WHERE id = $1`,
+            [room.id]
         );
 
         await client.query('COMMIT');
@@ -709,13 +751,8 @@ exports.completeCurrentInterview = async (req, res) => {
                 completed_room_id: room.id,
                 completed_schedule_id: completedScheduleId,
                 completed_candidate: completedCandidate,
-                room_status: roomStatus,
-                next_candidate: nextCandidate
-                    ? {
-                        ...nextCandidate,
-                        host_path: `/interview-room/${token}`,
-                      }
-                    : null,
+                room_status: 'completed',
+                next_candidate: null,
             },
         });
     } catch (error) {

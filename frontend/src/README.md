@@ -1,7 +1,7 @@
 Frontend layout:
 
 - `src/app/`: app bootstrap, providers, layouts, router guards.
-- `src/features/`: stateful user-facing capabilities such as auth, notifications, seeker tools.
+- `src/features/`: stateful user-facing capabilities such as auth, notifications, and seeker tools.
 - `src/shared/`: cross-cutting resources such as API config, routing helpers, content, geo data.
 - `src/widgets/`: reusable UI blocks composed into pages.
 - `src/pages/`: route-level screens.
