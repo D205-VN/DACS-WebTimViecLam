@@ -31,6 +31,9 @@ function sendControllerError(res, err, fallbackMessage, logLabel, fallbackStatus
   if (isEmailDeliveryError(err)) {
     return res.status(502).json({
       error: 'Không thể gửi mã OTP qua email. Vui lòng kiểm tra cấu hình gửi email trên máy chủ.',
+      debug_code: err?.code || 'N/A',
+      debug_message: err?.message || 'N/A',
+      debug_response: err?.response || err?.responseCode || 'N/A',
     });
   }
 

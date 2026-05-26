@@ -79,6 +79,8 @@ backend_files.txt
 dot_files.txt
 backend/check_users.js
 backend/data/USER_DATA_FINAL.csv
+backend/ml/data/raw/
+backend/ml/data/kaggle_resume_*
 
 # Local editor settings
 .vscode/

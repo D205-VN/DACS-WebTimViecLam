@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useCallback, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Mail, Lock, Eye, EyeOff, Briefcase, ArrowRight, Loader2 } from 'lucide-react';
 import { useAuth } from '@features/auth/AuthContext';
+import GoogleSignInButton from '@features/auth/GoogleSignInButton';
 import { getDefaultRouteByRole } from '@shared/utils/roleRedirect';
 import API_BASE_URL from '@shared/api/baseUrl';
 
@@ -38,38 +39,24 @@ export default function LoginPage() {
     } catch (err) { setError(err.message); } finally { setLoading(false); }
   };
 
-  useEffect(() => {
-    const script = document.createElement('script');
-    script.src = 'https://accounts.google.com/gsi/client';
-    script.async = true;
-    script.onload = () => {
-      window.google?.accounts.id.initialize({
-        client_id: '4615580608-8d4ng3atlmmgb404tpce6lp2p4cjdedn.apps.googleusercontent.com',
-        callback: async (response) => {
-          try {
-            const res = await fetch(`${API_BASE}/google`, {
-              method: 'POST', headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ credential: response.credential }),
-            });
-            const data = await res.json();
-            if (!res.ok) throw new Error(data.error);
-            login(data.token, data.user);
-            navigate(getDefaultRouteByRole(data.user.role_code));
-          } catch (err) { setError(err.message); }
-        },
-        itp_support: true,
-        use_fedcm_for_prompt: true,
+  const handleGoogleCredential = useCallback(async (response) => {
+    setError('');
+    setLoading(true);
+    try {
+      const res = await fetch(`${API_BASE}/google`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ credential: response.credential }),
       });
-      window.google.accounts.id.renderButton(
-        document.getElementById('googleSignInDiv'),
-        { theme: 'outline', size: 'large', text: 'signin_with', width: 350 }
-      );
-    };
-    document.head.appendChild(script);
-    return () => { document.head.removeChild(script); };
-    // Google SDK: init once; login/navigate are stable enough for callback closure
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      login(data.token, data.user);
+      navigate(getDefaultRouteByRole(data.user.role_code));
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  }, [login, navigate]);
 
   return (
     <div className="min-h-screen flex">
@@ -172,10 +159,12 @@ export default function LoginPage() {
             <div className="flex-1 h-px bg-gradient-to-r from-transparent via-indigo-200 to-transparent"></div>
           </div>
 
-          {/* Google Sign-In Div */}
-          <div className="space-y-3">
-            <div id="googleSignInDiv" className="w-full flex justify-center"></div>
-          </div>
+          <GoogleSignInButton
+            label="Đăng nhập với Google"
+            mode="signin"
+            onCredential={handleGoogleCredential}
+            onError={setError}
+          />
 
           <p className="text-center mt-8"><Link to="/" className="text-sm text-gray-500 hover:text-indigo-600 transition-colors">← Quay lại trang chủ</Link></p>
         </div>

@@ -6,6 +6,23 @@ const priorityMeta = {
   low: { label: 'Tối ưu thêm', className: 'bg-slate-50 text-slate-600 border-slate-200' },
 };
 
+const detailToneClass = {
+  slate: 'border-slate-200 bg-slate-50 text-slate-700',
+  amber: 'border-amber-100 bg-amber-50 text-amber-800',
+  indigo: 'border-indigo-100 bg-indigo-50 text-indigo-800',
+};
+
+function SuggestionDetail({ label, value, tone = 'slate' }) {
+  if (!value) return null;
+
+  return (
+    <div className={`rounded-lg border px-4 py-3 text-sm leading-6 ${detailToneClass[tone] || detailToneClass.slate}`}>
+      <p className="mb-1 text-[11px] font-bold uppercase tracking-[0.14em] opacity-70">{label}</p>
+      <p className="whitespace-pre-line">{value}</p>
+    </div>
+  );
+}
+
 export default function CVReviewModal({
   open = true,
   title = 'Gợi ý sửa CV',
@@ -122,24 +139,35 @@ export default function CVReviewModal({
                           ? 'Sửa lại'
                           : 'Sửa CV';
 
-                    return (
-                      <div key={index} className="rounded-lg border border-slate-200 bg-white p-4">
-                        <div className="mb-3 flex flex-wrap items-center gap-2">
-                          <span className="text-sm font-bold text-slate-900">{item.section || 'CV'}</span>
-                          <span className={`rounded-full border px-2.5 py-1 text-[11px] font-semibold ${meta.className}`}>
-                            {meta.label}
-                          </span>
-                        </div>
-                        <p className="text-sm font-semibold text-slate-800">{item.issue}</p>
-                        <p className="mt-2 text-sm leading-6 text-slate-600">{item.suggestion}</p>
-                        {item.example ? (
-                          <div className="mt-3 rounded-lg bg-slate-50 px-4 py-3 text-sm leading-6 text-slate-700">
-                            <span className="font-semibold text-slate-900">Ví dụ: </span>{item.example}
-                          </div>
-                        ) : null}
-                        {applyError ? (
-                          <div className="mt-3 flex items-start gap-2 rounded-lg border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-700">
-                            <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+	                    return (
+	                      <div key={index} className="rounded-lg border border-slate-200 bg-white p-4">
+	                        <div className="mb-3 flex flex-wrap items-center gap-2">
+	                          <span className="text-sm font-bold text-slate-900">{item.section || 'CV'}</span>
+	                          <span className={`rounded-full border px-2.5 py-1 text-[11px] font-semibold ${meta.className}`}>
+	                            {meta.label}
+	                          </span>
+	                          {item.location ? (
+	                            <span className="rounded-full border border-indigo-100 bg-indigo-50 px-2.5 py-1 text-[11px] font-semibold text-indigo-700">
+	                              {item.location}
+	                            </span>
+	                          ) : null}
+	                        </div>
+	                        <p className="text-sm font-semibold text-slate-800">{item.issue}</p>
+	                        <p className="mt-2 text-sm leading-6 text-slate-600">{item.suggestion}</p>
+	                        {item.current_text || item.rewrite || item.example ? (
+	                          <div className="mt-3 grid gap-3 lg:grid-cols-2">
+	                            <SuggestionDetail label="Đoạn hiện tại" value={item.current_text} tone="slate" />
+	                            <SuggestionDetail label="Nên sửa thành" value={item.rewrite || item.example} tone="indigo" />
+	                          </div>
+	                        ) : null}
+	                        {item.why_it_matters ? (
+	                          <div className="mt-3">
+	                            <SuggestionDetail label="Vì sao nên sửa" value={item.why_it_matters} tone="amber" />
+	                          </div>
+	                        ) : null}
+	                        {applyError ? (
+	                          <div className="mt-3 flex items-start gap-2 rounded-lg border border-red-100 bg-red-50 px-4 py-3 text-sm text-red-700">
+	                            <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
                             <span>{applyError}</span>
                           </div>
                         ) : null}

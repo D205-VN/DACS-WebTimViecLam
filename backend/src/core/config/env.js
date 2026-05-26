@@ -50,9 +50,14 @@ function validateEnvironment() {
   }
 
   const aiProvider = String(process.env.AI_PROVIDER || '').trim().toLowerCase();
-  const usesLmStudio = ['lmstudio', 'lm-studio', 'local', 'local-ai'].includes(aiProvider);
+  const cvReviewProvider = String(process.env.CV_REVIEW_PROVIDER || '').trim().toLowerCase();
+  const cvGenerationProvider = String(process.env.CV_GENERATION_PROVIDER || '').trim().toLowerCase();
+  const openAiCompatibleCvProviders = ['lmstudio', 'lm-studio', 'local', 'local-ai', 'aptcv', 'openai-compatible', 'openai-compatible-local'];
+  const usesLmStudio = ['lmstudio', 'lm-studio', 'local', 'local-ai'].includes(aiProvider)
+    || openAiCompatibleCvProviders.includes(cvReviewProvider)
+    || openAiCompatibleCvProviders.includes(cvGenerationProvider);
   if (!hasValue('GEMINI_API_KEY') && !usesLmStudio && !hasValue('CUSTOM_AI_API_URL')) {
-    warnings.push('Chưa cấu hình GEMINI_API_KEY, CUSTOM_AI_API_URL hoặc AI_PROVIDER=lmstudio; các tính năng AI sẽ bị hạn chế.');
+    warnings.push('Chưa cấu hình GEMINI_API_KEY, CUSTOM_AI_API_URL, CV_GENERATION_PROVIDER hoặc CV_REVIEW_PROVIDER; các tính năng AI sẽ bị hạn chế.');
   }
 
   if ((hasValue('SMTP_EMAIL') && !hasValue('SMTP_PASSWORD')) || (!hasValue('SMTP_EMAIL') && hasValue('SMTP_PASSWORD'))) {

@@ -23,6 +23,89 @@ function buildEducationValue({ startYear = '', endYear = '', university = '', ma
   return [firstLine, majorText ? `- ${majorText}` : ''].filter(Boolean).join('\n');
 }
 
+function getSuggestionText(suggestion = {}) {
+  return [
+    suggestion.section,
+    suggestion.location,
+    suggestion.current_text,
+    suggestion.issue,
+    suggestion.why_it_matters,
+    suggestion.suggestion,
+    suggestion.rewrite,
+    suggestion.example,
+  ].map((part) => String(part || '')).join(' ');
+}
+
+function getSuggestionRewrite(suggestion = {}) {
+  return String(suggestion.rewrite || suggestion.example || suggestion.suggestion || '').trim();
+}
+
+function appendInlineText(element, value) {
+  const text = String(value || '').trim();
+  if (!element || !text) return false;
+  if (element.textContent?.toLowerCase().includes(text.toLowerCase())) return false;
+
+  element.appendChild(document.createTextNode(`${element.textContent?.trim() ? ' • ' : ''}${text}`));
+  return true;
+}
+
+function appendSuggestionBlock(doc, targetElement, value) {
+  const text = String(value || '').replace(/^\s*[-•*]\s*/, '').trim();
+  if (!text) return false;
+
+  const block = doc.createElement('p');
+  block.textContent = text;
+  block.setAttribute('style', 'margin: 7px 0 0 0; color: #111111; font-size: 14px; line-height: 1.34;');
+
+  const target = targetElement?.closest?.('section') || targetElement?.parentElement || doc.body;
+  if (target.textContent?.toLowerCase().includes(text.toLowerCase())) return false;
+  target.appendChild(block);
+  return true;
+}
+
+function findCvSectionHeading(doc, suggestion = {}) {
+  const searchText = getSuggestionText(suggestion).toLowerCase();
+  const headings = Array.from(doc.querySelectorAll('h1,h2,h3,strong,p'));
+  const groups = [
+    [/experience|project|kinh nghiệm|dự án/, /work experience|experience|project|kinh nghiệm|dự án/i],
+    [/education|học vấn|school|degree/, /education|học vấn|school|degree/i],
+    [/skill|technology|tool|kỹ năng/, /skills?|technologies|technical|kỹ năng/i],
+    [/certification|certificate|chứng chỉ/, /certifications?|certificate|honors|awards|chứng chỉ/i],
+    [/interest|hobby|sở thích/, /interests?|hobb(y|ies)|sở thích/i],
+    [/summary|objective|mục tiêu|profile/, /summary|objective|additional information|mục tiêu|tóm tắt/i],
+  ];
+  const match = groups.find(([trigger]) => trigger.test(searchText));
+  if (!match) return null;
+
+  return headings.find((heading) => match[1].test(heading.textContent || '')) || null;
+}
+
+function applySuggestionToCvHtml(html = '', suggestion = {}) {
+  const rewrite = getSuggestionRewrite(suggestion);
+  if (!html || !rewrite || typeof DOMParser === 'undefined') return html;
+
+  const doc = new DOMParser().parseFromString(html, 'text/html');
+  const searchText = getSuggestionText(suggestion).toLowerCase();
+  let changed = false;
+
+  if (/email|mail|phone|số điện thoại|sdt|sđt|contact|liên hệ/i.test(searchText)) {
+    const header = doc.querySelector('header') || doc.body.firstElementChild || doc.body;
+    let contactLine = header.querySelector('p');
+    if (!contactLine) {
+      contactLine = doc.createElement('p');
+      contactLine.setAttribute('style', 'margin: 7px 0 0 0; color: #111111; font-size: 14px; line-height: 1.25;');
+      header.appendChild(contactLine);
+    }
+
+    const inlineValue = rewrite.replace(/^(phone|sđt|sdt|email)\s*:\s*/i, '').trim();
+    changed = appendInlineText(contactLine, inlineValue) || changed;
+  } else {
+    changed = appendSuggestionBlock(doc, findCvSectionHeading(doc, suggestion), rewrite) || changed;
+  }
+
+  return changed ? doc.body.innerHTML.trim() : html;
+}
+
 export default function CVBuilderPage() {
   const { token, user } = useAuth();
   const [form, setForm] = useState({
@@ -31,6 +114,7 @@ export default function CVBuilderPage() {
   });
   
   const [cvHtml, setCvHtml] = useState('');
+  const [cvRenderKey, setCvRenderKey] = useState(0);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
@@ -63,6 +147,11 @@ export default function CVBuilderPage() {
   const [currentSuggestions, setCurrentSuggestions] = useState(null);
   const backRoute = getDefaultRouteByRole(user?.role_code);
   const backLabel = getBackLabelByRole(user?.role_code);
+
+  const updatePreviewHtml = (html) => {
+    setCvHtml(html);
+    setCvRenderKey((key) => key + 1);
+  };
 
   useEffect(() => {
     // Fetch suggestions KB
@@ -176,7 +265,7 @@ export default function CVBuilderPage() {
     setError('');
     setSaveMessage('');
     setLoading(true);
-    setCvHtml('');
+    updatePreviewHtml('');
     try {
       const res = await fetch(`${API}/generate`, {
         method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
@@ -190,7 +279,7 @@ export default function CVBuilderPage() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
-      setCvHtml(data.cv);
+      updatePreviewHtml(data.cv);
     } catch (err) { setError(err.message); } finally { setLoading(false); }
   };
 
@@ -271,8 +360,28 @@ export default function CVBuilderPage() {
     }
   };
 
-  const handleApplyReviewSuggestion = async (suggestion, index) => {
+  const buildFormBackedSuggestion = (suggestion = {}) => {
+    const searchText = getSuggestionText(suggestion).toLowerCase();
+    const nextSuggestion = { ...suggestion };
+
+    if (/(phone|số điện thoại|sdt|sđt)/i.test(searchText) && form.phone.trim()) {
+      nextSuggestion.rewrite = `Phone: ${form.phone.trim()}`;
+      nextSuggestion.example = nextSuggestion.rewrite;
+    }
+
+    if (/(email|mail)/i.test(searchText) && form.email.trim()) {
+      nextSuggestion.rewrite = `Email: ${form.email.trim()}`;
+      nextSuggestion.example = nextSuggestion.rewrite;
+    }
+
+    return nextSuggestion;
+  };
+
+  const handleApplyReviewSuggestion = (suggestion, index) => {
     if (!cvHtml) return;
+    const backedSuggestion = buildFormBackedSuggestion(suggestion);
+    const nextCv = applySuggestionToCvHtml(cvHtml, backedSuggestion);
+
     setReviewApplyingIndex(index);
     setReviewError('');
     setReviewApplyMessage('');
@@ -280,24 +389,17 @@ export default function CVBuilderPage() {
     setReviewApplyErrors((prev) => ({ ...prev, [index]: '' }));
 
     try {
-      const res = await fetch(`${API}/revise`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({
-          html_content: cvHtml,
-          target_role: form.role,
-          cvLanguage: CV_LANGUAGE,
-          suggestions: [suggestion],
-        }),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.error || 'Không thể sửa CV theo gợi ý');
-      setCvHtml(data.cv || cvHtml);
+      if (nextCv === cvHtml) {
+        throw new Error('Gợi ý này chưa có nội dung thay thế đủ rõ để áp dụng tự động.');
+      }
+
+      updatePreviewHtml(nextCv);
       setReviewApplyStates((prev) => ({ ...prev, [index]: 'done' }));
-      setReviewApplyMessage('Đã sửa bản xem trước CV. Bạn có thể xem lại bên ngoài modal hoặc bấm Gợi ý sửa để kiểm tra tiếp.');
+      setReviewApplyMessage('Đã cập nhật bản xem trước CV. Bạn có thể tiếp tục sửa các gợi ý khác hoặc đóng cửa sổ để xem rõ hơn.');
+      setSaveMessage('Đã cập nhật CV theo gợi ý. Kiểm tra lại khung xem trước rồi lưu hồ sơ.');
     } catch (err) {
       setReviewApplyStates((prev) => ({ ...prev, [index]: 'error' }));
-      setReviewApplyErrors((prev) => ({ ...prev, [index]: err.message || 'Không thể sửa CV theo gợi ý này' }));
+      setReviewApplyErrors((prev) => ({ ...prev, [index]: err.message || 'Không thể áp dụng gợi ý này' }));
     } finally {
       setReviewApplyingIndex(null);
     }
@@ -347,9 +449,9 @@ export default function CVBuilderPage() {
       {error && <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-600">{error}</div>}
       {saveMessage && <div className="mb-4 p-3 bg-emerald-50 border border-emerald-200 rounded-lg text-sm text-emerald-700">{saveMessage}</div>}
 
-      <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-5 lg:h-[calc(100vh-18rem)] lg:min-h-[620px] lg:grid-cols-2 lg:overflow-hidden">
         {/* Form */}
-        <div className="space-y-4">
+        <div className="min-h-0 lg:overflow-y-auto lg:overscroll-contain lg:pr-1">
           <div className="aw-surface p-6">
             <h2 className="text-base font-bold text-gray-800 mb-5">Thông tin của bạn</h2>
             <div className="space-y-5">
@@ -565,9 +667,9 @@ export default function CVBuilderPage() {
         </div>
 
         {/* CV Preview */}
-        <div>
-          <div className="sticky top-20">
-            <div className="flex items-center justify-between mb-3">
+        <div className="min-h-0">
+          <div className="flex h-full min-h-0 flex-col">
+            <div className="mb-3 flex shrink-0 items-center justify-between">
               <h2 className="text-base font-bold text-gray-800">Xem trước CV</h2>
               {cvHtml && (
                 <div className="flex flex-wrap justify-end gap-2">
@@ -583,9 +685,11 @@ export default function CVBuilderPage() {
                 </div>
               )}
             </div>
-            <div className="aw-surface flex min-h-[600px] flex-col overflow-x-auto">
+            <div className="aw-surface flex min-h-[600px] flex-col overflow-hidden lg:min-h-0 lg:flex-1">
               {cvHtml ? (
-                <div ref={cvRef} className="p-6 flex-1 min-w-[800px]" dangerouslySetInnerHTML={{ __html: cvHtml }} />
+                <div className="min-h-0 flex-1 overflow-auto overscroll-contain">
+                  <div key={cvRenderKey} ref={cvRef} className="min-w-[800px] p-6" dangerouslySetInnerHTML={{ __html: cvHtml }} />
+                </div>
               ) : (
                 <div className="flex flex-col items-center justify-center flex-1 text-gray-400 p-8 text-center">
                   <Sparkles className="w-16 h-16 mb-4 opacity-30" />

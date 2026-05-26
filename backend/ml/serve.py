@@ -18,6 +18,7 @@ import argparse
 import json
 import time
 import os
+import re
 import sys
 from typing import Optional
 
@@ -32,7 +33,7 @@ ML_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, ML_DIR)
 
 from model import APTCVModel
-from generate import generate, load_tokenizer_from_file
+from generate import generate, generate_cv_content, load_tokenizer_from_file
 
 # ---------------------------------------------------------------------------
 # Pydantic models for OpenAI-compatible API
@@ -87,6 +88,8 @@ _model: Optional[APTCVModel] = None
 _tokenizer = None
 _device: Optional[torch.device] = None
 _model_name: str = "aptcv-model"
+_model_path: str = ""
+_model_params: int = 0
 
 # ---------------------------------------------------------------------------
 # FastAPI app
@@ -129,6 +132,70 @@ def format_chat_messages(messages: list[ChatMessage]) -> str:
     return "\n".join(formatted_parts)
 
 
+def is_missing_value(value: str) -> bool:
+    return value.strip().lower() in {
+        "",
+        "none",
+        "not provided",
+        "not updated",
+        "n/a",
+        "na",
+        "chưa cung cấp",
+        "chưa cập nhật",
+        "không có",
+    }
+
+
+def extract_candidate_info(messages: list[ChatMessage]) -> dict[str, str]:
+    """Parse the backend's CV-generation prompt into structured fields."""
+    text = "\n".join(msg.content for msg in messages if msg.role == "user")
+    field_aliases = [
+        ("fullName", ["Full name", "Họ tên"]),
+        ("email", ["Email"]),
+        ("phone", ["Phone", "Điện thoại"]),
+        ("githubUrl", ["GitHub"]),
+        ("role", ["Target role", "Vị trí ứng tuyển"]),
+        ("currentLocation", ["Location", "Vị trí hiện tại", "Khu vực"]),
+        ("objective", ["Existing objective", "Mục tiêu hiện có", "Mục tiêu nghề nghiệp"]),
+        ("education", ["Existing education", "Học vấn hiện có", "Học vấn"]),
+        ("experience", ["Existing experience", "Kinh nghiệm hiện có", "Kinh nghiệm làm việc"]),
+        ("skills", ["Existing skills", "Kỹ năng hiện có", "Kỹ năng"]),
+        ("certifications", ["Existing certifications", "Chứng chỉ hiện có", "Chứng chỉ"]),
+        ("hobbies", ["Existing interests", "Sở thích hiện có", "Sở thích"]),
+    ]
+
+    info: dict[str, str] = {}
+    for key, labels in field_aliases:
+        for label in labels:
+            pattern = rf"^\s*-\s*{re.escape(label)}\s*:\s*(.+?)\s*$"
+            match = re.search(pattern, text, flags=re.IGNORECASE | re.MULTILINE)
+            if match:
+                value = match.group(1).strip()
+                if not is_missing_value(value):
+                    info[key] = value
+                break
+    return info
+
+
+def is_cv_content_request(messages: list[ChatMessage]) -> bool:
+    combined = "\n".join(msg.content for msg in messages).lower()
+    return (
+        ("candidate information" in combined or "thông tin ứng viên" in combined)
+        and '"objective"' in combined
+        and '"experience"' in combined
+        and '"education"' in combined
+        and ("return only valid json" in combined or "json hợp lệ" in combined)
+    )
+
+
+def is_smoke_checkpoint() -> bool:
+    if _model is None:
+        return True
+    config = getattr(_model, "config", None)
+    max_seq_len = getattr(config, "max_seq_len", 0)
+    return _model_params < 2_000_000 or max_seq_len < 256 or "/smoke/" in _model_path.replace("\\", "/")
+
+
 def generate_completion_id() -> str:
     """Generate a unique completion ID."""
     import random
@@ -146,6 +213,9 @@ async def root():
     return {
         "status": "ok",
         "model": _model_name,
+        "model_path": _model_path,
+        "model_params": _model_params,
+        "smoke_checkpoint": is_smoke_checkpoint(),
         "device": str(_device),
     }
 
@@ -191,16 +261,41 @@ async def chat_completions(request: ChatCompletionRequest):
     start_time = time.time()
 
     try:
-        generated_text = generate(
-            model=_model,
-            tokenizer=_tokenizer,
-            prompt=prompt,
-            max_new_tokens=request.max_tokens,
-            temperature=request.temperature,
-            top_k=request.top_k,
-            top_p=request.top_p,
-            device=_device,
-        )
+        if is_cv_content_request(request.messages):
+            candidate_info = extract_candidate_info(request.messages)
+            content = generate_cv_content(
+                model=_model,
+                tokenizer=_tokenizer,
+                candidate_info=candidate_info,
+                max_new_tokens=min(request.max_tokens, 768),
+                temperature=request.temperature,
+                top_k=request.top_k,
+                top_p=request.top_p,
+                device=_device,
+                use_model=not is_smoke_checkpoint(),
+            )
+            generated_text = json.dumps(
+                {
+                    "objective": content.get("objective", ""),
+                    "experience": content.get("experience", ""),
+                    "education": content.get("education", ""),
+                    "skills": content.get("skills", ""),
+                    "certifications": content.get("certifications", ""),
+                    "hobbies": content.get("hobbies", ""),
+                },
+                ensure_ascii=False,
+            )
+        else:
+            generated_text = generate(
+                model=_model,
+                tokenizer=_tokenizer,
+                prompt=prompt,
+                max_new_tokens=min(request.max_tokens, 256) if is_smoke_checkpoint() else request.max_tokens,
+                temperature=request.temperature,
+                top_k=request.top_k,
+                top_p=request.top_p,
+                device=_device,
+            )
     except Exception as e:
         raise HTTPException(
             status_code=500,
@@ -241,7 +336,7 @@ async def chat_completions(request: ChatCompletionRequest):
 
 def load_model(model_path: str, tokenizer_path: str, device_str: str = "auto"):
     """Load the aptcv-model and tokenizer into memory."""
-    global _model, _tokenizer, _device, _model_name
+    global _model, _tokenizer, _device, _model_name, _model_path, _model_params
 
     # Determine device
     if device_str == "auto":
@@ -263,10 +358,20 @@ def load_model(model_path: str, tokenizer_path: str, device_str: str = "auto"):
 
     # Load model
     print(f"[aptcv-model] Loading model from: {model_path}")
+    _model_path = os.path.abspath(model_path)
     _model = APTCVModel.load_checkpoint(model_path, device=_device)
     _model.eval()
+    _model_params = _model.count_parameters()
     print(f"[aptcv-model] Model loaded successfully!")
-    print(f"[aptcv-model] Parameters: {_model.count_parameters():,}")
+    print(f"[aptcv-model] Parameters: {_model_params:,}")
+    if is_smoke_checkpoint():
+        print("[aptcv-model] WARNING: smoke/tiny checkpoint detected; CV generation will use the hardened APTCV fallback.")
+
+
+def resolve_default_model_path() -> str:
+    preferred = os.path.join(ML_DIR, "models", "aptcv_cv_best.pt")
+    smoke = os.path.join(ML_DIR, "models", "smoke", "aptcv_cv_best.pt")
+    return preferred if os.path.exists(preferred) else smoke
 
 # ---------------------------------------------------------------------------
 # Main
@@ -277,7 +382,7 @@ def main():
     parser.add_argument(
         "--model",
         type=str,
-        default=os.path.join(ML_DIR, "models", "aptcv_cv_best.pt"),
+        default=resolve_default_model_path(),
         help="Path to the trained model checkpoint",
     )
     parser.add_argument(

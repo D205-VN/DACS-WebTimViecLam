@@ -8,6 +8,7 @@ import { getBackLabelByRole, getDefaultRouteByRole } from '@shared/utils/roleRed
 import API_BASE_URL from '@shared/api/baseUrl';
 
 const API = `${API_BASE_URL}/api/cv`;
+const CV_LANGUAGE = 'en';
 
 export default function ManageCVsPage() {
   const { token, user } = useAuth();
@@ -117,7 +118,8 @@ export default function ManageCVsPage() {
     try {
       const res = await fetch(`${API}/${cv.id}/review`, {
         method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ cvLanguage: CV_LANGUAGE }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || 'Không thể phân tích CV');
@@ -141,7 +143,7 @@ export default function ManageCVsPage() {
       const res = await fetch(`${API}/${reviewCv.id}/revise`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ suggestions: [suggestion] }),
+        body: JSON.stringify({ suggestions: [suggestion], cvLanguage: CV_LANGUAGE }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || 'Không thể sửa CV theo gợi ý');

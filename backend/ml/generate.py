@@ -270,6 +270,161 @@ _CV_JSON_FIELDS = [
     "hobbies",
 ]
 
+_MISSING_VALUES = {
+    "",
+    "none",
+    "not provided",
+    "not updated",
+    "n/a",
+    "na",
+    "chưa cung cấp",
+    "chưa cập nhật",
+    "không có",
+}
+
+_ROLE_SKILL_HINTS = {
+    "ai engineer": ["Python", "Machine Learning", "Deep Learning", "PyTorch", "SQL"],
+    "machine learning engineer": ["Python", "Machine Learning", "Deep Learning", "PyTorch", "MLOps"],
+    "data scientist": ["Python", "SQL", "Machine Learning", "Statistics", "Data Visualization"],
+    "data analyst": ["SQL", "Excel", "Python", "Power BI", "Tableau"],
+    "software engineer": ["Python", "JavaScript", "Git", "REST APIs", "Databases"],
+    "frontend developer": ["HTML", "CSS", "JavaScript", "React", "Responsive UI"],
+    "backend developer": ["Node.js", "Python", "REST APIs", "PostgreSQL", "Docker"],
+    "devops engineer": ["Linux", "Docker", "Kubernetes", "CI/CD", "Cloud"],
+    "qa engineer": ["Manual Testing", "Automation Testing", "Postman", "Bug Tracking", "Test Cases"],
+}
+
+_PROMPT_LEAK_PATTERNS = re.compile(
+    r"<\|system\|>|<\|user\|>|<\|assistant\|>|candidate information|requirements:|schema:",
+    re.IGNORECASE,
+)
+
+
+def _clean_candidate_value(value: Any) -> str:
+    if isinstance(value, list):
+        value = ", ".join(str(item) for item in value if item)
+    elif isinstance(value, dict):
+        value = " ".join(str(item) for item in value.values() if item)
+
+    cleaned = str(value or "").strip()
+    return "" if cleaned.lower() in _MISSING_VALUES else cleaned
+
+
+def _clean_generated_field(value: Any, max_length: int = 2500) -> str:
+    if isinstance(value, list):
+        value = "\n".join(
+            str(item) if str(item).strip().startswith("-") else f"- {item}"
+            for item in value
+            if str(item).strip()
+        )
+    elif isinstance(value, dict):
+        value = "\n".join(str(item) for item in value.values() if item)
+
+    cleaned = str(value or "")
+    cleaned = re.sub(r"```(?:json)?|```", "", cleaned, flags=re.IGNORECASE)
+    cleaned = re.sub(r"</?s>", "", cleaned)
+    cleaned = cleaned.replace("\\n", "\n")
+    cleaned = re.sub(r"[ \t]+", " ", cleaned)
+    cleaned = re.sub(r"\n{3,}", "\n\n", cleaned)
+    return cleaned.strip()[:max_length].strip()
+
+
+def _split_items(value: Any, limit: int = 6) -> list[str]:
+    text = _clean_candidate_value(value)
+    if not text:
+        return []
+    return [
+        item.strip(" -•\t")
+        for item in re.split(r"[,;\n]+", text)
+        if item.strip(" -•\t")
+    ][:limit]
+
+
+def _role_skill_hint(role: str) -> list[str]:
+    normalized_role = role.lower()
+    for key, skills in _ROLE_SKILL_HINTS.items():
+        if key in normalized_role:
+            return skills
+    return []
+
+
+def _skill_text_for_cv(candidate_info: Dict[str, Any]) -> str:
+    supplied_skills = _split_items(candidate_info.get("skills"), limit=12)
+    if supplied_skills:
+        return ", ".join(supplied_skills)
+
+    hints = _role_skill_hint(_clean_candidate_value(candidate_info.get("role")))
+    if hints:
+        return f"[add verified skills such as {', '.join(hints[:5])}]"
+    return "[add role-relevant technical and soft skills]"
+
+
+def _primary_skill_phrase(candidate_info: Dict[str, Any]) -> str:
+    supplied_skills = _split_items(candidate_info.get("skills"), limit=3)
+    if supplied_skills:
+        return ", ".join(supplied_skills)
+
+    hints = _role_skill_hint(_clean_candidate_value(candidate_info.get("role")))
+    if hints:
+        return ", ".join(hints[:3])
+    return "role-relevant tools and practical problem solving"
+
+
+def _normalize_bullets(value: Any) -> str:
+    text = _clean_candidate_value(value)
+    if not text:
+        return ""
+
+    lines = [
+        item.strip(" -•\t")
+        for item in re.split(r"\n+|(?:\s*[-•]\s+)", text)
+        if item.strip(" -•\t")
+    ]
+    if len(lines) <= 1:
+        sentences = re.split(r"(?<=[.!?])\s+", text)
+        lines = [item.strip(" -•\t") for item in sentences if item.strip(" -•\t")]
+
+    return "\n".join(f"- {line}" for line in lines[:6])
+
+
+def _looks_like_no_experience(value: str) -> bool:
+    return bool(re.search(r"no professional experience|no experience|chưa có kinh nghiệm|fresher", value, re.I))
+
+
+def _fallback_experience(candidate_info: Dict[str, Any], role: str) -> str:
+    existing = _normalize_bullets(candidate_info.get("experience"))
+    if existing and not _looks_like_no_experience(existing):
+        return existing
+
+    skill_phrase = _primary_skill_phrase(candidate_info)
+    if re.search(r"ai|machine learning|data scientist|deep learning|nlp|computer vision", role, re.I):
+        return "\n".join([
+            f"- Built [project name] using {skill_phrase}, covering data preparation, model experimentation, and result evaluation.",
+            "- Documented model assumptions, experiment results, and next-step improvements for reproducible analysis.",
+            "- Collaborated with [team/class/project group] to turn analytical findings into clear technical recommendations.",
+        ])
+
+    return "\n".join([
+        f"- Completed [project/task] using {skill_phrase}, delivering [specific outcome] for [users/team/business].",
+        "- Wrote clear documentation and tested core workflows to improve reliability and handover quality.",
+        "- Collaborated with [team/class/project group] to clarify requirements, solve issues, and deliver work on schedule.",
+    ])
+
+
+def _fallback_objective(candidate_info: Dict[str, Any], role: str) -> str:
+    existing = _clean_candidate_value(candidate_info.get("objective"))
+    if existing:
+        return existing
+
+    skill_phrase = _primary_skill_phrase(candidate_info)
+    experience = _clean_candidate_value(candidate_info.get("experience"))
+    career_level = "early-career " if not experience or _looks_like_no_experience(experience) else ""
+    return (
+        f"Motivated {career_level}{role} candidate with practical exposure to {skill_phrase}. "
+        "Seeking to contribute to real projects, learn from a professional team, "
+        "and deliver reliable work with clear documentation and measurable improvement."
+    )
+
 
 def _build_cv_prompt(candidate_info: Dict[str, Any]) -> str:
     """Format candidate information into the chat-style prompt expected by
@@ -366,40 +521,47 @@ def _extract_json(text: str) -> Optional[Dict[str, Any]]:
 
 def _fallback_cv_content(candidate_info: Dict[str, Any]) -> Dict[str, Any]:
     """Create a deterministic CV payload when a weak checkpoint emits bad JSON."""
-    role = str(candidate_info.get("role") or "Professional").strip()
-    skills = candidate_info.get("skills") or ""
-    if isinstance(skills, list):
-        skill_text = ", ".join(str(item) for item in skills if item)
-    else:
-        skill_text = str(skills).strip()
-
-    experience = candidate_info.get("experience") or ""
-    if isinstance(experience, list):
-        experience_text = "\n".join(f"- {item}" for item in experience if item)
-    else:
-        experience_text = str(experience).strip()
-
-    if not experience_text:
-        experience_text = (
-            f"- Built practical experience relevant to {role} through projects, "
-            "coursework, and continuous self-learning."
-        )
-
-    objective_parts = [f"Detail-oriented {role}"]
-    if skill_text:
-        objective_parts.append(f"with strengths in {skill_text}")
-    objective = " ".join(objective_parts) + (
-        ", seeking to contribute measurable value in a professional team."
-    )
+    role = _clean_candidate_value(candidate_info.get("role")) or "Professional"
+    education = _clean_candidate_value(candidate_info.get("education"))
+    certifications = _clean_candidate_value(candidate_info.get("certifications"))
+    hobbies = _clean_candidate_value(candidate_info.get("hobbies"))
 
     return {
-        "objective": objective,
-        "experience": experience_text,
-        "education": candidate_info.get("education", ""),
-        "skills": skill_text,
-        "certifications": candidate_info.get("certifications", ""),
-        "hobbies": candidate_info.get("hobbies", ""),
+        "objective": _fallback_objective(candidate_info, role),
+        "experience": _fallback_experience(candidate_info, role),
+        "education": education or "[add school name] - [degree/major], [start year] - [end year]",
+        "skills": _skill_text_for_cv(candidate_info),
+        "certifications": certifications or "Not updated",
+        "hobbies": hobbies or "Not updated",
     }
+
+
+def _field_is_usable(field: str, value: Any) -> bool:
+    cleaned = _clean_generated_field(value)
+    if not cleaned or cleaned.lower() in _MISSING_VALUES:
+        return False
+    if _PROMPT_LEAK_PATTERNS.search(cleaned):
+        return False
+    if field in {"objective", "experience"} and len(cleaned) < 24:
+        return False
+    if len(set(cleaned.split())) <= 4 and field in {"objective", "experience"}:
+        return False
+    return True
+
+
+def _merge_generated_with_fallback(
+    parsed: Dict[str, Any],
+    fallback: Dict[str, Any],
+) -> Dict[str, Any]:
+    result: Dict[str, Any] = {}
+    for field in _CV_JSON_FIELDS:
+        raw_value = parsed.get(field, "")
+        result[field] = (
+            _clean_generated_field(raw_value)
+            if _field_is_usable(field, raw_value)
+            else fallback[field]
+        )
+    return result
 
 
 @torch.inference_mode()
@@ -412,6 +574,7 @@ def generate_cv_content(
     temperature: float = 0.6,
     top_k: int = 40,
     top_p: float = 0.85,
+    use_model: bool = True,
 ) -> Dict[str, Any]:
     """Generate professional CV content from structured candidate data.
 
@@ -464,24 +627,30 @@ def generate_cv_content(
         result = generate_cv_content(model, tokenizer, info, device="cuda")
         print(result["objective"])
     """
-    prompt = _build_cv_prompt(candidate_info)
+    fallback = _fallback_cv_content(candidate_info)
+    raw_output = ""
+    parsed = None
 
-    raw_output = generate(
-        model=model,
-        tokenizer=tokenizer,
-        prompt=prompt,
-        max_new_tokens=max_new_tokens,
-        temperature=temperature,
-        top_k=top_k,
-        top_p=top_p,
-        device=device,
-    )
+    if use_model:
+        prompt = _build_cv_prompt(candidate_info)
 
-    parsed = _extract_json(raw_output)
+        raw_output = generate(
+            model=model,
+            tokenizer=tokenizer,
+            prompt=prompt,
+            max_new_tokens=max_new_tokens,
+            temperature=temperature,
+            top_k=top_k,
+            top_p=top_p,
+            device=device,
+        )
+
+        parsed = _extract_json(raw_output)
 
     if parsed is None:
-        parsed = _fallback_cv_content(candidate_info)
-        parsed["_model_raw_output"] = raw_output
+        parsed = fallback
+    else:
+        parsed = _merge_generated_with_fallback(parsed, fallback)
 
     # Ensure all canonical fields exist in the result
     result: Dict[str, Any] = {}

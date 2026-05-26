@@ -14,22 +14,25 @@ function isLmStudioEnabled() {
   return ['lmstudio', 'lm-studio', 'local', 'local-ai'].includes(provider);
 }
 
-function getLmStudioConfig() {
+function getLmStudioConfig(overrides = {}) {
   return {
-    baseUrl: normalizeBaseUrl(process.env.LMSTUDIO_BASE_URL),
-    model: String(process.env.LMSTUDIO_MODEL || 'local-model').trim(),
-    timeoutMs: parseNumberEnv(process.env.LMSTUDIO_TIMEOUT_MS, 120000, 5000, 300000),
-    maxTokens: parseNumberEnv(process.env.LMSTUDIO_MAX_TOKENS, 4096, 512, 12000),
-    temperature: parseNumberEnv(process.env.LMSTUDIO_TEMPERATURE, 0.35, 0, 2),
+    baseUrl: normalizeBaseUrl(overrides.baseUrl ?? process.env.LMSTUDIO_BASE_URL),
+    model: String(overrides.model ?? process.env.LMSTUDIO_MODEL ?? 'local-model').trim(),
+    timeoutMs: parseNumberEnv(overrides.timeoutMs ?? process.env.LMSTUDIO_TIMEOUT_MS, 120000, 5000, 300000),
+    maxTokens: parseNumberEnv(overrides.maxTokens ?? process.env.LMSTUDIO_MAX_TOKENS, 4096, 512, 12000),
+    temperature: parseNumberEnv(overrides.temperature ?? process.env.LMSTUDIO_TEMPERATURE, 0.35, 0, 2),
   };
 }
 
 async function generateTextWithLmStudio(prompt, {
+  baseUrl,
+  model,
   systemPrompt = 'Bạn là trợ lý AI chuyên nghiệp. Trả lời đúng định dạng người dùng yêu cầu.',
   temperature,
   maxTokens,
+  timeoutMs,
 } = {}) {
-  const config = getLmStudioConfig();
+  const config = getLmStudioConfig({ baseUrl, model, temperature, maxTokens, timeoutMs });
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), config.timeoutMs);
 
@@ -44,8 +47,8 @@ async function generateTextWithLmStudio(prompt, {
           { role: 'system', content: systemPrompt },
           { role: 'user', content: prompt },
         ],
-        temperature: temperature ?? config.temperature,
-        max_tokens: maxTokens ?? config.maxTokens,
+        temperature: config.temperature,
+        max_tokens: config.maxTokens,
         stream: false,
       }),
     });

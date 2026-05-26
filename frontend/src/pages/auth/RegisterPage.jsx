@@ -1,7 +1,8 @@
-import { useState, useEffect, useRef } from 'react';
+import { useCallback, useState, useEffect, useRef } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Mail, Lock, Eye, EyeOff, Briefcase, ArrowRight, User, Phone, Building2, MapPin, ChevronDown, Loader2, CheckCircle2 } from 'lucide-react';
 import { useAuth } from '@features/auth/AuthContext';
+import GoogleSignInButton from '@features/auth/GoogleSignInButton';
 import { getDefaultRouteByRole } from '@shared/utils/roleRedirect';
 import API_BASE_URL from '@shared/api/baseUrl';
 
@@ -141,38 +142,24 @@ export default function RegisterPage() {
     } catch (err) { setError(err.message || 'Không thể gửi lại OTP'); } finally { setLoading(false); }
   };
 
-  // Init Google Sign-In
-  useEffect(() => {
-    const script = document.createElement('script');
-    script.src = 'https://accounts.google.com/gsi/client';
-    script.async = true;
-    script.onload = () => {
-      window.google?.accounts.id.initialize({
-        client_id: '4615580608-8d4ng3atlmmgb404tpce6lp2p4cjdedn.apps.googleusercontent.com',
-        callback: async (response) => {
-          try {
-            const res = await fetch(`${API_BASE}/google`, {
-              method: 'POST', headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ credential: response.credential }),
-            });
-            const data = await res.json();
-            if (!res.ok) throw new Error(data.error);
-            login(data.token, data.user);
-            navigate(getDefaultRouteByRole(data.user.role_code));
-          } catch (err) { setError(err.message); }
-        },
-        itp_support: true,
-        use_fedcm_for_prompt: true,
+  const handleGoogleCredential = useCallback(async (response) => {
+    setError('');
+    setLoading(true);
+    try {
+      const res = await fetch(`${API_BASE}/google`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ credential: response.credential }),
       });
-      window.google.accounts.id.renderButton(
-        document.getElementById('googleSignInDiv'),
-        { theme: 'outline', size: 'large', text: 'signup_with', width: 350 }
-      );
-    };
-    document.head.appendChild(script);
-    return () => { document.head.removeChild(script); };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+      const data = await readApiJson(res);
+      if (!res.ok) throw new Error(data.error || 'Không thể đăng nhập bằng Google');
+      login(data.token, data.user);
+      navigate(getDefaultRouteByRole(data.user.role_code));
+    } catch (err) {
+      setError(err.message || 'Không thể đăng nhập bằng Google');
+    } finally {
+      setLoading(false);
+    }
+  }, [login, navigate]);
 
   const inputClass = 'w-full pl-12 pr-4 py-3 bg-white border border-indigo-100/60 rounded-md text-sm text-gray-700 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-violet-200 focus:border-indigo-400 transition-all';
   const selectClass = 'w-full pl-12 pr-10 py-3 bg-white border border-indigo-100/60 rounded-md text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-violet-200 focus:border-indigo-400 transition-all appearance-none cursor-pointer';
@@ -349,8 +336,12 @@ export default function RegisterPage() {
                 <div className="flex-1 h-px bg-gray-200"></div>
               </div>
 
-              {/* Google Sign-In Div */}
-              <div id="googleSignInDiv" className="w-full flex justify-center"></div>
+              <GoogleSignInButton
+                label="Đăng ký với Google"
+                mode="signup"
+                onCredential={handleGoogleCredential}
+                onError={setError}
+              />
 
               <p className="text-center mt-6"><Link to="/" className="text-sm text-gray-500 hover:text-indigo-700 transition-colors">← Quay lại trang chủ</Link></p>
             </>
