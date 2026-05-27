@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { authenticateToken } = require('../core/middlewares/auth.middleware');
+const { authenticateToken } = require('../../core/middlewares/auth.middleware');
 const {
   ensureEmployerJobSchemaForRequest,
   getDashboard,
@@ -20,7 +20,7 @@ const {
   saveCandidateNote,
   scheduleInterview,
   reviewOnboardingDocument,
-} = require('../controllers/employer.controller');
+} = require('../../controllers/employer/employer.controller');
 
 // Middleware kiểm tra role employer
 function requireEmployer(req, res, next) {

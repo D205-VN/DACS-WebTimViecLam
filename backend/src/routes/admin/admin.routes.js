@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
-const adminController = require('../controllers/admin.controller');
-const { authenticateToken } = require('../core/middlewares/auth.middleware');
+const adminController = require('../../controllers/admin/admin.controller');
+const { authenticateToken } = require('../../core/middlewares/auth.middleware');
 
 function requireAdmin(req, res, next) {
   if (req.user?.role_code !== 'admin') {

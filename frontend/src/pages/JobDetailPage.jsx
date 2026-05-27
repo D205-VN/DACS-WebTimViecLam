@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate, useLocation } from 'react-router-dom';
 import { MapPin, DollarSign, Clock, Bookmark, BookmarkCheck, Briefcase, ArrowLeft, Send, CheckCircle2, Loader2, GraduationCap, Calendar, Bell, X, FileText, Sparkles, Target, BrainCircuit, ShieldCheck, BriefcaseBusiness } from 'lucide-react';
-import { useAuth } from '@features/auth/AuthContext';
-import { findProvinceByName, normalizeProvinceName, normalizeSearchText } from '@shared/geo/provinceCoordinates';
-import { getCompanyFilterRoute, getDefaultRouteByRole, getJobDetailRoute } from '@shared/utils/roleRedirect';
-import { getSeekerAiTestPath } from '@shared/utils/aiTestRoutes';
-import API_BASE_URL from '@shared/api/baseUrl';
-import { talentInsightsApi } from '@shared/api/talentInsightsApi';
+import { useAuth } from '@components/providers/AuthContext';
+import { findProvinceByName, normalizeProvinceName, normalizeSearchText } from '@services/geo/provinceCoordinates';
+import { getCompanyFilterRoute, getDefaultRouteByRole, getJobDetailRoute } from '@services/navigation/roleRedirect';
+import { getSeekerAiTestPath } from '@services/ai-tests/aiTestRoutes';
+import API_BASE_URL from '@services/http/baseUrl';
+import { talentInsightsApi } from '@services/talent-insights/talentInsightsApi';
 
 const API = `${API_BASE_URL}/api/jobs`;
 

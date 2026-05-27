@@ -1,7 +1,7 @@
-const AppError = require('../core/errors/AppError');
-const { emitToUser } = require('../core/realtime/socket');
-const { createNotification } = require('./notification.service');
-const messageModel = require('../models/message.model');
+const AppError = require('../../core/errors/AppError');
+const { emitToUser } = require('../../core/realtime/socket');
+const { createNotification } = require('../notifications/notification.service');
+const messageModel = require('../../models/messages/message.model');
 
 function getOtherParticipant(conversation, userId) {
   const isSeeker = Number(conversation.seeker_id) === Number(userId);

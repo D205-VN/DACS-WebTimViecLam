@@ -1,10 +1,10 @@
 const fs = require('fs');
 const path = require('path');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
-const pool = require('../infrastructure/database/postgres');
-const { ensureCvSchema, ensurePrimaryCvForUser } = require('../models/cv.model');
-const { resolveCurrentLocationPayload } = require('../core/utils/currentLocation');
-const { generateTextWithLmStudio } = require('../infrastructure/ai/lmstudio.service');
+const pool = require('../../infrastructure/database/postgres');
+const { ensureCvSchema, ensurePrimaryCvForUser } = require('../../models/cv/cv.model');
+const { resolveCurrentLocationPayload } = require('../../core/utils/currentLocation');
+const { generateTextWithLmStudio } = require('../../infrastructure/ai/lmstudio.service');
 require('dotenv').config();
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
@@ -1637,7 +1637,7 @@ async function generateRevisedCv({ htmlContent = '', targetRole = '', suggestion
  */
 exports.getSuggestions = (req, res) => {
   try {
-    const kbPath = path.join(__dirname, '..', 'models', 'resume_knowledge.json');
+    const kbPath = path.join(__dirname, '..', '..', 'models', 'cv', 'resume_knowledge.json');
     if (!fs.existsSync(kbPath)) {
       return res.json({ data: {} });
     }

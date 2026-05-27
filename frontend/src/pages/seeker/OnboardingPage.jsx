@@ -16,8 +16,8 @@ import {
   ScanLine,
   Eye,
 } from 'lucide-react';
-import { useAuth } from '@features/auth/AuthContext';
-import API_BASE_URL from '@shared/api/baseUrl';
+import { useAuth } from '@components/providers/AuthContext';
+import API_BASE_URL from '@services/http/baseUrl';
 
 /* ─── 3 bước quy trình Onboarding ─── */
 const STEPS = [

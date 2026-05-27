@@ -1,4 +1,4 @@
-const aiTestService = require('../services/ai-test.service');
+const aiTestService = require('../../services/ai-tests/ai-test.service');
 
 const delegate = (handler) => (req, res, next) => handler(req, res, next);
 

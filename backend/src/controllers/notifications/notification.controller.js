@@ -1,4 +1,4 @@
-const notificationService = require('../services/notification.service');
+const notificationService = require('../../services/notifications/notification.service');
 
 function sendError(res, err, fallbackMessage) {
   const status = err.statusCode || err.status || 500;

@@ -1,11 +1,11 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Mail, Lock, Eye, EyeOff, Briefcase, ArrowRight, Loader2 } from 'lucide-react';
-import { useAuth } from '@features/auth/AuthContext';
-import GoogleSignInButton from '@features/auth/GoogleSignInButton';
-import { authApi } from '@features/auth/auth.api';
-import { useGoogleCredentialLogin } from '@features/auth/useGoogleCredentialLogin';
-import { getDefaultRouteByRole } from '@shared/utils/roleRedirect';
+import { useAuth } from '@components/providers/AuthContext';
+import GoogleSignInButton from '@components/auth/GoogleSignInButton';
+import { authApi } from '@services/auth/auth.api';
+import { useGoogleCredentialLogin } from '@services/auth/useGoogleCredentialLogin';
+import { getDefaultRouteByRole } from '@services/navigation/roleRedirect';
 
 export default function LoginPage() {
   const navigate = useNavigate();

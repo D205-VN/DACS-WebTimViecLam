@@ -1,4 +1,4 @@
-const meetingRoomService = require('../services/meeting-room.service');
+const meetingRoomService = require('../../services/meeting-rooms/meeting-room.service');
 
 const delegate = (handler) => (req, res, next) => handler(req, res, next);
 

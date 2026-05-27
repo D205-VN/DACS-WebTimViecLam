@@ -3,11 +3,9 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["src/*"],
-      "@app/*": ["src/app/*"],
-      "@features/*": ["src/features/*"],
+      "@components/*": ["src/components/*"],
       "@pages/*": ["src/pages/*"],
-      "@shared/*": ["src/shared/*"],
-      "@widgets/*": ["src/widgets/*"]
+      "@services/*": ["src/services/*"]
     }
   },
   "exclude": ["dist", "node_modules"]

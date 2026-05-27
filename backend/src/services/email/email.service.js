@@ -1,6 +1,6 @@
 const nodemailer = require('nodemailer');
 require('dotenv').config();
-const { sendEmailResend } = require('../utils/mailer/resend');
+const { sendEmailResend } = require('../../utils/mailer/resend');
 
 const DEFAULT_MAIL_TIMEOUT_MS = 15000;
 

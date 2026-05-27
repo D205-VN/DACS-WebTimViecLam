@@ -10,10 +10,10 @@ import {
   Search,
   Send,
 } from 'lucide-react';
-import { useAuth } from '@features/auth/AuthContext';
-import API_BASE_URL from '@shared/api/baseUrl';
-import { getDefaultRouteByRole, getRouteByRole } from '@shared/utils/roleRedirect';
-import UserAvatar from '@shared/ui/UserAvatar';
+import { useAuth } from '@components/providers/AuthContext';
+import API_BASE_URL from '@services/http/baseUrl';
+import { getDefaultRouteByRole, getRouteByRole } from '@services/navigation/roleRedirect';
+import UserAvatar from '@components/ui/UserAvatar';
 
 const API = `${API_BASE_URL}/api/messages`;
 

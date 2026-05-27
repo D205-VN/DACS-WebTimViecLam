@@ -1,4 +1,4 @@
-const { isEmailConfigured, sendJobAlertDigestEmail } = require('./email.service');
+const { isEmailConfigured, sendJobAlertDigestEmail } = require('../email/email.service');
 const { createNotification } = require('./notification.service');
 const {
   ensureJobAlertSchema,
@@ -6,7 +6,7 @@ const {
   findJobsForAlert,
   markAlertDigestSent,
   markAlertChecked,
-} = require('../models/jobAlert.model');
+} = require('../../models/notifications/jobAlert.model');
 
 const DEFAULT_INTERVAL_MS = 6 * 60 * 60 * 1000;
 const INTERVAL_MS = Number.parseInt(process.env.JOB_ALERT_DIGEST_INTERVAL_MS, 10) || DEFAULT_INTERVAL_MS;

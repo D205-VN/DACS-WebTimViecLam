@@ -1,6 +1,6 @@
-const pool = require('../infrastructure/database/postgres');
+const pool = require('../../infrastructure/database/postgres');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
-const { generateTextWithLmStudio, isLmStudioEnabled } = require('../infrastructure/ai/lmstudio.service');
+const { generateTextWithLmStudio, isLmStudioEnabled } = require('../../infrastructure/ai/lmstudio.service');
 
 // Initialize Gemini for scoring mock
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || 'mock-api-key');

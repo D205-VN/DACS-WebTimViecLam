@@ -1,14 +1,14 @@
 const crypto = require('crypto');
-const AppError = require('../core/errors/AppError');
-const { getNearestDistanceForAddress } = require('../core/utils/locationCoordinates');
-const { createNotification } = require('./notification.service');
+const AppError = require('../../core/errors/AppError');
+const { getNearestDistanceForAddress } = require('../../core/utils/locationCoordinates');
+const { createNotification } = require('../notifications/notification.service');
 const {
   ensureJobStatusSchema,
   ensurePublicApplicationSchema,
   ensureJobAnalyticsSchema,
   ensureOnboardingSchema,
-} = require('../models/job.model');
-const jobRepository = require('../repositories/job.repository');
+} = require('../../models/jobs/job.model');
+const jobRepository = require('../../repositories/jobs/job.repository');
 
 const SALARY_RANGE_OPTIONS = [
   { value: '', label: 'Tất cả' },

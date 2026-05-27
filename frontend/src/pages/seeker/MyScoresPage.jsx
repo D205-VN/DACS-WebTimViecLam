@@ -16,10 +16,10 @@ import {
   CheckSquare,
   Bot,
 } from 'lucide-react';
-import { useAuth } from '@features/auth/AuthContext';
-import { getBackLabelByRole, getDefaultRouteByRole, getJobDetailRoute } from '@shared/utils/roleRedirect';
-import { getSeekerAiTestPath } from '@shared/utils/aiTestRoutes';
-import { aiTestApi } from '@shared/api/aiTestApi';
+import { useAuth } from '@components/providers/AuthContext';
+import { getBackLabelByRole, getDefaultRouteByRole, getJobDetailRoute } from '@services/navigation/roleRedirect';
+import { getSeekerAiTestPath } from '@services/ai-tests/aiTestRoutes';
+import { aiTestApi } from '@services/ai-tests/aiTestApi';
 
 function formatTestType(type) {
   if (type === 'video_ai') return 'Video AI + tự luận';

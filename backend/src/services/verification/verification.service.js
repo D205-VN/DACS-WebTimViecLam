@@ -1,5 +1,5 @@
-const AppError = require('../core/errors/AppError');
-const { ensureCvSchema } = require('../models/cv.model');
+const AppError = require('../../core/errors/AppError');
+const { ensureCvSchema } = require('../../models/cv/cv.model');
 const {
   buildAssetMetadata,
   buildCertificatePayload,
@@ -14,8 +14,8 @@ const {
   hashPayload,
   validateBlockchainRecord,
   verifyBlockAnchor,
-} = require('../models/verification.model');
-const repository = require('../repositories/verification.repository');
+} = require('../../models/verification/verification.model');
+const repository = require('../../repositories/verification/verification.repository');
 
 function assertSeeker(user) {
   if (user?.role_code !== 'seeker') {

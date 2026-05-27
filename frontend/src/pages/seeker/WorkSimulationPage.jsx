@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { ArrowLeft, BriefcaseBusiness, CheckCircle2, Loader2, Send, Sparkles, Target } from 'lucide-react';
-import { useAuth } from '@features/auth/AuthContext';
-import { talentInsightsApi } from '@shared/api/talentInsightsApi';
-import { getJobDetailRoute } from '@shared/utils/roleRedirect';
+import { useAuth } from '@components/providers/AuthContext';
+import { talentInsightsApi } from '@services/talent-insights/talentInsightsApi';
+import { getJobDetailRoute } from '@services/navigation/roleRedirect';
 
 const MIN_ANSWER_LENGTH = 5;
 

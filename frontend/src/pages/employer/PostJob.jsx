@@ -1,14 +1,14 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Briefcase, MapPin, DollarSign, Clock, FileText, Users, Tag, Calendar, Loader2, CheckCircle2, Building2, LocateFixed } from 'lucide-react';
-import { useAuth } from '@features/auth/AuthContext';
-import API_BASE_URL from '@shared/api/baseUrl';
-import EmployerHeader from '@widgets/employer/EmployerHeader';
-import { clearRequestCache } from '@shared/api/requestCache';
-import { requestCurrentLocation } from '@shared/geo/currentLocation';
-import { locationCenters, normalizeProvinceName } from '@shared/geo/provinceCoordinates';
-import { getEmployerDashboardPath, getEmployerDashboardState } from '@shared/utils/employerDashboardRoutes';
-import { analyzeJobQuality, getTodayDateInputValue } from '@shared/utils/jobQuality';
+import { useAuth } from '@components/providers/AuthContext';
+import API_BASE_URL from '@services/http/baseUrl';
+import EmployerHeader from '@components/employer/EmployerHeader';
+import { clearRequestCache } from '@services/http/requestCache';
+import { requestCurrentLocation } from '@services/geo/currentLocation';
+import { locationCenters, normalizeProvinceName } from '@services/geo/provinceCoordinates';
+import { getEmployerDashboardPath, getEmployerDashboardState } from '@services/employer/dashboardRoutes';
+import { analyzeJobQuality, getTodayDateInputValue } from '@services/jobs/jobQuality';
 
 const JOB_TYPES = ['Toàn thời gian', 'Bán thời gian', 'Thực tập', 'Freelance', 'Remote'];
 const EXPERIENCE_LEVELS = ['Không yêu cầu', 'Dưới 1 năm', '1-2 năm', '2-3 năm', '3-5 năm', 'Trên 5 năm'];

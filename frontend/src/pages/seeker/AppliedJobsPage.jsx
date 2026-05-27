@@ -17,10 +17,10 @@ import {
   BrainCircuit,
   CheckCircle2,
 } from 'lucide-react';
-import { useAuth } from '@features/auth/AuthContext';
-import { getBackLabelByRole, getDefaultRouteByRole, getJobDetailRoute, getRouteByRole } from '@shared/utils/roleRedirect';
-import { getSeekerAiTestPath } from '@shared/utils/aiTestRoutes';
-import API_BASE_URL from '@shared/api/baseUrl';
+import { useAuth } from '@components/providers/AuthContext';
+import { getBackLabelByRole, getDefaultRouteByRole, getJobDetailRoute, getRouteByRole } from '@services/navigation/roleRedirect';
+import { getSeekerAiTestPath } from '@services/ai-tests/aiTestRoutes';
+import API_BASE_URL from '@services/http/baseUrl';
 
 const API = `${API_BASE_URL}/api/jobs`;
 

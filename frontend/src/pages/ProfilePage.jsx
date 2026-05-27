@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowLeft, BriefcaseBusiness, Camera, CheckCircle2, Loader2, Mail, Phone, Save, Trash2 } from 'lucide-react';
-import { useAuth } from '@features/auth/AuthContext';
-import { authApi } from '@features/auth/auth.api';
-import { getBackLabelByRole, getDefaultRouteByRole } from '@shared/utils/roleRedirect';
-import UserAvatar from '@shared/ui/UserAvatar';
+import { useAuth } from '@components/providers/AuthContext';
+import { authApi } from '@services/auth/auth.api';
+import { getBackLabelByRole, getDefaultRouteByRole } from '@services/navigation/roleRedirect';
+import UserAvatar from '@components/ui/UserAvatar';
 
 const MAX_AVATAR_SOURCE_SIZE = 8 * 1024 * 1024;
 

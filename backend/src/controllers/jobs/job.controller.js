@@ -1,5 +1,5 @@
 const fs = require('fs');
-const jobService = require('../services/job.service');
+const jobService = require('../../services/jobs/job.service');
 
 function getRequestContext(req) {
   return {

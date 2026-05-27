@@ -1,10 +1,10 @@
 const express = require('express');
 const router = express.Router();
-const jobController = require('../controllers/job.controller');
-const { authenticateToken } = require('../core/middlewares/auth.middleware');
-const { uploadRateLimit } = require('../core/middlewares/rate-limit.middleware');
-const { createFileFilter, handleMulterUpload, sanitizeUploadFilename } = require('../core/middlewares/upload.middleware');
-const { getCompanyPublicProfile } = require('../controllers/employer.controller');
+const jobController = require('../../controllers/jobs/job.controller');
+const { authenticateToken } = require('../../core/middlewares/auth.middleware');
+const { uploadRateLimit } = require('../../core/middlewares/rate-limit.middleware');
+const { createFileFilter, handleMulterUpload, sanitizeUploadFilename } = require('../../core/middlewares/upload.middleware');
+const { getCompanyPublicProfile } = require('../../controllers/employer/employer.controller');
 const fs = require('fs');
 const path = require('path');
 const multer = require('multer');

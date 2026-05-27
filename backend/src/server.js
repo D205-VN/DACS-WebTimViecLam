@@ -3,8 +3,8 @@ const http = require('http');
 const { validateEnvironmentOrExit } = require('./core/config/env');
 const { createApp } = require('./app');
 const socketManager = require('./core/realtime/socket');
-const { startInterviewReminderScheduler } = require('./services/interviewReminder.scheduler');
-const { startJobAlertDigestScheduler } = require('./services/jobAlertDigest.scheduler');
+const { startInterviewReminderScheduler } = require('./services/notifications/interviewReminder.scheduler');
+const { startJobAlertDigestScheduler } = require('./services/notifications/jobAlertDigest.scheduler');
 
 validateEnvironmentOrExit();
 

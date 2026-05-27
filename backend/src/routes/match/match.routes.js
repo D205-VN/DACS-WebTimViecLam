@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
-const matchController = require('../controllers/match.controller');
-const { authenticateToken } = require('../core/middlewares/auth.middleware');
+const matchController = require('../../controllers/match/match.controller');
+const { authenticateToken } = require('../../core/middlewares/auth.middleware');
 
 // AI job matching — requires login
 router.get('/recommendations', authenticateToken, matchController.getRecommendations);

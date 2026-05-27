@@ -1,4 +1,4 @@
-const employerService = require('../services/employer.service');
+const employerService = require('../../services/employer/employer.service');
 
 const delegate = (handler) => (req, res, next) => handler(req, res, next);
 

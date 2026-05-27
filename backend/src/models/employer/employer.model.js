@@ -1,4 +1,4 @@
-const pool = require('../infrastructure/database/postgres');
+const pool = require('../../infrastructure/database/postgres');
 
 let employerJobSchemaReady = false;
 let employerProfileSchemaReady = false;

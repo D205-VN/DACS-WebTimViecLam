@@ -5,7 +5,7 @@ import {
   ChevronRight, Play, Image as ImageIcon, Gift, ArrowLeft,
   ExternalLink, Clock
 } from 'lucide-react';
-import API_BASE_URL from '@shared/api/baseUrl';
+import API_BASE_URL from '@services/http/baseUrl';
 
 const API = `${API_BASE_URL}/api/jobs`;
 

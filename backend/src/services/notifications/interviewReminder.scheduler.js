@@ -1,6 +1,6 @@
-const pool = require('../infrastructure/database/postgres');
-const { ensurePublicApplicationSchema } = require('../models/job.model');
-const { isEmailConfigured, sendInterviewReminderEmail } = require('./email.service');
+const pool = require('../../infrastructure/database/postgres');
+const { ensurePublicApplicationSchema } = require('../../models/jobs/job.model');
+const { isEmailConfigured, sendInterviewReminderEmail } = require('../email/email.service');
 const { createNotification } = require('./notification.service');
 
 const DEFAULT_INTERVAL_MS = 15 * 60 * 1000;

@@ -1,5 +1,5 @@
 const crypto = require('crypto');
-const pool = require('../infrastructure/database/postgres');
+const pool = require('../../infrastructure/database/postgres');
 const {
   anchorBlockOnChain,
   buildExplorerUrl,
@@ -7,7 +7,7 @@ const {
   isBlockchainEnabled,
   isBlockchainRequired,
   verifyBlockAnchor,
-} = require('../services/blockchain.service');
+} = require('../../services/verification/blockchain.service');
 
 let verificationSchemaReady = false;
 

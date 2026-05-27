@@ -1,4 +1,4 @@
-const cvService = require('../services/cv.service');
+const cvService = require('../../services/cv/cv.service');
 
 const delegate = (handler) => (req, res, next) => handler(req, res, next);
 

@@ -1,5 +1,5 @@
-const pool = require('../infrastructure/database/postgres');
-const { createPublicToken } = require('../models/talent-insight.model');
+const pool = require('../../infrastructure/database/postgres');
+const { createPublicToken } = require('../../models/talent-insights/talent-insight.model');
 
 async function getUserProfile(userId) {
   const result = await pool.query(

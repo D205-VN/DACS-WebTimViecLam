@@ -1,11 +1,11 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Mail, Lock, Eye, EyeOff, Briefcase, ArrowRight, User, Phone, Building2, MapPin, ChevronDown, Loader2, CheckCircle2 } from 'lucide-react';
-import { useAuth } from '@features/auth/AuthContext';
-import GoogleSignInButton from '@features/auth/GoogleSignInButton';
-import { authApi } from '@features/auth/auth.api';
-import { useGoogleCredentialLogin } from '@features/auth/useGoogleCredentialLogin';
-import { getDefaultRouteByRole } from '@shared/utils/roleRedirect';
+import { useAuth } from '@components/providers/AuthContext';
+import GoogleSignInButton from '@components/auth/GoogleSignInButton';
+import { authApi } from '@services/auth/auth.api';
+import { useGoogleCredentialLogin } from '@services/auth/useGoogleCredentialLogin';
+import { getDefaultRouteByRole } from '@services/navigation/roleRedirect';
 
 const normalizeEmail = (value = '') => String(value || '').trim().toLowerCase();
 

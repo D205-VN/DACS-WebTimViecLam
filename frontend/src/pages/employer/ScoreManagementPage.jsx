@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, CheckCircle, AlertTriangle, ClipboardList } from 'lucide-react';
-import { aiTestApi } from '@shared/api/aiTestApi';
-import { getEmployerDashboardPath, getEmployerDashboardState } from '@shared/utils/employerDashboardRoutes';
+import { aiTestApi } from '@services/ai-tests/aiTestApi';
+import { getEmployerDashboardPath, getEmployerDashboardState } from '@services/employer/dashboardRoutes';
 
 const ScoreManagementPage = () => {
   const { id } = useParams(); // Test ID

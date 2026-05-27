@@ -1,8 +1,8 @@
 const express = require('express');
 const router = express.Router();
-const { authenticateToken } = require('../core/middlewares/auth.middleware');
-const { aiRateLimit } = require('../core/middlewares/rate-limit.middleware');
-const aiTestController = require('../controllers/ai-test.controller');
+const { authenticateToken } = require('../../core/middlewares/auth.middleware');
+const { aiRateLimit } = require('../../core/middlewares/rate-limit.middleware');
+const aiTestController = require('../../controllers/ai-tests/ai-test.controller');
 
 function requireEmployerOrAdmin(req, res, next) {
   if (!['employer', 'admin'].includes(req.user?.role_code)) {

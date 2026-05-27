@@ -1,4 +1,4 @@
-const pool = require('../infrastructure/database/postgres');
+const pool = require('../../infrastructure/database/postgres');
 
 async function findPrimaryOrLatestCv(userId) {
   const result = await pool.query(

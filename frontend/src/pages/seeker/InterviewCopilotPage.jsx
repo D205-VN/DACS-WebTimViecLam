@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { ArrowLeft, BrainCircuit, Briefcase, CheckCircle2, Loader2, MessageSquareText, Sparkles } from 'lucide-react';
-import { talentInsightsApi } from '@shared/api/talentInsightsApi';
-import { getJobDetailRoute } from '@shared/utils/roleRedirect';
-import { useAuth } from '@features/auth/AuthContext';
+import { talentInsightsApi } from '@services/talent-insights/talentInsightsApi';
+import { getJobDetailRoute } from '@services/navigation/roleRedirect';
+import { useAuth } from '@components/providers/AuthContext';
 
 export default function InterviewCopilotPage() {
   const { jobId } = useParams();

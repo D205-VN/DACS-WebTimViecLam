@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { Award, BrainCircuit, Briefcase, FileText, Loader2, ShieldCheck, Sparkles, Target } from 'lucide-react';
-import { talentInsightsApi } from '@shared/api/talentInsightsApi';
+import { talentInsightsApi } from '@services/talent-insights/talentInsightsApi';
 
 function formatDate(value) {
   if (!value) return '';

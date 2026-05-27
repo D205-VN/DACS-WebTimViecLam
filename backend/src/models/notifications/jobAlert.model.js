@@ -1,5 +1,5 @@
-const pool = require('../infrastructure/database/postgres');
-const { ensureJobStatusSchema, ensurePublicApplicationSchema } = require('./job.model');
+const pool = require('../../infrastructure/database/postgres');
+const { ensureJobStatusSchema, ensurePublicApplicationSchema } = require('../jobs/job.model');
 
 let jobAlertSchemaReady = false;
 

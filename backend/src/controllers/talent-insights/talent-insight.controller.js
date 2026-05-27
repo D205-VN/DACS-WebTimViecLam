@@ -1,4 +1,4 @@
-const talentInsightService = require('../services/talent-insight.service');
+const talentInsightService = require('../../services/talent-insights/talent-insight.service');
 
 function sendError(res, err, fallbackMessage) {
   const status = err.statusCode || err.status || 500;

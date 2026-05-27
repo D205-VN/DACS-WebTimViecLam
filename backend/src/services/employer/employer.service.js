@@ -1,14 +1,14 @@
 const crypto = require('crypto');
 const jwt = require('jsonwebtoken');
-const pool = require('../infrastructure/database/postgres');
-const { createNotification, createNotificationsForUsers } = require('./notification.service');
-const { resolveCurrentLocationPayload } = require('../core/utils/currentLocation');
-const { ensureVerificationSchema } = require('../models/verification.model');
-const { ensureJobAnalyticsSchema } = require('../models/job.model');
-const { ensureMeetingRoomSchema } = require('../models/meeting-room.model');
-const { isEmailConfigured, sendInterviewInvitationEmail } = require('./email.service');
+const pool = require('../../infrastructure/database/postgres');
+const { createNotification, createNotificationsForUsers } = require('../notifications/notification.service');
+const { resolveCurrentLocationPayload } = require('../../core/utils/currentLocation');
+const { ensureVerificationSchema } = require('../../models/verification/verification.model');
+const { ensureJobAnalyticsSchema } = require('../../models/jobs/job.model');
+const { ensureMeetingRoomSchema } = require('../../models/meeting-rooms/meeting-room.model');
+const { isEmailConfigured, sendInterviewInvitationEmail } = require('../email/email.service');
 const nodemailer = require('nodemailer');
-const { sendEmailResend } = require('../utils/mailer/resend');
+const { sendEmailResend } = require('../../utils/mailer/resend');
 
 async function ensureOnboardingSchema() {
   await pool.query(`
@@ -165,7 +165,7 @@ const {
   ensureEmployerProfileSchema,
   ensureEmployerApplicationSchema,
   ensureCompanyBrandingSchema,
-} = require('../models/employer.model');
+} = require('../../models/employer/employer.model');
 
 const EMPLOYER_RESPONSE_CACHE_TTL = {
   dashboard: 15 * 1000,

@@ -1,9 +1,9 @@
 const express = require('express');
 const router = express.Router();
-const cvController = require('../controllers/cv.controller');
-const { authenticateToken } = require('../core/middlewares/auth.middleware');
-const { aiRateLimit, uploadRateLimit } = require('../core/middlewares/rate-limit.middleware');
-const { createFileFilter, handleMulterUpload } = require('../core/middlewares/upload.middleware');
+const cvController = require('../../controllers/cv/cv.controller');
+const { authenticateToken } = require('../../core/middlewares/auth.middleware');
+const { aiRateLimit, uploadRateLimit } = require('../../core/middlewares/rate-limit.middleware');
+const { createFileFilter, handleMulterUpload } = require('../../core/middlewares/upload.middleware');
 const multer = require('multer');
 
 const upload = multer({

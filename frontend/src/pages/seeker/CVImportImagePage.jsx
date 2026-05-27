@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowLeft, ImageUp, Loader2, Save, Download, CheckCircle, LocateFixed, MapPin } from 'lucide-react';
-import { useAuth } from '@features/auth/AuthContext';
-import SeekerToolsNav from '@features/seeker-tools/SeekerToolsNav';
-import API_BASE_URL from '@shared/api/baseUrl';
-import { requestCurrentLocation } from '@shared/geo/currentLocation';
+import { useAuth } from '@components/providers/AuthContext';
+import SeekerToolsNav from '@components/seeker-tools/SeekerToolsNav';
+import API_BASE_URL from '@services/http/baseUrl';
+import { requestCurrentLocation } from '@services/geo/currentLocation';
 
 const API = `${API_BASE_URL}/api/cv`;
 

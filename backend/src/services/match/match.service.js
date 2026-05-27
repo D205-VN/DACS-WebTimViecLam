@@ -1,6 +1,6 @@
-const { getNearestDistanceForAddress } = require('../core/utils/locationCoordinates');
-const { ensureJobStatusSchema, ensurePublicApplicationSchema } = require('../models/job.model');
-const repository = require('../repositories/match.repository');
+const { getNearestDistanceForAddress } = require('../../core/utils/locationCoordinates');
+const { ensureJobStatusSchema, ensurePublicApplicationSchema } = require('../../models/jobs/job.model');
+const repository = require('../../repositories/match/match.repository');
 
 const WEIGHT_SKILL = 0.35;
 const WEIGHT_TITLE = 0.20;

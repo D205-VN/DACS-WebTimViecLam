@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { ArrowLeft, CheckCircle2, Copy, ExternalLink, Loader2, ShieldAlert, ShieldCheck, ShieldX } from 'lucide-react';
-import API_BASE_URL from '@shared/api/baseUrl';
+import API_BASE_URL from '@services/http/baseUrl';
 
 const API = `${API_BASE_URL}/api/verification`;
 

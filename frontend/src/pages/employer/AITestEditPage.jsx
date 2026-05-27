@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Plus, Save, Video, Trash2, Sparkles, Loader2, X, CheckSquare, Bot } from 'lucide-react';
-import { aiTestApi } from '@shared/api/aiTestApi';
-import { useAuth } from '@features/auth/AuthContext';
-import API_BASE_URL from '@shared/api/baseUrl';
-import { getEmployerDashboardPath, getEmployerDashboardState } from '@shared/utils/employerDashboardRoutes';
+import { aiTestApi } from '@services/ai-tests/aiTestApi';
+import { useAuth } from '@components/providers/AuthContext';
+import API_BASE_URL from '@services/http/baseUrl';
+import { getEmployerDashboardPath, getEmployerDashboardState } from '@services/employer/dashboardRoutes';
 
 const MCQ_KEYS = ['A', 'B', 'C', 'D'];
 

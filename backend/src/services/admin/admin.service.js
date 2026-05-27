@@ -1,8 +1,8 @@
-const AppError = require('../core/errors/AppError');
-const { ensureUserAccountStatusSchema } = require('../models/auth.model');
-const { createNotification } = require('./notification.service');
-const { ensureAdminJobSchema } = require('../models/admin.model');
-const repository = require('../repositories/admin.repository');
+const AppError = require('../../core/errors/AppError');
+const { ensureUserAccountStatusSchema } = require('../../models/auth/auth.model');
+const { createNotification } = require('../notifications/notification.service');
+const { ensureAdminJobSchema } = require('../../models/admin/admin.model');
+const repository = require('../../repositories/admin/admin.repository');
 
 async function ensureAdminSchema() {
   await ensureAdminJobSchema();

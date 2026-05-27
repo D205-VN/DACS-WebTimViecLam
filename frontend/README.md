@@ -4,15 +4,14 @@ React/Vite application for the job search platform.
 
 ## Source Layout
 
-- `src/app/`: app bootstrap, providers, layouts, and router setup.
-- `src/features/`: stateful product capabilities such as auth, notifications, and seeker tools.
 - `src/pages/`: route-level screens.
-- `src/pages/auth/`: login, register, forgot password, and change password screens.
-- `src/pages/admin/`: admin-only route screens.
-- `src/pages/employer/`: employer-only route screens.
-- `src/pages/seeker/`: seeker-only route screens.
-- `src/shared/`: cross-cutting API config, utility functions, geo data, content, and shared UI.
-- `src/widgets/`: composed UI sections reused by pages.
+- `src/components/`: reusable UI grouped by domain (`auth`, `employer`, `home`, `layouts`, `providers`, `seeker-tools`, `ui`).
+- `src/services/`: non-visual code grouped by domain:
+  - `auth/`: auth API, storage, and Google credential flow.
+  - `http/`: base API URL and request cache helpers.
+  - `navigation/`: role redirects and dashboard route maps.
+  - `ai-tests/`, `employer/`, `jobs/`, `talent-insights/`: feature-specific service helpers.
+  - `geo/`, `content/`, `data/`, `router/`: shared data and app routing helpers.
 - `public/`: static files served as-is.
 
 ## Commands
@@ -28,10 +27,8 @@ npm run lint
 
 Aliases are configured in `vite.config.js` and `jsconfig.json`:
 
-- `@app/*`
-- `@features/*`
 - `@pages/*`
-- `@shared/*`
-- `@widgets/*`
+- `@components/*`
+- `@services/*`
 
 Prefer aliases over long relative imports for app code.

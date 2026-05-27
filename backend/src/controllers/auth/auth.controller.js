@@ -1,4 +1,4 @@
-const authService = require('../services/auth.service');
+const authService = require('../../services/auth/auth.service');
 
 function isEmailDeliveryError(err) {
   const code = String(err?.code || '');

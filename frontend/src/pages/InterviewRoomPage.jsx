@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { ArrowLeft, Bot, CalendarClock, CheckCircle2, ClipboardCheck, Loader2, Mic, MicOff, Monitor, MonitorOff, Save, Star, UserCheck, Video, VideoOff, PhoneOff } from 'lucide-react';
 import { io } from 'socket.io-client';
-import API_BASE_URL from '@shared/api/baseUrl';
+import API_BASE_URL from '@services/http/baseUrl';
 
 const ICE_SERVERS = [
   { urls: 'stun:stun.l.google.com:19302' },

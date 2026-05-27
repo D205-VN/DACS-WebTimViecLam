@@ -4,7 +4,7 @@ import {
   getAdminDashboardPath,
   getAdminDashboardState,
   getAdminDashboardTab,
-} from '@shared/utils/adminDashboardRoutes';
+} from '@services/navigation/adminDashboardRoutes';
 import {
   Activity,
   Ban,
@@ -22,10 +22,10 @@ import {
   Users,
   ShieldCheck,
 } from 'lucide-react';
-import { useAuth } from '@features/auth/AuthContext';
-import { useNotifications } from '@features/notifications/NotificationContext';
-import API_BASE_URL from '@shared/api/baseUrl';
-import UserAvatar from '@shared/ui/UserAvatar';
+import { useAuth } from '@components/providers/AuthContext';
+import { useNotifications } from '@components/providers/NotificationContext';
+import API_BASE_URL from '@services/http/baseUrl';
+import UserAvatar from '@components/ui/UserAvatar';
 
 const navItems = [
   { id: 'overview', label: 'Tổng quan', icon: LayoutDashboard },

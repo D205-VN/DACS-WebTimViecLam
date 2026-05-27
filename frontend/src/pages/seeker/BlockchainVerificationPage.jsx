@@ -14,10 +14,10 @@ import {
   ShieldEllipsis,
   Trash2,
 } from 'lucide-react';
-import { useAuth } from '@features/auth/AuthContext';
-import SeekerToolsNav from '@features/seeker-tools/SeekerToolsNav';
-import { getBackLabelByRole, getDefaultRouteByRole } from '@shared/utils/roleRedirect';
-import API_BASE_URL from '@shared/api/baseUrl';
+import { useAuth } from '@components/providers/AuthContext';
+import SeekerToolsNav from '@components/seeker-tools/SeekerToolsNav';
+import { getBackLabelByRole, getDefaultRouteByRole } from '@services/navigation/roleRedirect';
+import API_BASE_URL from '@services/http/baseUrl';
 
 const API = `${API_BASE_URL}/api/verification`;
 

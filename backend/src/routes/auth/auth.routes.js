@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
-const { register, verifyOTP, resendOTP, login, googleAuth, getMe, updateProfile, changePassword, forgotPassword, verifyResetOTP, resetPassword } = require('../controllers/auth.controller');
-const { authenticateToken } = require('../core/middlewares/auth.middleware');
+const { register, verifyOTP, resendOTP, login, googleAuth, getMe, updateProfile, changePassword, forgotPassword, verifyResetOTP, resetPassword } = require('../../controllers/auth/auth.controller');
+const { authenticateToken } = require('../../core/middlewares/auth.middleware');
 
 // Public routes
 router.post('/register', register);

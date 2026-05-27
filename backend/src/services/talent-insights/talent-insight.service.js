@@ -1,6 +1,6 @@
-const AppError = require('../core/errors/AppError');
-const { ensureTalentInsightSchema } = require('../models/talent-insight.model');
-const repository = require('../repositories/talent-insight.repository');
+const AppError = require('../../core/errors/AppError');
+const { ensureTalentInsightSchema } = require('../../models/talent-insights/talent-insight.model');
+const repository = require('../../repositories/talent-insights/talent-insight.repository');
 
 const KNOWN_SKILLS = [
   'Python', 'Machine Learning', 'Data Analysis', 'Model Deployment', 'Analytical Skills',

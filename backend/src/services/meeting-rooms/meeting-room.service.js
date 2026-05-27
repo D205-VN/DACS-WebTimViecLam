@@ -1,7 +1,7 @@
-const pool = require('../infrastructure/database/postgres');
-const { getIO } = require('../core/realtime/socket');
-const { ensureMeetingRoomSchema } = require('../models/meeting-room.model');
-const talentInsightService = require('./talent-insight.service');
+const pool = require('../../infrastructure/database/postgres');
+const { getIO } = require('../../core/realtime/socket');
+const { ensureMeetingRoomSchema } = require('../../models/meeting-rooms/meeting-room.model');
+const talentInsightService = require('../talent-insights/talent-insight.service');
 
 const ACTIVE_QUEUE_STATUSES = ['waiting', 'in_interview'];
 

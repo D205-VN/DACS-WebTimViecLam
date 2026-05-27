@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
-const { authenticateToken } = require('../core/middlewares/auth.middleware');
-const messageController = require('../controllers/message.controller');
+const { authenticateToken } = require('../../core/middlewares/auth.middleware');
+const messageController = require('../../controllers/messages/message.controller');
 
 router.use(authenticateToken);
 

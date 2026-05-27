@@ -1,8 +1,8 @@
 const express = require('express');
 const router = express.Router();
-const { authenticateToken } = require('../core/middlewares/auth.middleware');
-const { aiRateLimit } = require('../core/middlewares/rate-limit.middleware');
-const talentInsightController = require('../controllers/talent-insight.controller');
+const { authenticateToken } = require('../../core/middlewares/auth.middleware');
+const { aiRateLimit } = require('../../core/middlewares/rate-limit.middleware');
+const talentInsightController = require('../../controllers/talent-insights/talent-insight.controller');
 
 router.get('/passport/public/:token', talentInsightController.getPublicSkillPassport);
 router.get('/jobs/:jobId/trust', talentInsightController.getEmployerTrustForJob);

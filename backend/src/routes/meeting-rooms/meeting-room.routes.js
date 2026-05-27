@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
-const { authenticateToken } = require('../core/middlewares/auth.middleware');
-const meetingController = require('../controllers/meeting-room.controller');
+const { authenticateToken } = require('../../core/middlewares/auth.middleware');
+const meetingController = require('../../controllers/meeting-rooms/meeting-room.controller');
 
 function requireEmployer(req, res, next) {
     if (req.user.role_code !== 'employer') {

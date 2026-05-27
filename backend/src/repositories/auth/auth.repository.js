@@ -1,4 +1,4 @@
-const pool = require('../infrastructure/database/postgres');
+const pool = require('../../infrastructure/database/postgres');
 
 async function findUserByEmail(email, columns = '*') {
   const result = await pool.query(`SELECT ${columns} FROM users WHERE email = $1`, [email]);

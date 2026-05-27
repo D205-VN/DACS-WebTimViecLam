@@ -1,4 +1,4 @@
-const verificationService = require('../services/verification.service');
+const verificationService = require('../../services/verification/verification.service');
 
 function sendControllerError(res, err, fallbackMessage, logLabel) {
   if (err?.isOperational) {

@@ -1,7 +1,7 @@
-const { emitToUser } = require('../core/realtime/socket');
-const AppError = require('../core/errors/AppError');
-const notificationModel = require('../models/notification.model');
-const jobAlertModel = require('../models/jobAlert.model');
+const { emitToUser } = require('../../core/realtime/socket');
+const AppError = require('../../core/errors/AppError');
+const notificationModel = require('../../models/notifications/notification.model');
+const jobAlertModel = require('../../models/notifications/jobAlert.model');
 
 function assertSeeker(user) {
   if (user?.role_code !== 'seeker') {

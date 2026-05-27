@@ -1,8 +1,8 @@
 import { Link, useParams } from 'react-router-dom';
 import { ArrowLeft, BookOpen, Calendar, Clock3, User2 } from 'lucide-react';
-import { useAuth } from '@features/auth/AuthContext';
-import { blogPosts, getBlogPostBySlug } from '@shared/content/blogPosts';
-import { getBlogDetailRoute, getRouteByRole } from '@shared/utils/roleRedirect';
+import { useAuth } from '@components/providers/AuthContext';
+import { blogPosts, getBlogPostBySlug } from '@services/content/blogPosts';
+import { getBlogDetailRoute, getRouteByRole } from '@services/navigation/roleRedirect';
 
 function formatDate(date) {
   return new Date(date).toLocaleDateString('vi-VN', {

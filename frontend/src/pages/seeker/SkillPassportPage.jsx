@@ -14,10 +14,10 @@ import {
   Sparkles,
   Target,
 } from 'lucide-react';
-import { useAuth } from '@features/auth/AuthContext';
-import SeekerToolsNav from '@features/seeker-tools/SeekerToolsNav';
-import { talentInsightsApi } from '@shared/api/talentInsightsApi';
-import { getBackLabelByRole, getDefaultRouteByRole } from '@shared/utils/roleRedirect';
+import { useAuth } from '@components/providers/AuthContext';
+import SeekerToolsNav from '@components/seeker-tools/SeekerToolsNav';
+import { talentInsightsApi } from '@services/talent-insights/talentInsightsApi';
+import { getBackLabelByRole, getDefaultRouteByRole } from '@services/navigation/roleRedirect';
 
 function resolvePublicUrl(path) {
   if (!path) return '';

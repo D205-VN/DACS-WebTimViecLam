@@ -1,4 +1,4 @@
-const messageService = require('../services/message.service');
+const messageService = require('../../services/messages/message.service');
 
 function sendControllerError(res, err, fallbackMessage, logLabel) {
   if (err?.isOperational) {

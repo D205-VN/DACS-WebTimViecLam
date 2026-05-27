@@ -1,10 +1,10 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { OAuth2Client } = require('google-auth-library');
-const AppError = require('../core/errors/AppError');
-const { sendOTPEmail, sendPasswordResetOTPEmail } = require('./email.service');
-const { ensureUserAccountStatusSchema } = require('../models/auth.model');
-const repository = require('../repositories/auth.repository');
+const AppError = require('../../core/errors/AppError');
+const { sendOTPEmail, sendPasswordResetOTPEmail } = require('../email/email.service');
+const { ensureUserAccountStatusSchema } = require('../../models/auth/auth.model');
+const repository = require('../../repositories/auth/auth.repository');
 
 const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 const OTP_TTL_MS = 5 * 60 * 1000;

@@ -1,4 +1,4 @@
-const pool = require('../infrastructure/database/postgres');
+const pool = require('../../infrastructure/database/postgres');
 
 async function query(sql, params = [], client = pool) {
   return client.query(sql, params);

@@ -1,8 +1,8 @@
 const crypto = require('crypto');
-const pool = require('../infrastructure/database/postgres');
-const { ensureCvSchema } = require('./cv.model');
-const { ensurePublicApplicationSchema } = require('./job.model');
-const { ensureVerificationSchema } = require('./verification.model');
+const pool = require('../../infrastructure/database/postgres');
+const { ensureCvSchema } = require('../cv/cv.model');
+const { ensurePublicApplicationSchema } = require('../jobs/job.model');
+const { ensureVerificationSchema } = require('../verification/verification.model');
 
 let talentInsightSchemaReady = false;
 

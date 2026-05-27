@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Mail, Lock, Eye, EyeOff, ArrowLeft, ArrowRight, Loader2, ShieldCheck, KeyRound, CheckCircle2, Briefcase } from 'lucide-react';
-import { authApi } from '@features/auth/auth.api';
+import { authApi } from '@services/auth/auth.api';
 
 const STEPS = { EMAIL: 'email', OTP: 'otp', RESET: 'reset', SUCCESS: 'success' };
 

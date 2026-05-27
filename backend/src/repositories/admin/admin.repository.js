@@ -1,4 +1,4 @@
-const pool = require('../infrastructure/database/postgres');
+const pool = require('../../infrastructure/database/postgres');
 
 async function getStatsCounts() {
   const [userCount, jobCount, pendingJobCount, appliedCount] = await Promise.all([

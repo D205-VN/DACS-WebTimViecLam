@@ -1,27 +1,27 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Sparkles, Briefcase } from 'lucide-react';
-import { useAuth } from '@features/auth/AuthContext';
-import API_BASE_URL from '@shared/api/baseUrl';
-import EmployerHeader from '@widgets/employer/EmployerHeader';
-import EmployerSidebar from '@widgets/employer/EmployerSidebar';
-import ManageJobsTab from '@widgets/employer/ManageJobsTab';
-import ManageCandidatesTab from '@widgets/employer/ManageCandidatesTab';
-import CompanyProfileTab from '@widgets/employer/CompanyProfileTab';
-import NotificationsTab from '@widgets/employer/NotificationsTab';
-import AnalyticsTab from '@widgets/employer/AnalyticsTab';
-import DashboardTab from '@widgets/employer/DashboardTab';
-import OnboardingTab from '@widgets/employer/OnboardingTab';
-import ManageMeetingRoomsTab from '@widgets/employer/ManageMeetingRoomsTab';
-import AITestManagementContent from '@widgets/employer/AITestManagementContent';
-import InterviewCopilotTab from '@widgets/employer/InterviewCopilotTab';
+import { useAuth } from '@components/providers/AuthContext';
+import API_BASE_URL from '@services/http/baseUrl';
+import EmployerHeader from '@components/employer/EmployerHeader';
+import EmployerSidebar from '@components/employer/EmployerSidebar';
+import ManageJobsTab from '@components/employer/ManageJobsTab';
+import ManageCandidatesTab from '@components/employer/ManageCandidatesTab';
+import CompanyProfileTab from '@components/employer/CompanyProfileTab';
+import NotificationsTab from '@components/employer/NotificationsTab';
+import AnalyticsTab from '@components/employer/AnalyticsTab';
+import DashboardTab from '@components/employer/DashboardTab';
+import OnboardingTab from '@components/employer/OnboardingTab';
+import ManageMeetingRoomsTab from '@components/employer/ManageMeetingRoomsTab';
+import AITestManagementContent from '@components/employer/AITestManagementContent';
+import InterviewCopilotTab from '@components/employer/InterviewCopilotTab';
 import {
   getEmployerDashboardPath,
   getEmployerDashboardState,
   getEmployerDashboardTab,
-} from '@shared/utils/employerDashboardRoutes';
-import { cachedJsonFetch } from '@shared/api/requestCache';
-import { prefetchEmployerPortalData } from '@shared/api/employerPrefetch';
+} from '@services/employer/dashboardRoutes';
+import { cachedJsonFetch } from '@services/http/requestCache';
+import { prefetchEmployerPortalData } from '@services/employer/employerPrefetch';
 
 const EMPTY_STATS = {
   totalJobs: 0,

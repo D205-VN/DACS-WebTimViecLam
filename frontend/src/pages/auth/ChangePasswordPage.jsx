@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Lock, Eye, EyeOff, Shield, ArrowLeft, CheckCircle2, Loader2 } from 'lucide-react';
-import { useAuth } from '@features/auth/AuthContext';
-import { authApi } from '@features/auth/auth.api';
-import { getBackLabelByRole, getDefaultRouteByRole } from '@shared/utils/roleRedirect';
+import { useAuth } from '@components/providers/AuthContext';
+import { authApi } from '@services/auth/auth.api';
+import { getBackLabelByRole, getDefaultRouteByRole } from '@services/navigation/roleRedirect';
 
 export default function ChangePasswordPage() {
   const { token, user } = useAuth();

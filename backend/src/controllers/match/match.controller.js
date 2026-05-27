@@ -1,4 +1,4 @@
-const matchService = require('../services/match.service');
+const matchService = require('../../services/match/match.service');
 
 exports.getRecommendations = async (req, res) => {
   try {

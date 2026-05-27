@@ -1,0 +1,1240 @@
+import { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
+import {
+  Search,
+  Mail,
+  Phone,
+  Eye,
+  CheckCircle,
+  Loader2,
+  Briefcase,
+  XCircle,
+  Clock,
+  CalendarClock,
+  Video,
+  MapPin,
+  X,
+  ExternalLink,
+  FileText,
+  MessageCircle,
+  Columns3,
+  List,
+} from 'lucide-react';
+import { useAuth } from '@components/providers/AuthContext';
+import API_BASE_URL from '@services/http/baseUrl';
+import UserAvatar from '@components/ui/UserAvatar';
+import { cachedJsonFetch, clearRequestCache, readCachedJson } from '@services/http/requestCache';
+import { getEmployerDashboardPath, getEmployerDashboardState } from '@services/employer/dashboardRoutes';
+import { getNowDateTimeLocalValue } from '@services/jobs/jobQuality';
+
+function getStatusMeta(status) {
+  switch (status) {
+    case 'approved':
+      return { label: 'Đã duyệt hồ sơ', className: 'bg-emerald-100 text-emerald-700' };
+    case 'interview':
+      return { label: 'Phỏng vấn', className: 'bg-blue-100 text-blue-700' };
+    case 'hired':
+      return { label: 'Trúng tuyển', className: 'bg-violet-100 text-violet-700' };
+    case 'onboarding':
+      return { label: 'Onboarding', className: 'bg-teal-100 text-teal-700' };
+    case 'rejected':
+      return { label: 'Từ chối', className: 'bg-red-100 text-red-700' };
+    default:
+      return { label: 'Chờ xử lý', className: 'bg-amber-100 text-amber-700' };
+  }
+}
+
+function formatInterviewMode(mode) {
+  return mode === 'offline' ? 'Offline tại công ty' : 'Online';
+}
+
+function formatDateTime(value) {
+  if (!value) return 'Chưa có lịch';
+
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return 'Chưa có lịch';
+
+  return parsed.toLocaleString('vi-VN', {
+    hour: '2-digit',
+    minute: '2-digit',
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+  });
+}
+
+function formatDate(value) {
+  if (!value) return 'Chưa cập nhật';
+
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return value;
+
+  return parsed.toLocaleDateString('vi-VN', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+  });
+}
+
+function getVerificationStatusMeta(status) {
+  if (status === 'revoked') {
+    return { label: 'Thu hồi', className: 'bg-red-100 text-red-700' };
+  }
+
+  return { label: 'Active', className: 'bg-emerald-100 text-emerald-700' };
+}
+
+function buildVerificationUrl(publicUrl, verificationCode) {
+  if (publicUrl) return publicUrl;
+  return verificationCode ? `/verify/${verificationCode}` : null;
+}
+
+function toDateTimeLocal(value) {
+  if (!value) return '';
+
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return '';
+
+  const tzOffset = parsed.getTimezoneOffset() * 60000;
+  return new Date(parsed.getTime() - tzOffset).toISOString().slice(0, 16);
+}
+
+export default function ManageCandidatesTab() {
+  const { token } = useAuth();
+  const navigate = useNavigate();
+  const [candidates, setCandidates] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [activeStage, setActiveStage] = useState('all');
+  const [viewMode, setViewMode] = useState('list');
+  const [draggingCandidateId, setDraggingCandidateId] = useState(null);
+  const [actionLoading, setActionLoading] = useState(null);
+  const [selectedCandidateId, setSelectedCandidateId] = useState(null);
+  const [candidateDetail, setCandidateDetail] = useState(null);
+  const [detailLoading, setDetailLoading] = useState(false);
+  const [detailError, setDetailError] = useState('');
+  const [scheduleLoading, setScheduleLoading] = useState(false);
+  const [modalSection, setModalSection] = useState('profile');
+  const [interviewForm, setInterviewForm] = useState({
+    interview_at: '',
+    interview_mode: 'online',
+    interview_link: '',
+  });
+
+  const fetchCandidates = useCallback(async () => {
+    try {
+      const requestOptions = { headers: { Authorization: `Bearer ${token}` } };
+      const cached = readCachedJson(`${API_BASE_URL}/api/employer/candidates`, requestOptions);
+
+      if (cached) {
+        setCandidates(cached.data || []);
+        setLoading(false);
+      }
+
+      const data = await cachedJsonFetch(`${API_BASE_URL}/api/employer/candidates`, requestOptions, { ttlMs: 30 * 1000 });
+      setCandidates(data.data || []);
+      setError('');
+    } catch (err) {
+      console.error('Fetch candidates error:', err);
+      setError('Không thể kết nối đến máy chủ');
+    } finally {
+      setLoading(false);
+    }
+  }, [token]);
+
+  useEffect(() => {
+    if (token) fetchCandidates();
+  }, [token, fetchCandidates]);
+
+  const loadCandidateDetail = useCallback(async (applicationId) => {
+    setDetailLoading(true);
+    setDetailError('');
+
+    try {
+      const requestOptions = {
+        headers: { Authorization: `Bearer ${token}` },
+      };
+      const data = await cachedJsonFetch(`${API_BASE_URL}/api/employer/candidates/${applicationId}`, requestOptions, { ttlMs: 30 * 1000 });
+
+      const detail = data.data || null;
+      setCandidateDetail(detail);
+      setInterviewForm({
+        interview_at: toDateTimeLocal(detail?.interview_at),
+        interview_mode: detail?.candidate_interview_mode || detail?.interview_mode || 'online',
+        interview_link: detail?.interview_link || '',
+      });
+    } catch (err) {
+      console.error('Load candidate detail error:', err);
+      setCandidateDetail(null);
+      setDetailError(err.message || 'Không thể tải hồ sơ ứng viên');
+    } finally {
+      setDetailLoading(false);
+    }
+  }, [token]);
+
+  const openCandidateModal = async (applicationId, section = 'profile') => {
+    setSelectedCandidateId(applicationId);
+    setModalSection(section);
+    await loadCandidateDetail(applicationId);
+  };
+
+  const closeCandidateModal = () => {
+    setSelectedCandidateId(null);
+    setCandidateDetail(null);
+    setDetailError('');
+    setModalSection('profile');
+    setInterviewForm({
+      interview_at: '',
+      interview_mode: 'online',
+      interview_link: '',
+    });
+  };
+
+  const handleStatusUpdate = async (applicationId, newStatus) => {
+    setActionLoading(applicationId);
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/employer/applications/${applicationId}/status`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ status: newStatus }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Lỗi khi cập nhật trạng thái');
+      }
+
+      clearRequestCache((key) => key.includes('/api/employer') || key.includes('/api/meeting-rooms'));
+      await fetchCandidates();
+
+      if (selectedCandidateId === applicationId) {
+        const nextStatus = data.data?.status || newStatus;
+        setCandidateDetail((prev) => (
+          prev
+            ? { ...prev, status: nextStatus, updated_at: data.data?.updated_at || prev.updated_at }
+            : prev
+        ));
+        if (nextStatus === 'approved') setModalSection('approved');
+        if (nextStatus === 'hired') setModalSection('hired');
+        if (nextStatus === 'rejected') setModalSection('rejected');
+      }
+    } catch (err) {
+      alert(err.message || 'Lỗi kết nối');
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleScheduleInterview = async () => {
+    if (!candidateDetail) return;
+
+    const lockedMode = candidateDetail.candidate_interview_mode || candidateDetail.interview_mode || '';
+    const resolvedMode = lockedMode || interviewForm.interview_mode;
+
+    setScheduleLoading(true);
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/employer/candidates/${candidateDetail.id}/interview`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          interview_at: interviewForm.interview_at,
+          interview_mode: resolvedMode,
+          interview_link: null,
+        }),
+      });
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || 'Không thể lưu lịch phỏng vấn');
+      }
+
+      const updated = data.data || {};
+      const meetingRoomId = updated.meeting_room_id || updated.meeting_room?.id || null;
+      setCandidateDetail((prev) => (
+        prev
+          ? {
+              ...prev,
+              status: updated.status || 'interview',
+              interview_at: updated.interview_at || prev.interview_at,
+              interview_mode: updated.interview_mode || prev.interview_mode,
+              interview_link: updated.interview_link || null,
+              meeting_room_id: meetingRoomId || prev.meeting_room_id || null,
+              meeting_room: updated.meeting_room || prev.meeting_room || null,
+              company_address: updated.company_address || prev.company_address,
+            }
+          : prev
+      ));
+      setInterviewForm((prev) => ({
+        ...prev,
+        interview_at: toDateTimeLocal(updated.interview_at || prev.interview_at),
+        interview_mode: updated.interview_mode || prev.interview_mode,
+        interview_link: updated.interview_link || '',
+      }));
+      clearRequestCache((key) => key.includes('/api/employer') || key.includes('/api/meeting-rooms'));
+      await fetchCandidates();
+      if ((updated.interview_mode || resolvedMode) === 'online' && meetingRoomId) {
+        navigate(getEmployerDashboardPath('meeting-rooms', { room: meetingRoomId }), {
+          state: getEmployerDashboardState('meeting-rooms'),
+        });
+        return;
+      }
+      setModalSection('interview');
+    } catch (err) {
+      alert(err.message || 'Lỗi kết nối');
+    } finally {
+      setScheduleLoading(false);
+    }
+  };
+
+  const stages = [
+    { id: 'all', label: 'Tất cả', count: candidates.length },
+    { id: 'pending', label: 'Chờ xử lý', count: candidates.filter((c) => c.status === 'pending' || !c.status).length },
+    { id: 'approved', label: 'Đã duyệt hồ sơ', count: candidates.filter((c) => c.status === 'approved').length },
+    { id: 'interview', label: 'Phỏng vấn', count: candidates.filter((c) => c.status === 'interview').length },
+    { id: 'hired', label: 'Trúng tuyển', count: candidates.filter((c) => c.status === 'hired' || c.status === 'onboarding').length },
+    { id: 'rejected', label: 'Từ chối', count: candidates.filter((c) => c.status === 'rejected').length },
+  ];
+
+  const visibleCandidates = candidates.filter(
+    (candidate) => activeStage === 'all'
+      || (candidate.status || 'pending') === activeStage
+      || (activeStage === 'hired' && candidate.status === 'onboarding')
+  );
+  const kanbanStages = stages.filter((stage) => stage.id !== 'all');
+  const lockedInterviewMode = candidateDetail?.candidate_interview_mode || candidateDetail?.interview_mode || '';
+  const resolvedInterviewMode = lockedInterviewMode || interviewForm.interview_mode;
+  const nowDateTimeValue = getNowDateTimeLocalValue();
+
+  const handleDropCandidate = async (stageId) => {
+    const candidateId = draggingCandidateId;
+    setDraggingCandidateId(null);
+    if (!candidateId || stageId === 'all') return;
+
+    const candidate = candidates.find((item) => item.id === candidateId);
+    if (!candidate || (candidate.status || 'pending') === stageId) return;
+
+    await handleStatusUpdate(candidateId, stageId);
+  };
+
+  if (loading) {
+    return (
+      <div className="rounded-2xl border border-indigo-100/60 bg-white/90 backdrop-blur-sm shadow-sm p-20 flex flex-col items-center justify-center">
+        <Loader2 className="w-10 h-10 text-indigo-700 animate-spin mb-4" />
+        <p className="text-gray-500 font-medium">Đang tải danh sách ứng viên...</p>
+      </div>
+    );
+  }
+
+  return (
+    <>
+      <div className="space-y-6">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex overflow-x-auto gap-2 pb-2 scrollbar-hide">
+            {stages.map((stage) => (
+              <button
+                key={stage.id}
+                onClick={() => setActiveStage(stage.id)}
+                disabled={viewMode === 'kanban' && stage.id === 'all'}
+                className={`flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold whitespace-nowrap transition-all ${
+                  activeStage === stage.id && viewMode === 'list'
+                    ? 'bg-gradient-to-r from-indigo-600 to-violet-600 text-white '
+                    : 'bg-white text-gray-600 hover:bg-indigo-50/30 border border-indigo-100/60'
+                } disabled:cursor-not-allowed disabled:opacity-60`}
+              >
+                {stage.label}
+                <span
+                  className={`px-2 py-0.5 rounded-full text-xs ${
+                    activeStage === stage.id && viewMode === 'list' ? 'bg-white/20' : 'bg-gradient-to-r from-indigo-50 to-violet-50 text-gray-500'
+                  }`}
+                >
+                  {stage.count}
+                </span>
+              </button>
+            ))}
+          </div>
+
+          <div className="inline-flex w-fit rounded-lg border border-indigo-100/60 bg-white p-1 shadow-sm">
+            {[
+              { id: 'list', label: 'Danh sách', icon: List },
+              { id: 'kanban', label: 'Kanban', icon: Columns3 },
+            ].map((mode) => (
+              <button
+                key={mode.id}
+                type="button"
+                onClick={() => setViewMode(mode.id)}
+                className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-semibold transition ${
+                  viewMode === mode.id ? 'bg-gradient-to-r from-indigo-600 to-violet-600 text-white' : 'text-gray-500 hover:bg-indigo-50/30 hover:text-gray-700'
+                }`}
+              >
+                <mode.icon className="h-4 w-4" />
+                {mode.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {error ? (
+          <div className="p-4 bg-red-50 text-red-600 text-sm rounded-xl border border-red-100">{error}</div>
+        ) : null}
+
+        {viewMode === 'kanban' ? (
+          <div className="grid gap-4 xl:grid-cols-5">
+            {kanbanStages.map((stage) => {
+              const stageCandidates = candidates.filter((candidate) => (candidate.status || 'pending') === stage.id);
+              return (
+                <div
+                  key={stage.id}
+                  onDragOver={(event) => event.preventDefault()}
+                  onDrop={() => handleDropCandidate(stage.id)}
+                  className="min-h-[420px] rounded-xl border border-indigo-100/60 bg-gradient-to-br from-indigo-50/30 to-violet-50/20 p-3"
+                >
+                  <div className="mb-3 flex items-center justify-between px-1">
+                    <div>
+                      <h3 className="font-bold text-gray-800">{stage.label}</h3>
+                      <p className="text-xs text-gray-400">Kéo thả ứng viên vào đây</p>
+                    </div>
+                    <span className="rounded-full bg-white px-2.5 py-1 text-xs font-bold text-gray-500 shadow-sm">{stage.count}</span>
+                  </div>
+
+                  <div className="space-y-3">
+                    {stageCandidates.map((candidate) => {
+                      const preferredMode = candidate.candidate_interview_mode || candidate.interview_mode || '';
+                      return (
+                        <div
+                          key={candidate.id}
+                          draggable={actionLoading !== candidate.id}
+                          onDragStart={() => setDraggingCandidateId(candidate.id)}
+                          onDragEnd={() => setDraggingCandidateId(null)}
+                          className={`rounded-xl border bg-white/90 p-4 shadow-sm hover:shadow-md transition ${
+                            draggingCandidateId === candidate.id ? 'border-indigo-300 opacity-60' : 'border-indigo-50 hover:border-indigo-100 '
+                          }`}
+                        >
+                          <div className="flex items-start gap-3">
+                            <UserAvatar
+                              src={candidate.avatar_url}
+                              alt={candidate.candidate_name}
+                              className="h-11 w-11 rounded-full object-cover ring-2 ring-gray-100"
+                              fallbackClassName="flex h-11 w-11 items-center justify-center rounded-full bg-gradient-to-r from-indigo-600 to-violet-600 ring-2 ring-gray-100"
+                              iconClassName="h-5 w-5 text-white"
+                            />
+                            <div className="min-w-0 flex-1">
+                              <p className="truncate font-bold text-gray-800">{candidate.candidate_name}</p>
+                              <p className="mt-1 line-clamp-2 text-xs font-semibold text-indigo-600">{candidate.job_title}</p>
+                              <p className="mt-1 text-xs text-gray-400">{formatDate(candidate.created_at)}</p>
+                            </div>
+                          </div>
+
+                          {preferredMode || candidate.interview_at ? (
+                            <div className="mt-3 rounded-lg bg-slate-50 px-3 py-2 text-xs text-slate-500">
+                              {preferredMode ? formatInterviewMode(preferredMode) : null}
+                              {candidate.interview_at ? <span className="block">{formatDateTime(candidate.interview_at)}</span> : null}
+                            </div>
+                          ) : null}
+
+                          <div className="mt-3 flex flex-wrap gap-2">
+                            <button
+                              type="button"
+                              onClick={() => openCandidateModal(candidate.id, 'profile')}
+                              className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-indigo-100/60 px-3 py-2 text-xs font-semibold text-gray-600 transition hover:bg-indigo-50/30"
+                            >
+                              <Eye className="h-3.5 w-3.5" /> Hồ sơ
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => navigate(`/employer/messages?applicationId=${candidate.id}`)}
+                              className="inline-flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-cyan-50 px-3 py-2 text-xs font-semibold text-cyan-700 transition hover:bg-cyan-100"
+                            >
+                              <MessageCircle className="h-3.5 w-3.5" /> Chat
+                            </button>
+                            {stage.id === 'approved' || stage.id === 'interview' ? (
+                              <button
+                                type="button"
+                                onClick={() => openCandidateModal(candidate.id, 'interview')}
+                                className="inline-flex w-full items-center justify-center gap-1.5 rounded-lg bg-blue-50 px-3 py-2 text-xs font-semibold text-blue-700 transition hover:bg-blue-100"
+                              >
+                                <Video className="h-3.5 w-3.5" /> Lịch phỏng vấn
+                              </button>
+                            ) : null}
+                            {stage.id === 'interview' ? (
+                              <button
+                                type="button"
+                                onClick={() => handleStatusUpdate(candidate.id, 'hired')}
+                                className="inline-flex w-full items-center justify-center gap-1.5 rounded-lg bg-violet-50 px-3 py-2 text-xs font-semibold text-violet-700 transition hover:bg-violet-100"
+                              >
+                                <CheckCircle className="h-3.5 w-3.5" /> Trúng tuyển
+                              </button>
+                            ) : null}
+                          </div>
+                        </div>
+                      );
+                    })}
+
+                    {stageCandidates.length === 0 ? (
+                      <div className="rounded-xl border border-dashed border-indigo-200/60 bg-white/70 p-6 text-center text-sm text-gray-400">
+                        Chưa có ứng viên.
+                      </div>
+                    ) : null}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+        <div className="rounded-2xl border border-indigo-100/60 bg-white/90 backdrop-blur-sm shadow-sm overflow-hidden divide-y divide-gray-100">
+          {visibleCandidates.length > 0 ? (
+            visibleCandidates.map((candidate) => {
+              const statusMeta = getStatusMeta(candidate.status);
+              const preferredMode = candidate.candidate_interview_mode || candidate.interview_mode || '';
+
+              return (
+                <div
+                  key={candidate.id}
+                  className="p-6 flex flex-col lg:flex-row gap-6 items-start lg:items-center justify-between hover:bg-indigo-50/30/50 transition-colors"
+                >
+                  <div className="flex gap-4 items-center">
+                    <UserAvatar
+                      src={candidate.avatar_url}
+                      alt={candidate.candidate_name}
+                      className="w-14 h-14 rounded-full object-cover ring-2 ring-gray-100"
+                      fallbackClassName="flex w-14 h-14 items-center justify-center rounded-full bg-gradient-to-r from-indigo-600 to-violet-600 ring-2 ring-gray-100"
+                      iconClassName="h-6 w-6 text-white"
+                    />
+                    <div>
+                      <div className="flex items-center gap-2 mb-1 flex-wrap">
+                        <h4 className="font-bold text-gray-800 text-lg">{candidate.candidate_name}</h4>
+                        <span
+                          className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${statusMeta.className}`}
+                        >
+                          {statusMeta.label}
+                        </span>
+                        {preferredMode ? (
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider bg-slate-100 text-slate-600">
+                            {formatInterviewMode(preferredMode)}
+                          </span>
+                        ) : null}
+                      </div>
+                      <div className="flex items-center gap-1.5 text-sm text-indigo-600 font-semibold mb-2">
+                        <Briefcase className="w-4 h-4" /> {candidate.job_title}
+                      </div>
+                      <div className="flex flex-wrap gap-4 text-xs text-gray-500">
+                        <span className="flex items-center gap-1.5">
+                          <Mail className="w-3.5 h-3.5" /> {candidate.candidate_email}
+                        </span>
+                        {candidate.candidate_phone ? (
+                          <span className="flex items-center gap-1.5">
+                            <Phone className="w-3.5 h-3.5" /> {candidate.candidate_phone}
+                          </span>
+                        ) : null}
+                        {candidate.interview_at ? (
+                          <span className="flex items-center gap-1.5">
+                            <CalendarClock className="w-3.5 h-3.5" /> {formatDateTime(candidate.interview_at)}
+                          </span>
+                        ) : null}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col sm:flex-row lg:flex-col items-start sm:items-center lg:items-end gap-4 w-full lg:w-auto">
+                    <div className="text-xs text-gray-400 font-medium">
+                      Ứng tuyển: {new Date(candidate.created_at).toLocaleDateString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' })}
+                    </div>
+
+                    <div className="flex flex-col gap-1.5 w-full sm:w-auto">
+                      {actionLoading === candidate.id ? (
+                        <div className="px-8 py-2 flex justify-center">
+                          <Loader2 className="w-5 h-5 animate-spin text-indigo-600" />
+                        </div>
+                      ) : (
+                        <>
+                          {/* Hàng 1: Xem hồ sơ + Nhắn tin + Hành động chính */}
+                          <div className="flex gap-1.5">
+                            <button
+                              type="button"
+                              onClick={() => openCandidateModal(candidate.id, 'profile')}
+                              className="flex items-center gap-1 px-3 py-1.5 bg-white border border-gray-200 text-gray-600 rounded-lg text-xs font-medium hover:bg-gray-50 transition-colors"
+                            >
+                              <Eye className="w-3.5 h-3.5" /> Hồ sơ
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => navigate(`/employer/messages?applicationId=${candidate.id}`)}
+                              className="flex items-center gap-1 px-3 py-1.5 bg-cyan-50 text-cyan-700 rounded-lg text-xs font-medium hover:bg-cyan-100 transition-colors"
+                            >
+                              <MessageCircle className="w-3.5 h-3.5" /> Nhắn tin
+                            </button>
+
+                            {/* Nút hành động theo giai đoạn */}
+                            {(candidate.status === 'approved' || candidate.status === 'interview') && (
+                              <button
+                                type="button"
+                                onClick={() => openCandidateModal(candidate.id, 'interview')}
+                                className="flex items-center gap-1 px-3 py-1.5 bg-blue-50 text-blue-600 rounded-lg text-xs font-medium hover:bg-blue-100 transition-colors"
+                              >
+                                <Video className="w-3.5 h-3.5" />
+                                {candidate.status === 'approved' ? 'Lên lịch' : 'Phỏng vấn'}
+                              </button>
+                            )}
+                            {(candidate.status === 'hired' || candidate.status === 'onboarding') && (
+                              <button
+                                type="button"
+                                onClick={() => navigate(getEmployerDashboardPath('onboarding'), { state: getEmployerDashboardState('onboarding') })}
+                                className="flex items-center gap-1 px-3 py-1.5 bg-emerald-50 text-emerald-600 rounded-lg text-xs font-medium hover:bg-emerald-100 transition-colors"
+                              >
+                                <CheckCircle className="w-3.5 h-3.5" /> Onboarding
+                              </button>
+                            )}
+                          </div>
+
+                          {/* Hàng 2: Quyết định tuyển dụng */}
+                          {(candidate.status === 'pending' || !candidate.status) && (
+                            <div className="flex gap-1.5">
+                              <button
+                                type="button"
+                                onClick={() => handleStatusUpdate(candidate.id, 'approved')}
+                                className="flex-1 flex items-center justify-center gap-1 px-3 py-1.5 bg-emerald-500 text-white rounded-lg text-xs font-semibold hover:bg-emerald-600 transition-colors"
+                              >
+                                <CheckCircle className="w-3.5 h-3.5" /> Duyệt hồ sơ
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleStatusUpdate(candidate.id, 'rejected')}
+                                className="flex-1 flex items-center justify-center gap-1 px-3 py-1.5 bg-red-50 text-red-600 rounded-lg text-xs font-semibold hover:bg-red-100 transition-colors"
+                              >
+                                <XCircle className="w-3.5 h-3.5" /> Từ chối
+                              </button>
+                            </div>
+                          )}
+                          {candidate.status === 'approved' && (
+                            <div className="flex gap-1.5">
+                              <button
+                                type="button"
+                                onClick={() => handleStatusUpdate(candidate.id, 'rejected')}
+                                className="flex-1 flex items-center justify-center gap-1 px-3 py-1.5 bg-red-50 text-red-600 rounded-lg text-xs font-semibold hover:bg-red-100 transition-colors"
+                              >
+                                <XCircle className="w-3.5 h-3.5" /> Từ chối
+                              </button>
+                            </div>
+                          )}
+                          {candidate.status === 'interview' && (
+                            <div className="flex gap-1.5">
+                              <button
+                                type="button"
+                                onClick={() => handleStatusUpdate(candidate.id, 'hired')}
+                                className="flex-1 flex items-center justify-center gap-1 px-3 py-1.5 bg-emerald-500 text-white rounded-lg text-xs font-semibold hover:bg-emerald-600 transition-colors"
+                              >
+                                <CheckCircle className="w-3.5 h-3.5" /> Trúng tuyển
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleStatusUpdate(candidate.id, 'rejected')}
+                                className="flex-1 flex items-center justify-center gap-1 px-3 py-1.5 bg-red-50 text-red-600 rounded-lg text-xs font-semibold hover:bg-red-100 transition-colors"
+                              >
+                                <XCircle className="w-3.5 h-3.5" /> Không trúng
+                              </button>
+                            </div>
+                          )}
+                        </>
+                      )}
+                    </div>
+
+                  </div>
+                </div>
+              );
+            })
+          ) : (
+            <div className="p-20 text-center">
+              <div className="w-16 h-16 bg-indigo-50/50 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Search className="w-8 h-8 text-gray-300" />
+              </div>
+              <p className="text-gray-500 font-medium">Không có ứng viên nào trong danh sách.</p>
+            </div>
+          )}
+        </div>
+        )}
+      </div>
+
+      {selectedCandidateId ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 px-4 py-6">
+          <div className="w-full max-w-6xl max-h-[92vh] overflow-hidden rounded-2xl bg-white shadow-2xl shadow-slate-900/20 flex flex-col">
+            <div className="flex items-start justify-between gap-4 border-b border-slate-200 px-6 py-5">
+              <div>
+                <p className="text-xs uppercase tracking-[0.24em] text-slate-400">Hồ sơ ứng viên</p>
+                <h3 className="mt-2 text-2xl font-bold text-slate-900">
+                  {candidateDetail?.candidate_name || 'Đang tải hồ sơ'}
+                </h3>
+                {candidateDetail?.job_title ? (
+                  <p className="mt-2 text-sm text-slate-500">Ứng tuyển vào vị trí {candidateDetail.job_title}</p>
+                ) : null}
+              </div>
+              <button
+                type="button"
+                onClick={closeCandidateModal}
+                className="inline-flex h-11 w-11 items-center justify-center rounded-full bg-slate-100 text-slate-500 transition hover:bg-slate-200"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {candidateDetail && (
+              candidateDetail.status === 'approved'
+              || candidateDetail.status === 'interview'
+              || candidateDetail.status === 'hired'
+              || candidateDetail.status === 'onboarding'
+              || candidateDetail.status === 'rejected'
+            ) ? (
+              <div className="border-b border-slate-200 px-6">
+                <div className="flex gap-1 overflow-x-auto">
+                  {candidateDetail.status === 'approved' || candidateDetail.status === 'interview' || candidateDetail.status === 'hired' || candidateDetail.status === 'onboarding' ? (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => setModalSection('profile')}
+                        className={`px-5 py-3.5 text-sm font-semibold border-b-2 transition ${
+                          modalSection === 'profile'
+                            ? 'border-indigo-500 text-indigo-700'
+                            : 'border-transparent text-slate-500 hover:text-slate-700'
+                        }`}
+                      >
+                        <Eye className="w-4 h-4 inline mr-1.5" /> Hồ sơ
+                      </button>
+                      {candidateDetail.status === 'approved' || candidateDetail.status === 'interview' ? (
+                        <button
+                          type="button"
+                          onClick={() => setModalSection('interview')}
+                          className={`px-5 py-3.5 text-sm font-semibold border-b-2 transition ${
+                            modalSection === 'interview'
+                              ? 'border-indigo-500 text-indigo-700'
+                              : 'border-transparent text-slate-500 hover:text-slate-700'
+                          }`}
+                        >
+                          <Video className="w-4 h-4 inline mr-1.5" /> Phỏng vấn
+                        </button>
+                      ) : null}
+                      {candidateDetail.status === 'approved' ? (
+                        <button
+                          type="button"
+                          onClick={() => setModalSection('approved')}
+                          className={`px-5 py-3.5 text-sm font-semibold border-b-2 transition ${
+                            modalSection === 'approved'
+                              ? 'border-indigo-500 text-indigo-700'
+                              : 'border-transparent text-slate-500 hover:text-slate-700'
+                          }`}
+                        >
+                          <CheckCircle className="w-4 h-4 inline mr-1.5" /> Đã duyệt hồ sơ
+                        </button>
+                      ) : null}
+                      {(candidateDetail.status === 'hired' || candidateDetail.status === 'onboarding') ? (
+                        <button
+                          type="button"
+                          onClick={() => setModalSection('hired')}
+                          className={`px-5 py-3.5 text-sm font-semibold border-b-2 transition ${
+                            modalSection === 'hired'
+                              ? 'border-indigo-500 text-indigo-700'
+                              : 'border-transparent text-slate-500 hover:text-slate-700'
+                          }`}
+                        >
+                          <CheckCircle className="w-4 h-4 inline mr-1.5" /> Trúng tuyển
+                        </button>
+                      ) : null}
+                    </>
+                  ) : candidateDetail.status === 'rejected' ? (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => setModalSection('profile')}
+                        className={`px-5 py-3.5 text-sm font-semibold border-b-2 transition ${
+                          modalSection === 'profile'
+                            ? 'border-indigo-500 text-indigo-700'
+                            : 'border-transparent text-slate-500 hover:text-slate-700'
+                        }`}
+                      >
+                        <Eye className="w-4 h-4 inline mr-1.5" /> Hồ sơ
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setModalSection('rejected')}
+                        className={`px-5 py-3.5 text-sm font-semibold border-b-2 transition ${
+                          modalSection === 'rejected'
+                            ? 'border-indigo-500 text-indigo-700'
+                            : 'border-transparent text-slate-500 hover:text-slate-700'
+                        }`}
+                      >
+                        <XCircle className="w-4 h-4 inline mr-1.5" /> Từ chối
+                      </button>
+                    </>
+                  ) : null}
+                </div>
+              </div>
+            ) : null}
+
+            <div className="flex-1 min-h-0 overflow-y-auto p-6">
+              {detailLoading ? (
+                <div className="flex flex-col items-center justify-center py-24 text-slate-500">
+                  <Loader2 className="w-9 h-9 animate-spin text-indigo-600" />
+                  <p className="mt-4 text-sm font-medium">Đang tải hồ sơ ứng viên...</p>
+                </div>
+              ) : detailError ? (
+                <div className="rounded-xl border border-red-100 bg-red-50 px-5 py-4 text-sm text-red-600">
+                  {detailError}
+                </div>
+              ) : candidateDetail ? (
+                <>
+                  {(modalSection === 'profile' || (
+                    candidateDetail.status !== 'approved'
+                    && candidateDetail.status !== 'hired'
+                    && candidateDetail.status !== 'interview'
+                    && candidateDetail.status !== 'rejected'
+                  )) && (
+                    <div className="grid gap-6 xl:grid-cols-[360px_minmax(0,1fr)]">
+                      <div className="space-y-6">
+                    <div className="rounded-xl border border-indigo-100/60 bg-indigo-50/30 p-5">
+                      <div className="flex items-center gap-3">
+                        <UserAvatar
+                          src={candidateDetail.avatar_url}
+                          alt={candidateDetail.candidate_name}
+                          className="h-16 w-16 rounded-full object-cover ring-2 ring-white shadow-sm"
+                          fallbackClassName="flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-r from-indigo-600 to-violet-600"
+                          iconClassName="h-6 w-6 text-white"
+                        />
+                        <div>
+                          <p className="text-lg font-bold text-slate-900">{candidateDetail.candidate_name}</p>
+                          <p className="text-sm text-slate-500">{candidateDetail.candidate_email}</p>
+                          {candidateDetail.candidate_phone ? (
+                            <p className="text-sm text-slate-500">{candidateDetail.candidate_phone}</p>
+                          ) : null}
+                        </div>
+                      </div>
+
+                      <div className="mt-5 flex flex-wrap gap-2">
+                        <span
+                          className={`rounded-full px-3 py-1 text-xs font-semibold ${
+                            getStatusMeta(candidateDetail.status).className
+                          }`}
+                        >
+                          {getStatusMeta(candidateDetail.status).label}
+                        </span>
+                        {candidateDetail.candidate_interview_mode ? (
+                          <span className="rounded-full bg-slate-200 px-3 py-1 text-xs font-semibold text-slate-600">
+                            Ứng viên chọn: {formatInterviewMode(candidateDetail.candidate_interview_mode)}
+                          </span>
+                        ) : null}
+                      </div>
+
+                      <div className="mt-5 space-y-3 text-sm text-slate-600">
+                        <div className="flex items-start gap-2">
+                          <Briefcase className="mt-0.5 h-4 w-4 text-slate-400" />
+                          <span>{candidateDetail.job_title}</span>
+                        </div>
+                        <div className="flex items-start gap-2">
+                          <CalendarClock className="mt-0.5 h-4 w-4 text-slate-400" />
+                          <span>Ứng tuyển lúc {formatDateTime(candidateDetail.created_at)}</span>
+                        </div>
+                        {candidateDetail.company_address ? (
+                          <div className="flex items-start gap-2">
+                            <MapPin className="mt-0.5 h-4 w-4 text-slate-400" />
+                            <span>{candidateDetail.company_address}</span>
+                          </div>
+                        ) : null}
+                      </div>
+                    </div>
+
+                    {candidateDetail.cover_letter ? (
+                      <div className="rounded-xl border border-cyan-100 bg-cyan-50/60 p-5">
+                        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-cyan-600">Thư giới thiệu</p>
+                        <p className="mt-3 whitespace-pre-line text-sm leading-6 text-slate-700">{candidateDetail.cover_letter}</p>
+                      </div>
+                    ) : null}
+                  </div>
+
+                  <div className="space-y-6">
+                    <div className="rounded-xl border border-indigo-100/60 bg-white/90 shadow-sm">
+                        <div className="flex items-center justify-between gap-3 border-b border-slate-200 px-5 py-4">
+                          <div>
+                            <p className="text-xs uppercase tracking-[0.2em] text-slate-400">CV ứng viên</p>
+                            <h4 className="mt-1 text-lg font-bold text-slate-900">
+                              {candidateDetail.cv_title || 'Hồ sơ CV đính kèm'}
+                            </h4>
+                            {candidateDetail.cv_target_role ? (
+                              <p className="mt-1 text-sm text-slate-500">{candidateDetail.cv_target_role}</p>
+                            ) : null}
+                            {candidateDetail.cv_verification_code ? (
+                              <div className="mt-3 flex flex-wrap items-center gap-2">
+                                <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-700">
+                                  Blockchain verified
+                                </span>
+                                <span className="font-mono text-[11px] text-slate-500">
+                                  {candidateDetail.cv_verification_code}
+                                </span>
+                                <a
+                                  href={`/verify/${candidateDetail.cv_verification_code}`}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="inline-flex items-center gap-1 text-xs font-semibold text-indigo-700 hover:text-indigo-800"
+                                >
+                                  <ExternalLink className="h-3.5 w-3.5" /> Tra cứu
+                                </a>
+                              </div>
+                            ) : null}
+                        </div>
+                        <div className="rounded-full bg-slate-100 p-2 text-slate-500">
+                          <FileText className="h-5 w-5" />
+                        </div>
+                      </div>
+
+                      {candidateDetail.cv_html_content ? (
+                        <div className="max-h-[68vh] overflow-auto bg-slate-50 p-5">
+                          <div
+                            className="rounded-xl border border-indigo-100/60 bg-white/90 p-4 shadow-sm"
+                            dangerouslySetInnerHTML={{ __html: candidateDetail.cv_html_content }}
+                          />
+                        </div>
+                      ) : candidateDetail.experience_summary ? (
+                        <div className="p-5">
+                          <div className="rounded-xl border border-indigo-100/60 bg-indigo-50/30 p-5 text-sm leading-7 text-slate-700 whitespace-pre-line">
+                            {candidateDetail.experience_summary}
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="flex flex-col items-center justify-center px-6 py-16 text-center text-slate-500">
+                          <FileText className="h-10 w-10 text-slate-300" />
+                          <p className="mt-4 text-sm font-medium">Ứng viên chưa có CV đính kèm để xem trực tiếp.</p>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="rounded-xl border border-indigo-100/60 bg-white/90 shadow-sm">
+                      <div className="flex items-center justify-between gap-3 border-b border-slate-200 px-5 py-4">
+                        <div>
+                          <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Blockchain Verification</p>
+                          <h4 className="mt-1 text-lg font-bold text-slate-900">Lịch sử làm việc đã xác thực</h4>
+                          <p className="mt-1 text-sm text-slate-500">Những công việc ứng viên đã ghi nhận qua blockchain verification.</p>
+                        </div>
+                        <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
+                          {candidateDetail.work_histories?.length || 0} mục
+                        </span>
+                      </div>
+
+                      {candidateDetail.work_histories?.length ? (
+                        <div className="divide-y divide-slate-100">
+                          {candidateDetail.work_histories.map((item) => {
+                            const statusMeta = getVerificationStatusMeta(item.status);
+                            const detailUrl = buildVerificationUrl(item.public_url, item.verification_code);
+
+                            return (
+                              <div key={item.id} className="p-5">
+                                <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                                  <div>
+                                    <div className="flex flex-wrap items-center gap-2">
+                                      <h5 className="text-base font-bold text-slate-900">{item.job_title}</h5>
+                                      <span className={`rounded-full px-2.5 py-1 text-[11px] font-semibold ${statusMeta.className}`}>
+                                        {statusMeta.label}
+                                      </span>
+                                      {item.verification_code ? (
+                                        <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-semibold text-emerald-700">
+                                          Blockchain verified
+                                        </span>
+                                      ) : null}
+                                    </div>
+                                    <p className="mt-1 text-sm font-medium text-slate-600">{item.company_name}</p>
+                                    <div className="mt-3 flex flex-wrap gap-x-4 gap-y-2 text-sm text-slate-500">
+                                      <span>
+                                        Thời gian: {formatDate(item.start_date)} - {item.currently_working ? 'Hiện tại' : formatDate(item.end_date)}
+                                      </span>
+                                      {item.employment_type ? <span>Hình thức: {item.employment_type}</span> : null}
+                                    </div>
+                                  </div>
+
+                                  {detailUrl ? (
+                                    <a
+                                      href={detailUrl}
+                                      target="_blank"
+                                      rel="noreferrer"
+                                      className="inline-flex items-center gap-1.5 text-sm font-semibold text-indigo-700 hover:text-indigo-800"
+                                    >
+                                      <ExternalLink className="h-4 w-4" /> Tra cứu
+                                    </a>
+                                  ) : null}
+                                </div>
+
+                                {item.summary ? (
+                                  <p className="mt-4 text-sm leading-7 text-slate-600 whitespace-pre-line">{item.summary}</p>
+                                ) : null}
+
+                                {item.verification_code ? (
+                                  <p className="mt-4 break-all font-mono text-xs text-slate-500">{item.verification_code}</p>
+                                ) : null}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <div className="px-6 py-12 text-center text-sm text-slate-500">
+                          Ứng viên chưa có lịch sử làm việc nào được ghi nhận để nhà tuyển dụng tra cứu.
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  </div>
+                )}
+
+                  {modalSection === 'interview' && (candidateDetail.status === 'approved' || candidateDetail.status === 'interview') && (
+                    <div className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm max-h-[60vh] overflow-y-auto">
+                      <div className="mb-6">
+                        <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Lịch phỏng vấn</p>
+                        <h4 className="mt-2 text-lg font-bold text-slate-900">Thông tin phỏng vấn</h4>
+                      </div>
+
+                      <div className="space-y-4">
+                          {lockedInterviewMode ? (
+                            <div className="rounded-lg bg-slate-50 px-4 py-3">
+                              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+                                Hình thức đã chọn
+                              </p>
+                              <p className="mt-2 text-sm font-semibold text-slate-800">
+                                {formatInterviewMode(lockedInterviewMode)}
+                              </p>
+                            </div>
+                          ) : (
+                            <div>
+                              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+                                Chọn hình thức phỏng vấn
+                              </p>
+                              <div className="mt-3 grid grid-cols-2 gap-2">
+                                {['online', 'offline'].map((mode) => (
+                                  <button
+                                    key={mode}
+                                    type="button"
+                                    onClick={() => setInterviewForm((prev) => ({ ...prev, interview_mode: mode }))}
+                                    className={`rounded-lg border px-4 py-3 text-sm font-semibold transition ${
+                                      interviewForm.interview_mode === mode
+                                        ? 'border-indigo-500 bg-indigo-50 text-indigo-700'
+                                        : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+                                    }`}
+                                  >
+                                    {formatInterviewMode(mode)}
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          <div>
+                            <label className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+                              Thời gian phỏng vấn
+                            </label>
+                            <input
+                              type="datetime-local"
+                              value={interviewForm.interview_at}
+                              min={nowDateTimeValue}
+                              onChange={(event) =>
+                                setInterviewForm((prev) => ({ ...prev, interview_at: event.target.value }))
+                              }
+                              className="mt-3 w-full rounded-lg border border-slate-200 px-4 py-3 text-sm text-slate-700 outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-violet-200"
+                            />
+                          </div>
+
+                          {resolvedInterviewMode === 'online' ? (
+                            <div className="rounded-lg border border-blue-100 bg-blue-50 px-4 py-4 text-sm text-blue-700">
+                              <p className="font-semibold text-blue-800">Phòng họp trực tuyến</p>
+                              <p className="mt-2 text-blue-600">
+                                Hệ thống sẽ tự động tạo phòng họp (Meeting Room) và sinh link tham gia khi bạn lưu lịch phỏng vấn này.
+                              </p>
+                            </div>
+                          ) : (
+                            <div className="rounded-lg bg-slate-50 px-4 py-4 text-sm text-slate-600">
+                              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">
+                                Địa chỉ phỏng vấn offline
+                              </p>
+                              <p className="mt-2 font-medium text-slate-800">
+                                {candidateDetail.company_address || 'Chưa cập nhật địa chỉ công ty'}
+                              </p>
+                            </div>
+                          )}
+
+                          {candidateDetail.interview_at ? (
+                            <div className="rounded-lg border border-emerald-100 bg-emerald-50 px-4 py-4 text-sm text-emerald-700">
+                              <p className="font-semibold">Lịch hiện tại</p>
+                              <p className="mt-2">Thời gian: {formatDateTime(candidateDetail.interview_at)}</p>
+                              <p className="mt-1">
+                                Hình thức: {formatInterviewMode(candidateDetail.interview_mode || resolvedInterviewMode)}
+                              </p>
+                              {candidateDetail.interview_mode === 'online' ? (
+                                <button
+                                  type="button"
+                                  onClick={() => navigate(
+                                    getEmployerDashboardPath('meeting-rooms', { room: candidateDetail.meeting_room_id }),
+                                    { state: getEmployerDashboardState('meeting-rooms') },
+                                  )}
+                                  className="mt-3 inline-flex items-center gap-1.5 font-semibold text-emerald-800 hover:underline"
+                                >
+                                  Xem trong Phòng Meet <Video className="h-4 w-4" />
+                                </button>
+                              ) : null}
+                            </div>
+                          ) : null}
+
+                          <button
+                            type="button"
+                            onClick={handleScheduleInterview}
+                            disabled={scheduleLoading}
+                            className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-indigo-600 to-violet-600 px-5 py-3 text-sm font-semibold text-white transition  hover:shadow-indigo-200/40 disabled:cursor-not-allowed disabled:opacity-60"
+                          >
+                            {scheduleLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <CalendarClock className="h-4 w-4" />}
+                            {candidateDetail.interview_at ? 'Cập nhật lịch phỏng vấn' : 'Lưu lịch phỏng vấn'}
+                          </button>
+
+                          {candidateDetail.status === 'interview' ? (
+                            <div className="grid gap-3 sm:grid-cols-2">
+                              <button
+                                type="button"
+                                onClick={() => handleStatusUpdate(candidateDetail.id, 'hired')}
+                                disabled={actionLoading === candidateDetail.id}
+                                className="inline-flex items-center justify-center gap-2 rounded-lg bg-violet-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-violet-700 disabled:cursor-not-allowed disabled:opacity-60"
+                              >
+                                {actionLoading === candidateDetail.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle className="h-4 w-4" />}
+                                Trúng tuyển
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleStatusUpdate(candidateDetail.id, 'rejected')}
+                                disabled={actionLoading === candidateDetail.id}
+                                className="inline-flex items-center justify-center gap-2 rounded-lg bg-red-50 px-5 py-3 text-sm font-semibold text-red-600 transition hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-60"
+                              >
+                                <XCircle className="h-4 w-4" />
+                                Từ chối sau phỏng vấn
+                              </button>
+                            </div>
+                          ) : null}
+                        </div>
+                    </div>
+                  )}
+
+                  {modalSection === 'approved' && candidateDetail.status === 'approved' && (
+                    <div className="rounded-lg border border-emerald-100 bg-emerald-50 p-8 shadow-sm max-h-[60vh] overflow-y-auto">
+                      <div className="flex items-center justify-center mb-6">
+                        <CheckCircle className="w-16 h-16 text-emerald-600" />
+                      </div>
+                        <h3 className="text-center text-2xl font-bold text-emerald-900 mb-2">Hồ sơ đã được duyệt</h3>
+                        <p className="text-center text-emerald-700 mb-6">
+                          Ứng viên {candidateDetail.candidate_name} đã được duyệt vào ngày{' '}
+                          {formatDateTime(candidateDetail.updated_at || candidateDetail.created_at)}
+                        </p>
+                        <div className="flex flex-col gap-3">
+                          <div className="bg-white rounded-lg p-4 border border-emerald-200">
+                            <p className="text-xs uppercase tracking-[0.18em] text-emerald-600 font-semibold">Tên ứng viên</p>
+                            <p className="mt-2 text-lg font-bold text-emerald-900">{candidateDetail.candidate_name}</p>
+                          </div>
+                          <div className="bg-white rounded-lg p-4 border border-emerald-200">
+                            <p className="text-xs uppercase tracking-[0.18em] text-emerald-600 font-semibold">Email</p>
+                            <p className="mt-2 text-lg font-bold text-emerald-900">{candidateDetail.candidate_email}</p>
+                          </div>
+                          {candidateDetail.candidate_phone && (
+                            <div className="bg-white rounded-lg p-4 border border-emerald-200">
+                              <p className="text-xs uppercase tracking-[0.18em] text-emerald-600 font-semibold">Số điện thoại</p>
+                              <p className="mt-2 text-lg font-bold text-emerald-900">{candidateDetail.candidate_phone}</p>
+                            </div>
+                          )}
+                          <div className="bg-white rounded-lg p-4 border border-emerald-200">
+                            <p className="text-xs uppercase tracking-[0.18em] text-emerald-600 font-semibold">Vị trí ứng tuyển</p>
+                            <p className="mt-2 text-lg font-bold text-emerald-900">{candidateDetail.job_title}</p>
+                          </div>
+                        </div>
+                    </div>
+                  )}
+
+                  {modalSection === 'hired' && candidateDetail.status === 'hired' && (
+                    <div className="rounded-lg border border-violet-100 bg-violet-50 p-8 shadow-sm max-h-[60vh] overflow-y-auto">
+                      <div className="flex items-center justify-center mb-6">
+                        <CheckCircle className="w-16 h-16 text-violet-600" />
+                      </div>
+                        <h3 className="text-center text-2xl font-bold text-violet-900 mb-2">Ứng viên đã trúng tuyển</h3>
+                        <p className="text-center text-violet-700 mb-6">
+                          Ứng viên {candidateDetail.candidate_name} đã được chấp nhận tuyển dụng vào ngày{' '}
+                          {formatDateTime(candidateDetail.updated_at || candidateDetail.created_at)}
+                        </p>
+                        <div className="flex flex-col gap-3">
+                          <div className="bg-white rounded-lg p-4 border border-violet-200">
+                            <p className="text-xs uppercase tracking-[0.18em] text-violet-600 font-semibold">Tên ứng viên</p>
+                            <p className="mt-2 text-lg font-bold text-violet-900">{candidateDetail.candidate_name}</p>
+                          </div>
+                          <div className="bg-white rounded-lg p-4 border border-violet-200">
+                            <p className="text-xs uppercase tracking-[0.18em] text-violet-600 font-semibold">Email</p>
+                            <p className="mt-2 text-lg font-bold text-violet-900">{candidateDetail.candidate_email}</p>
+                          </div>
+                          {candidateDetail.candidate_phone && (
+                            <div className="bg-white rounded-lg p-4 border border-violet-200">
+                              <p className="text-xs uppercase tracking-[0.18em] text-violet-600 font-semibold">Số điện thoại</p>
+                              <p className="mt-2 text-lg font-bold text-violet-900">{candidateDetail.candidate_phone}</p>
+                            </div>
+                          )}
+                          <div className="bg-white rounded-lg p-4 border border-violet-200">
+                            <p className="text-xs uppercase tracking-[0.18em] text-violet-600 font-semibold">Vị trí trúng tuyển</p>
+                            <p className="mt-2 text-lg font-bold text-violet-900">{candidateDetail.job_title}</p>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => navigate(getEmployerDashboardPath('onboarding'), { state: getEmployerDashboardState('onboarding') })}
+                            className="mt-2 inline-flex items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-emerald-600 to-teal-600 px-5 py-3 text-sm font-semibold text-white transition hover:from-emerald-700 hover:to-teal-700"
+                          >
+                            <CheckCircle className="h-4 w-4" />
+                            Chuyển sang Onboarding
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleStatusUpdate(candidateDetail.id, 'rejected')}
+                            className="mt-1 inline-flex items-center justify-center gap-2 rounded-lg border border-red-200 bg-red-50 px-5 py-3 text-sm font-semibold text-red-600 transition hover:bg-red-100"
+                          >
+                            <XCircle className="h-4 w-4" />
+                            Không trúng tuyển (Thu hồi)
+                          </button>
+                        </div>
+                    </div>
+                  )}
+
+                  {modalSection === 'rejected' && candidateDetail.status === 'rejected' && (
+                    <div className="rounded-xl border border-red-100 bg-red-50 p-8 shadow-sm max-h-[60vh] overflow-y-auto">
+                      <div className="flex items-center justify-center mb-6">
+                        <XCircle className="w-16 h-16 text-red-600" />
+                      </div>
+                        <h3 className="text-center text-2xl font-bold text-red-900 mb-2">Hồ sơ đã bị từ chối</h3>
+                        <p className="text-center text-red-700 mb-6">
+                          Hồ sơ của {candidateDetail.candidate_name} đã bị từ chối vào ngày{' '}
+                          {formatDateTime(candidateDetail.updated_at || candidateDetail.created_at)}
+                        </p>
+                        <div className="flex flex-col gap-3">
+                          <div className="bg-white rounded-lg p-4 border border-red-200">
+                            <p className="text-xs uppercase tracking-[0.18em] text-red-600 font-semibold">Tên ứng viên</p>
+                            <p className="mt-2 text-lg font-bold text-red-900">{candidateDetail.candidate_name}</p>
+                          </div>
+                          <div className="bg-white rounded-lg p-4 border border-red-200">
+                            <p className="text-xs uppercase tracking-[0.18em] text-red-600 font-semibold">Email</p>
+                            <p className="mt-2 text-lg font-bold text-red-900">{candidateDetail.candidate_email}</p>
+                          </div>
+                          {candidateDetail.candidate_phone && (
+                            <div className="bg-white rounded-lg p-4 border border-red-200">
+                              <p className="text-xs uppercase tracking-[0.18em] text-red-600 font-semibold">Số điện thoại</p>
+                              <p className="mt-2 text-lg font-bold text-red-900">{candidateDetail.candidate_phone}</p>
+                            </div>
+                          )}
+                          <div className="bg-white rounded-lg p-4 border border-red-200">
+                            <p className="text-xs uppercase tracking-[0.18em] text-red-600 font-semibold">Vị trí ứng tuyển</p>
+                            <p className="mt-2 text-lg font-bold text-red-900">{candidateDetail.job_title}</p>
+                          </div>
+                        </div>
+                    </div>
+                  )}
+                </>
+              ) : null}
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+    </>
+  );
+}

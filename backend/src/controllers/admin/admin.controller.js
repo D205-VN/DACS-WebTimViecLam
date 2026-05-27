@@ -1,4 +1,4 @@
-const adminService = require('../services/admin.service');
+const adminService = require('../../services/admin/admin.service');
 
 function sendControllerError(res, err, fallbackMessage, logLabel) {
   if (err?.isOperational) {

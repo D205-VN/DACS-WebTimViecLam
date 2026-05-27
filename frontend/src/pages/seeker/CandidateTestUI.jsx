@@ -1,12 +1,12 @@
 import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { useLocation, useParams, useNavigate } from 'react-router-dom';
 import { AlertTriangle, ArrowRight, Award, Bot, CheckCircle, CheckSquare, Clock, Mic, Send, Square, Trophy, Video, XCircle } from 'lucide-react';
-import { aiTestApi } from '@shared/api/aiTestApi';
-import API_BASE_URL from '@shared/api/baseUrl';
-import { getAiTestKind, getSeekerAiTestPath } from '@shared/utils/aiTestRoutes';
-import { useAuth } from '@features/auth/AuthContext';
+import { aiTestApi } from '@services/ai-tests/aiTestApi';
+import API_BASE_URL from '@services/http/baseUrl';
+import { getAiTestKind, getSeekerAiTestPath } from '@services/ai-tests/aiTestRoutes';
+import { useAuth } from '@components/providers/AuthContext';
 
-const HeyGenLiveAvatar = lazy(() => import('@shared/ui/HeyGenLiveAvatar'));
+const HeyGenLiveAvatar = lazy(() => import('@components/ui/HeyGenLiveAvatar'));
 
 const formatTime = (seconds) => {
   const m = Math.floor(seconds / 60);
