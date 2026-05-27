@@ -2,10 +2,8 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Lock, Eye, EyeOff, Shield, ArrowLeft, CheckCircle2, Loader2 } from 'lucide-react';
 import { useAuth } from '@features/auth/AuthContext';
+import { authApi } from '@features/auth/auth.api';
 import { getBackLabelByRole, getDefaultRouteByRole } from '@shared/utils/roleRedirect';
-import API_BASE_URL from '@shared/api/baseUrl';
-
-const API_BASE = `${API_BASE_URL}/api/auth`;
 
 export default function ChangePasswordPage() {
   const { token, user } = useAuth();
@@ -41,13 +39,10 @@ export default function ChangePasswordPage() {
 
     setLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/change-password`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ currentPassword: form.currentPassword, newPassword: form.newPassword }),
+      await authApi.changePassword(token, {
+        currentPassword: form.currentPassword,
+        newPassword: form.newPassword,
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
       setSuccess('Đổi mật khẩu thành công!');
       setForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
     } catch (err) {

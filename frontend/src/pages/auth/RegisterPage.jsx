@@ -1,24 +1,13 @@
-import { useCallback, useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Mail, Lock, Eye, EyeOff, Briefcase, ArrowRight, User, Phone, Building2, MapPin, ChevronDown, Loader2, CheckCircle2 } from 'lucide-react';
 import { useAuth } from '@features/auth/AuthContext';
 import GoogleSignInButton from '@features/auth/GoogleSignInButton';
+import { authApi } from '@features/auth/auth.api';
+import { useGoogleCredentialLogin } from '@features/auth/useGoogleCredentialLogin';
 import { getDefaultRouteByRole } from '@shared/utils/roleRedirect';
-import API_BASE_URL from '@shared/api/baseUrl';
-
-const API_BASE = `${API_BASE_URL}/api/auth`;
 
 const normalizeEmail = (value = '') => String(value || '').trim().toLowerCase();
-
-async function readApiJson(res) {
-  const text = await res.text();
-
-  try {
-    return text ? JSON.parse(text) : {};
-  } catch {
-    throw new Error('Máy chủ trả về dữ liệu không hợp lệ. Vui lòng kiểm tra cấu hình API.');
-  }
-}
 
 export default function RegisterPage() {
   const navigate = useNavigate();
@@ -43,6 +32,11 @@ export default function RegisterPage() {
   // Address
   const [cities, setCities] = useState([]);
   const [wards, setWards] = useState([]);
+  const handleGoogleCredential = useGoogleCredentialLogin({
+    setError,
+    setLoading,
+    fallbackMessage: 'Không thể đăng nhập bằng Google',
+  });
 
   useEffect(() => {
     fetch('/data/vietnam_34_provinces.json').then(r => r.json()).then(setCities).catch(console.error);
@@ -81,18 +75,13 @@ export default function RegisterPage() {
 
     setLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/register`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          fullName: formData.fullName.trim(), email: accountEmail, phone: formData.phone.trim(),
-          password: formData.password, role_code: formData.role_code,
-          companyName: formData.companyName.trim() || null,
-          companyEmail: isEmployer ? accountEmail : normalizeEmail(formData.companyEmail) || null,
-          companyCity: selectedCity?.name || null, companyWard: selectedWard?.name || null,
-        }),
+      await authApi.register({
+        fullName: formData.fullName.trim(), email: accountEmail, phone: formData.phone.trim(),
+        password: formData.password, role_code: formData.role_code,
+        companyName: formData.companyName.trim() || null,
+        companyEmail: isEmployer ? accountEmail : normalizeEmail(formData.companyEmail) || null,
+        companyCity: selectedCity?.name || null, companyWard: selectedWard?.name || null,
       });
-      const data = await readApiJson(res);
-      if (!res.ok) throw new Error(data.error || 'Không thể đăng ký tài khoản');
       setStep(2);
       setOtpCountdown(60);
     } catch (err) {
@@ -117,12 +106,7 @@ export default function RegisterPage() {
     if (code.length !== 6) { setError('Vui lòng nhập đủ 6 số'); return; }
     setError(''); setLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/verify-otp`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: emailForOTP, otp: code }),
-      });
-      const data = await readApiJson(res);
-      if (!res.ok) throw new Error(data.error || 'Không thể xác thực OTP');
+      const data = await authApi.verifyOtp({ email: emailForOTP, otp: code });
       login(data.token, data.user);
       navigate(getDefaultRouteByRole(data.user.role_code));
     } catch (err) { setError(err.message || 'Không thể xác thực OTP'); } finally { setLoading(false); }
@@ -132,34 +116,10 @@ export default function RegisterPage() {
     if (otpCountdown > 0) return;
     setError(''); setLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/resend-otp`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: emailForOTP }),
-      });
-      const data = await readApiJson(res);
-      if (!res.ok) throw new Error(data.error || 'Không thể gửi lại OTP');
+      await authApi.resendOtp(emailForOTP);
       setOtpCountdown(60); setOtp(['','','','','','']);
     } catch (err) { setError(err.message || 'Không thể gửi lại OTP'); } finally { setLoading(false); }
   };
-
-  const handleGoogleCredential = useCallback(async (response) => {
-    setError('');
-    setLoading(true);
-    try {
-      const res = await fetch(`${API_BASE}/google`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ credential: response.credential }),
-      });
-      const data = await readApiJson(res);
-      if (!res.ok) throw new Error(data.error || 'Không thể đăng nhập bằng Google');
-      login(data.token, data.user);
-      navigate(getDefaultRouteByRole(data.user.role_code));
-    } catch (err) {
-      setError(err.message || 'Không thể đăng nhập bằng Google');
-    } finally {
-      setLoading(false);
-    }
-  }, [login, navigate]);
 
   const inputClass = 'w-full pl-12 pr-4 py-3 bg-white border border-indigo-100/60 rounded-md text-sm text-gray-700 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-violet-200 focus:border-indigo-400 transition-all';
   const selectClass = 'w-full pl-12 pr-10 py-3 bg-white border border-indigo-100/60 rounded-md text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-violet-200 focus:border-indigo-400 transition-all appearance-none cursor-pointer';

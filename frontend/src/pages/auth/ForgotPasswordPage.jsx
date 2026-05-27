@@ -1,9 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Mail, Lock, Eye, EyeOff, ArrowLeft, ArrowRight, Loader2, ShieldCheck, KeyRound, CheckCircle2, Briefcase } from 'lucide-react';
-import API_BASE_URL from '@shared/api/baseUrl';
-
-const API_BASE = `${API_BASE_URL}/api/auth`;
+import { authApi } from '@features/auth/auth.api';
 
 const STEPS = { EMAIL: 'email', OTP: 'otp', RESET: 'reset', SUCCESS: 'success' };
 
@@ -42,13 +40,7 @@ export default function ForgotPasswordPage() {
     setError('');
     setLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/forgot-password`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
+      await authApi.forgotPassword(email);
       setStep(STEPS.OTP);
       setCountdown(60);
     } catch (err) {
@@ -97,13 +89,7 @@ export default function ForgotPasswordPage() {
     setError('');
     setLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/verify-reset-otp`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, otp: otpStr }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
+      const data = await authApi.verifyResetOtp({ email, otp: otpStr });
       setResetToken(data.resetToken);
       setStep(STEPS.RESET);
     } catch (err) {
@@ -118,13 +104,7 @@ export default function ForgotPasswordPage() {
     setError('');
     setLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/forgot-password`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
+      await authApi.forgotPassword(email);
       setOtp(['', '', '', '', '', '']);
       setCountdown(60);
       otpRefs.current[0]?.focus();
@@ -149,13 +129,7 @@ export default function ForgotPasswordPage() {
     setError('');
     setLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/reset-password`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ resetToken, newPassword }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
+      await authApi.resetPassword({ resetToken, newPassword });
       setStep(STEPS.SUCCESS);
     } catch (err) {
       setError(err.message);

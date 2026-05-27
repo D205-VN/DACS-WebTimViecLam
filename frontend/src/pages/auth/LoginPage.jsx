@@ -1,12 +1,11 @@
-import { useCallback, useState } from 'react';
+import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Mail, Lock, Eye, EyeOff, Briefcase, ArrowRight, Loader2 } from 'lucide-react';
 import { useAuth } from '@features/auth/AuthContext';
 import GoogleSignInButton from '@features/auth/GoogleSignInButton';
+import { authApi } from '@features/auth/auth.api';
+import { useGoogleCredentialLogin } from '@features/auth/useGoogleCredentialLogin';
 import { getDefaultRouteByRole } from '@shared/utils/roleRedirect';
-import API_BASE_URL from '@shared/api/baseUrl';
-
-const API_BASE = `${API_BASE_URL}/api/auth`;
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -17,46 +16,23 @@ export default function LoginPage() {
   const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const handleGoogleCredential = useGoogleCredentialLogin({ setError, setLoading });
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError(''); setLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/login`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        if (data.needVerify) {
-          navigate('/register', { state: { pendingEmail: data.email } });
-          return;
-        }
-        throw new Error(data.error);
-      }
-      login(data.token, data.user);
-      navigate(getDefaultRouteByRole(data.user.role_code));
-    } catch (err) { setError(err.message); } finally { setLoading(false); }
-  };
-
-  const handleGoogleCredential = useCallback(async (response) => {
-    setError('');
-    setLoading(true);
-    try {
-      const res = await fetch(`${API_BASE}/google`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ credential: response.credential }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
-      login(data.token, data.user);
+      const data = await authApi.login({ email, password });
+      login(data.token, data.user, { remember: rememberMe });
       navigate(getDefaultRouteByRole(data.user.role_code));
     } catch (err) {
+      if (err.needVerify) {
+        navigate('/register', { state: { pendingEmail: err.email } });
+        return;
+      }
       setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  }, [login, navigate]);
+    } finally { setLoading(false); }
+  };
 
   return (
     <div className="min-h-screen flex">

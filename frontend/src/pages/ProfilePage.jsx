@@ -2,11 +2,10 @@ import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowLeft, BriefcaseBusiness, Camera, CheckCircle2, Loader2, Mail, Phone, Save, Trash2 } from 'lucide-react';
 import { useAuth } from '@features/auth/AuthContext';
+import { authApi } from '@features/auth/auth.api';
 import { getBackLabelByRole, getDefaultRouteByRole } from '@shared/utils/roleRedirect';
-import API_BASE_URL from '@shared/api/baseUrl';
 import UserAvatar from '@shared/ui/UserAvatar';
 
-const API_BASE = `${API_BASE_URL}/api/auth`;
 const MAX_AVATAR_SOURCE_SIZE = 8 * 1024 * 1024;
 
 function buildInitialForm(user) {
@@ -133,20 +132,7 @@ export default function ProfilePage() {
         payload.companyWard = form.companyWard;
       }
 
-      const response = await fetch(`${API_BASE}/profile`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(payload),
-      });
-
-      const data = await response.json();
-      if (!response.ok) {
-        throw new Error(data.error || 'Không thể cập nhật thông tin');
-      }
-
+      const data = await authApi.updateProfile(token, payload);
       updateUser(data.user);
       setSuccess('Thông tin tài khoản đã được cập nhật.');
     } catch (err) {
