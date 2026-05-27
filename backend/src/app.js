@@ -1,7 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
-const modules = require('./modules');
+const modules = require('./routes');
 const { defaultRateLimit } = require('./core/middlewares/rate-limit.middleware');
 
 function normalizeOrigin(origin) {

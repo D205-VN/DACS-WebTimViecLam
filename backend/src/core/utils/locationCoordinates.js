@@ -1,4 +1,4 @@
-const rawLocationCenters = require('../../../../frontend/src/shared/geo/locationCenters.json');
+const rawLocationCenters = require('../../../../frontend/src/services/geo/locationCenters.json');
 
 function normalizeProvinceName(name = '') {
   return String(name)

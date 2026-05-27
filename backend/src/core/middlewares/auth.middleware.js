@@ -1,6 +1,6 @@
 const jwt = require('jsonwebtoken');
 const pool = require('../../infrastructure/database/postgres');
-const { ensureUserAccountStatusSchema } = require('../../modules/auth/auth.model');
+const { ensureUserAccountStatusSchema } = require('../../models/auth.model');
 require('dotenv').config();
 
 /**
