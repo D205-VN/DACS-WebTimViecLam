@@ -798,13 +798,33 @@ const aiTestController = {
 
       await pool.query(`ALTER TABLE ai_tests ADD COLUMN IF NOT EXISTS creator_id INTEGER`).catch(() => {});
 
-      // Get tests created by this employer or linked to their jobs
+      if (req.user?.role_code === 'admin') {
+        const tests = await pool.query(
+          `SELECT t.*, j.job_title
+           FROM ai_tests t
+           LEFT JOIN jobs j ON t.job_id = j.id
+           ORDER BY t.created_at DESC`
+        );
+        return res.json(tests.rows);
+      }
+
+      // Include tests linked by employer_id and legacy jobs that only have company_name.
       const tests = await pool.query(
-        `SELECT DISTINCT t.*, j.job_title
+        `WITH current_employer AS (
+           SELECT id, NULLIF(LOWER(TRIM(company_name)), '') AS normalized_company_name
+           FROM users
+           WHERE id = $1
+         )
+         SELECT DISTINCT t.*, j.job_title
          FROM ai_tests t
          LEFT JOIN jobs j ON t.job_id = j.id
+         CROSS JOIN current_employer ce
          WHERE t.creator_id = $1
             OR j.employer_id = $1
+            OR (
+              ce.normalized_company_name IS NOT NULL
+              AND NULLIF(LOWER(TRIM(j.company_name)), '') = ce.normalized_company_name
+            )
             OR (t.creator_id IS NULL AND t.job_id IS NULL)
          ORDER BY t.created_at DESC`,
         [userId]
