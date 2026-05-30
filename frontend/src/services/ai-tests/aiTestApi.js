@@ -1,13 +1,10 @@
 import API_BASE_URL from '@services/http/baseUrl';
+import { authStorage } from '@services/auth/auth.storage';
 
 const AI_TEST_BASE_URL = `${API_BASE_URL}/api/ai-tests`;
 
 function getAuthToken() {
-  try {
-    return localStorage.getItem('token') || null;
-  } catch {
-    return null;
-  }
+  return authStorage.getToken();
 }
 
 async function request(path, options = {}) {
