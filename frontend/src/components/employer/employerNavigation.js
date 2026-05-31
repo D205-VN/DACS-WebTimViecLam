@@ -9,7 +9,6 @@ import {
   Users,
   Bell,
   Video,
-  Bot,
 } from 'lucide-react';
 
 export const primaryEmployerNavItems = [
@@ -23,7 +22,6 @@ export const primaryEmployerNavItems = [
 
 export const secondaryEmployerNavItems = [
   { key: 'ai-tests', label: 'Bài Test AI', icon: BrainCircuit },
-  { key: 'interview-copilot', label: 'Đánh giá phỏng vấn', icon: Bot },
   { key: 'analytics', label: 'Phân tích', icon: BarChart3 },
   { key: 'company', label: 'Hồ sơ công ty', icon: Building2 },
   { key: 'onboarding', label: 'Onboarding', icon: ClipboardCheck },

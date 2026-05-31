@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate, useLocation } from 'react-router-dom';
-import { MapPin, DollarSign, Clock, Bookmark, BookmarkCheck, Briefcase, ArrowLeft, Send, CheckCircle2, Loader2, GraduationCap, Calendar, Bell, X, FileText, Sparkles, Target, BrainCircuit, ShieldCheck, BriefcaseBusiness } from 'lucide-react';
+import { MapPin, DollarSign, Clock, Bookmark, BookmarkCheck, Briefcase, ArrowLeft, Send, CheckCircle2, Loader2, GraduationCap, Calendar, Bell, X, FileText, Sparkles, Target, BrainCircuit, ShieldCheck } from 'lucide-react';
 import { useAuth } from '@components/providers/AuthContext';
 import { findProvinceByName, normalizeProvinceName, normalizeSearchText } from '@services/geo/provinceCoordinates';
 import { getCompanyFilterRoute, getDefaultRouteByRole, getJobDetailRoute } from '@services/navigation/roleRedirect';
@@ -528,26 +528,6 @@ export default function JobDetailPage() {
                   Làm bài Test AI
                 </button>
               )}
-              {isAuthenticated && user?.role_code === 'seeker' ? (
-                <>
-                  <button
-                    type="button"
-                    onClick={() => navigate(`/seeker/interview-copilot/${id}`)}
-                    className="inline-flex items-center justify-center gap-2 rounded-lg border border-violet-200 bg-violet-50 px-4 py-3 text-sm font-semibold text-violet-700 transition hover:bg-violet-100"
-                  >
-                    <BrainCircuit className="w-4 h-4" />
-                    Luyện phỏng vấn
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => navigate(`/seeker/work-simulation/${id}`)}
-                    className="inline-flex items-center justify-center gap-2 rounded-lg border border-cyan-200 bg-cyan-50 px-4 py-3 text-sm font-semibold text-cyan-700 transition hover:bg-cyan-100"
-                  >
-                    <BriefcaseBusiness className="w-4 h-4" />
-                    Mini simulation
-                  </button>
-                </>
-              ) : null}
             </div>
             <div className="mt-3 rounded-lg border border-indigo-100/60 bg-indigo-50/50 px-4 py-3 text-sm text-gray-600">
               Nhận thông báo phù hợp khi có việc tương tự.

@@ -25,8 +25,6 @@ const ManageCVsPage = lazy(() => import('@pages/seeker/ManageCVsPage'));
 const CVImportImagePage = lazy(() => import('@pages/seeker/CVImportImagePage'));
 const BlockchainVerificationPage = lazy(() => import('@pages/seeker/BlockchainVerificationPage'));
 const SkillPassportPage = lazy(() => import('@pages/seeker/SkillPassportPage'));
-const InterviewCopilotPage = lazy(() => import('@pages/seeker/InterviewCopilotPage'));
-const WorkSimulationPage = lazy(() => import('@pages/seeker/WorkSimulationPage'));
 const JobAlertsPage = lazy(() => import('@pages/seeker/JobAlertsPage'));
 const OnboardingPage = lazy(() => import('@pages/seeker/OnboardingPage'));
 const MyScoresPage = lazy(() => import('@pages/seeker/MyScoresPage'));
@@ -122,8 +120,6 @@ const router = createBrowserRouter([
   { path: '/seeker/cv-import', element: <MainLayout><SeekerRoute><CVImportImagePage /></SeekerRoute></MainLayout> },
   { path: '/seeker/blockchain-verification', element: <MainLayout><SeekerRoute><BlockchainVerificationPage /></SeekerRoute></MainLayout> },
   { path: '/seeker/skill-passport', element: <MainLayout><SeekerRoute><SkillPassportPage /></SeekerRoute></MainLayout> },
-  { path: '/seeker/interview-copilot/:jobId', element: <MainLayout><SeekerRoute><InterviewCopilotPage /></SeekerRoute></MainLayout> },
-  { path: '/seeker/work-simulation/:jobId', element: <MainLayout><SeekerRoute><WorkSimulationPage /></SeekerRoute></MainLayout> },
   { path: '/seeker/onboarding/:id', element: <MainLayout><SeekerRoute><OnboardingPage /></SeekerRoute></MainLayout> },
   { path: '/seeker/my-scores', element: <MainLayout><SeekerRoute><MyScoresPage /></SeekerRoute></MainLayout> },
   { path: '/cv-builder', element: <Navigate to="/seeker/cv-builder" replace /> },
