@@ -80,8 +80,6 @@ const REQUIREMENT_FILLER_TOKENS = new Set([
   'ban', 'than', 'nghe', 'nghiep', 'them', 'tao',
 ]);
 
-const MIN_SIMULATION_ANSWER_LENGTH = 5;
-
 function assertRole(user, roles) {
   if (!roles.includes(user?.role_code)) {
     throw new AppError('Bạn không có quyền sử dụng chức năng này.', 403);
@@ -655,82 +653,6 @@ function buildInterviewCopilot(job) {
   };
 }
 
-function buildWorkSimulation(job) {
-  const skills = extractJobSkills(job).slice(0, 6);
-  const responsibilities = extractResponsibilities([job.job_description, job.job_requirements].join('\n'));
-  const primarySkill = skills[0] || job.industry || 'năng lực chuyên môn';
-  const responsibility = responsibilities[0] || `xử lý một nhiệm vụ quan trọng của vị trí ${job.job_title}`;
-  const normalizedTitle = normalizeText([job.job_title, job.industry].join(' '));
-  const domain = normalizedTitle.includes('marketing')
-    ? 'marketing'
-    : normalizedTitle.includes('sales') || normalizedTitle.includes('ban hang')
-      ? 'sales'
-      : normalizedTitle.includes('hr') || normalizedTitle.includes('tuyen dung')
-        ? 'hr'
-        : normalizedTitle.includes('developer') || normalizedTitle.includes('frontend') || normalizedTitle.includes('backend') || normalizedTitle.includes('nodejs')
-          ? 'tech'
-          : 'operations';
-
-  const prompts = {
-    tech: `Bạn nhận một task có lỗi production liên quan tới ${primarySkill}. Hãy mô tả cách bạn tái hiện lỗi, tìm nguyên nhân, sửa, kiểm thử và phòng ngừa lặp lại.`,
-    sales: `Một khách hàng tiềm năng quan tâm sản phẩm nhưng còn do dự về giá. Hãy viết kịch bản xử lý phản đối và kế hoạch follow-up trong 3 ngày.`,
-    marketing: `Chiến dịch hiện tại có CTR thấp. Hãy phân tích nguyên nhân, đề xuất 3 thử nghiệm A/B và chỉ số bạn dùng để quyết định.`,
-    hr: `Một ứng viên mạnh đang cân nhắc offer của đối thủ. Hãy lập kế hoạch trao đổi, đánh giá động lực và giữ trải nghiệm ứng viên tích cực.`,
-    operations: `Quy trình hiện tại bị chậm ở bước "${responsibility}". Hãy đề xuất cách phân tích, cải tiến và đo hiệu quả sau triển khai.`,
-  };
-
-  return {
-    job: {
-      id: job.id,
-      title: job.job_title,
-      company_name: job.company_name,
-    },
-    domain,
-    title: `Work Simulation: ${job.job_title}`,
-    prompt: prompts[domain],
-    expected_points: [
-      'Làm rõ mục tiêu và ràng buộc',
-      'Nêu quy trình xử lý từng bước',
-      'Đưa ra tiêu chí đo kết quả',
-      'Nhận diện rủi ro hoặc trường hợp ngoại lệ',
-      'Có cách cải tiến sau khi hoàn thành',
-    ],
-    suggested_skills: skills,
-  };
-}
-
-function scoreSimulationAnswer(answer, scenario) {
-  const text = stripHtml(answer);
-  const normalized = normalizeText(text);
-  const expected = scenario.expected_points || [];
-  const skillTerms = scenario.suggested_skills || [];
-  const coverage = expected.filter((point) => {
-    const terms = tokenize(point);
-    return terms.some((term) => normalized.includes(term));
-  }).length;
-  const skillCoverage = skillTerms.filter((skill) => normalized.includes(normalizeText(skill))).length;
-  const lengthScore = text.length >= 900 ? 25 : text.length >= 500 ? 20 : text.length >= 250 ? 14 : 8;
-  const structureScore = /(bước|đầu tiên|sau đó|cuối cùng|kpi|chỉ số|rủi ro|đo lường|kiểm tra)/i.test(text) ? 20 : 10;
-  const coverageScore = expected.length ? (coverage / expected.length) * 35 : 18;
-  const skillScore = skillTerms.length ? Math.min(20, (skillCoverage / skillTerms.length) * 20) : 12;
-  const score = Number(Math.max(0, Math.min(100, lengthScore + structureScore + coverageScore + skillScore)).toFixed(1));
-  const feedback = {
-    summary: score >= 75 ? 'Bài làm có cấu trúc tốt và bám tình huống.' : score >= 55 ? 'Bài làm có ý chính nhưng cần cụ thể hơn.' : 'Bài làm còn thiếu cấu trúc và ví dụ thực tế.',
-    strengths: [
-      structureScore >= 20 ? 'Có trình tự xử lý rõ ràng.' : null,
-      skillCoverage > 0 ? 'Có nhắc tới kỹ năng/công cụ liên quan JD.' : null,
-      text.length >= 500 ? 'Câu trả lời đủ độ chi tiết.' : null,
-    ].filter(Boolean),
-    improvements: [
-      coverage < expected.length ? 'Bổ sung đầy đủ mục tiêu, rủi ro, chỉ số đo lường và bước cải tiến.' : null,
-      skillCoverage === 0 ? 'Gắn câu trả lời với kỹ năng/công cụ trong JD.' : null,
-      text.length < 500 ? 'Nên viết cụ thể hơn bằng ví dụ hoặc số liệu.' : null,
-    ].filter(Boolean),
-  };
-
-  return { score, feedback };
-}
-
 async function getMySkillPassport(user) {
   assertRole(user, ['seeker']);
   return buildCandidatePassport(user.id);
@@ -829,62 +751,13 @@ async function saveInterviewEvaluation(user, applicationId, body = {}) {
   return saveInterviewEvaluationForEmployer(user.id, applicationId, body);
 }
 
-async function getWorkSimulationForJob(_user, jobId) {
-  await ensureTalentInsightSchema();
-  const job = await repository.getJobById(jobId);
-  if (!job) throw new AppError('Không tìm thấy việc làm.', 404);
-  return {
-    scenario: buildWorkSimulation(job),
-  };
-}
-
-async function submitWorkSimulation(user, jobId, body = {}) {
-  assertRole(user, ['seeker']);
-  await ensureTalentInsightSchema();
-  const job = await repository.getJobById(jobId);
-  if (!job) throw new AppError('Không tìm thấy việc làm.', 404);
-
-  const answer = String(body.answer || '').trim();
-  if (answer.length < MIN_SIMULATION_ANSWER_LENGTH) {
-    throw new AppError(`Bài làm cần ít nhất ${MIN_SIMULATION_ANSWER_LENGTH} ký tự để hệ thống chấm điểm.`, 400);
-  }
-
-  const scenario = body.scenario && typeof body.scenario === 'object' ? body.scenario : buildWorkSimulation(job);
-  const { score, feedback } = scoreSimulationAnswer(answer, scenario);
-  const saved = await repository.insertWorkSimulationSubmission({
-    userId: user.id,
-    jobId,
-    scenario,
-    answer,
-    score,
-    feedback,
-  });
-
-  return {
-    submission: saved,
-    score,
-    feedback,
-  };
-}
-
-async function getLatestWorkSimulation(user, jobId) {
-  assertRole(user, ['seeker']);
-  await ensureTalentInsightSchema();
-  return {
-    data: await repository.getLatestWorkSimulationSubmission(user.id, jobId),
-  };
-}
-
 module.exports = {
   getEmployerInterviews,
   getEmployerTrustForJob,
   getInterviewCopilotForJob,
   getJobFit,
-  getLatestWorkSimulation,
   getMySkillPassport,
   getPublicSkillPassport,
-  getWorkSimulationForJob,
   saveInterviewEvaluationForEmployer,
   saveInterviewEvaluation,
-  submitWorkSimulation,
 };

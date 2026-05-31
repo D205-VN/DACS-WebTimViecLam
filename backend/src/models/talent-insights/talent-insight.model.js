@@ -44,24 +44,6 @@ async function ensureTalentInsightSchema() {
     )
   `);
 
-  await pool.query(`
-    CREATE TABLE IF NOT EXISTS work_simulation_submissions (
-      id SERIAL PRIMARY KEY,
-      user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
-      job_id INTEGER REFERENCES jobs(id) ON DELETE CASCADE,
-      scenario JSONB DEFAULT '{}'::jsonb,
-      answer TEXT,
-      score NUMERIC(5,2),
-      feedback JSONB DEFAULT '{}'::jsonb,
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    )
-  `);
-
-  await pool.query(`
-    CREATE INDEX IF NOT EXISTS idx_work_simulation_user_job_created
-    ON work_simulation_submissions(user_id, job_id, created_at DESC)
-  `);
-
   talentInsightSchemaReady = true;
 }
 

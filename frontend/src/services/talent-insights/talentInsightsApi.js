@@ -47,10 +47,4 @@ export const talentInsightsApi = {
     method: 'PUT',
     body: JSON.stringify(payload),
   }),
-  getWorkSimulationForJob: (jobId) => request(`/work-simulations/jobs/${encodeURIComponent(jobId)}`),
-  getLatestWorkSimulation: (jobId) => request(`/work-simulations/jobs/${encodeURIComponent(jobId)}/latest`),
-  submitWorkSimulation: (jobId, payload) => request(`/work-simulations/jobs/${encodeURIComponent(jobId)}/submit`, {
-    method: 'POST',
-    body: JSON.stringify(payload),
-  }),
 };

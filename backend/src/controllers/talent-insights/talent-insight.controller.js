@@ -70,30 +70,3 @@ exports.saveInterviewEvaluation = async (req, res) => {
     sendError(res, err, 'Không thể lưu đánh giá phỏng vấn');
   }
 };
-
-exports.getWorkSimulationForJob = async (req, res) => {
-  try {
-    res.json(await talentInsightService.getWorkSimulationForJob(req.user, req.params.jobId));
-  } catch (err) {
-    console.error('Get work simulation error:', err);
-    sendError(res, err, 'Không thể tải Mini Work Simulation');
-  }
-};
-
-exports.submitWorkSimulation = async (req, res) => {
-  try {
-    res.status(201).json(await talentInsightService.submitWorkSimulation(req.user, req.params.jobId, req.body));
-  } catch (err) {
-    console.error('Submit work simulation error:', err);
-    sendError(res, err, 'Không thể chấm Mini Work Simulation');
-  }
-};
-
-exports.getLatestWorkSimulation = async (req, res) => {
-  try {
-    res.json(await talentInsightService.getLatestWorkSimulation(req.user, req.params.jobId));
-  } catch (err) {
-    console.error('Get latest work simulation error:', err);
-    sendError(res, err, 'Không thể tải bài làm gần nhất');
-  }
-};

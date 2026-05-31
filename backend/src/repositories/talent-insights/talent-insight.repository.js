@@ -288,30 +288,6 @@ async function upsertInterviewEvaluation(application, employerId, payload) {
   return result.rows[0];
 }
 
-async function insertWorkSimulationSubmission({ userId, jobId, scenario, answer, score, feedback }) {
-  const result = await pool.query(
-    `INSERT INTO work_simulation_submissions (user_id, job_id, scenario, answer, score, feedback)
-     VALUES ($1, $2, $3::jsonb, $4, $5, $6::jsonb)
-     RETURNING id, user_id, job_id, scenario, answer, score, feedback, created_at`,
-    [userId, jobId, JSON.stringify(scenario || {}), answer, score, JSON.stringify(feedback || {})]
-  );
-
-  return result.rows[0];
-}
-
-async function getLatestWorkSimulationSubmission(userId, jobId) {
-  const result = await pool.query(
-    `SELECT id, user_id, job_id, scenario, answer, score, feedback, created_at
-     FROM work_simulation_submissions
-     WHERE user_id = $1 AND job_id = $2
-     ORDER BY created_at DESC, id DESC
-     LIMIT 1`,
-    [userId, jobId]
-  );
-
-  return result.rows[0] || null;
-}
-
 module.exports = {
   getApplicationForEmployer,
   getCandidateApplications,
@@ -321,11 +297,9 @@ module.exports = {
   getEmployerInterviewApplications,
   getEmployerTrustByJobId,
   getJobById,
-  getLatestWorkSimulationSubmission,
   getOrCreatePassportShare,
   getPassportShareByToken,
   getPrimaryCv,
   getUserProfile,
-  insertWorkSimulationSubmission,
   upsertInterviewEvaluation,
 };
