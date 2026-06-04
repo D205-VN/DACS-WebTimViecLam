@@ -112,10 +112,11 @@ export default function CVImportImagePage() {
   const handleSave = async () => {
     if (!cvHtml) return;
     if (!hasCurrentLocation) {
-      setError('Vui lòng lấy vị trí hiện tại trước khi lưu CV.');
+      setError('Vui lòng nhập hoặc lấy vị trí hiện tại trước khi lưu CV.');
       return;
     }
 
+    setError('');
     setSaving(true);
     try {
       const title = extracted?.role ? `CV - ${extracted.role}` : 'CV - Import ảnh';
@@ -275,7 +276,7 @@ export default function CVImportImagePage() {
                 <div className="flex gap-2">
                   <button
                     onClick={handleSave}
-                    disabled={saving || saveSuccess || !hasCurrentLocation}
+                    disabled={saving || saveSuccess}
                     className="flex items-center gap-1.5 px-4 py-2 text-sm font-semibold text-white bg-indigo-600 rounded-lg hover:bg-gradient-to-r from-indigo-600 to-violet-600 transition-colors disabled:opacity-70"
                   >
                     {saveSuccess ? <><CheckCircle className="w-4 h-4" /> Đã lưu</> : saving ? <><Loader2 className="w-4 h-4 animate-spin" /> Đang lưu...</> : <><Save className="w-4 h-4" /> Lưu</>}

@@ -258,7 +258,7 @@ export default function CVBuilderPage() {
 
   const handleGenerate = async () => {
     if (!hasCurrentLocation) {
-      setError('Vui lòng lấy vị trí hiện tại trước khi tạo CV.');
+      setError('Vui lòng nhập hoặc lấy vị trí hiện tại trước khi tạo CV.');
       return;
     }
 
@@ -660,7 +660,7 @@ export default function CVBuilderPage() {
               </div>
             </div>
 
-            <button onClick={handleGenerate} disabled={loading || detectingLocation || !hasCurrentLocation} className="aw-btn-primary mt-6 w-full py-3.5 disabled:opacity-60">
+            <button onClick={handleGenerate} disabled={loading || detectingLocation} className="aw-btn-primary mt-6 w-full py-3.5 disabled:opacity-60">
               {loading ? <><Loader2 className="w-5 h-5 animate-spin" /> Đang tạo CV...</> : <><Sparkles className="w-5 h-5" /> Tạo CV bằng AI</>}
             </button>
           </div>
