@@ -225,7 +225,7 @@ async function revokeWorkHistory(userId, workHistoryId) {
   return result.rows[0] || null;
 }
 
-async function findBlockByVerificationCode(verificationCode) {
+async function findBlockByVerificationCode(verificationCode, client = pool) {
   const result = await query(
     `SELECT id, block_index, asset_type, asset_id, owner_user_id, verification_code, payload_hash,
             previous_hash, block_hash, anchor_network, chain_id, anchor_tx_hash,
@@ -233,7 +233,8 @@ async function findBlockByVerificationCode(verificationCode) {
      FROM blockchain_blocks
      WHERE verification_code = $1
      LIMIT 1`,
-    [verificationCode]
+    [verificationCode],
+    client
   );
 
   return result.rows[0] || null;

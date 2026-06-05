@@ -19,6 +19,15 @@ function resolvePublicUrl(publicUrl, verificationCode) {
   return `${window.location.origin}${basePath.startsWith('/') ? basePath : `/${basePath}`}`;
 }
 
+function formatAnchorError(message) {
+  const text = String(message || '').trim();
+  if (/too many requests/i.test(text)) {
+    return 'RPC blockchain đang giới hạn tần suất (Too Many Requests). Transaction có thể cần kiểm tra lại sau hoặc bằng RPC khác.';
+  }
+
+  return text.length > 260 ? `${text.slice(0, 260)}...` : text;
+}
+
 function StatusRow({ label, ok }) {
   return (
     <div className="flex items-center justify-between rounded-lg border border-indigo-50 bg-indigo-50/50 px-4 py-3">
@@ -187,7 +196,7 @@ export default function VerificationPublicPage() {
                     </>
                   ) : (
                     <p className="mt-2 rounded-lg bg-amber-50 px-4 py-3 text-sm text-amber-700">
-                      {payload.on_chain_anchor?.error || payload.anchor_error || 'Chưa có transaction on-chain cho bản ghi này.'}
+                      {formatAnchorError(payload.on_chain_anchor?.error || payload.anchor_error || 'Chưa có transaction on-chain cho bản ghi này.')}
                     </p>
                   )}
                 </div>

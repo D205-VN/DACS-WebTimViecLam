@@ -1,6 +1,7 @@
 const AppError = require('../../core/errors/AppError');
 const { ensureCvSchema } = require('../../models/cv/cv.model');
 const {
+  anchorBlockchainBlock,
   buildAssetMetadata,
   buildCertificatePayload,
   buildCvPayload,
@@ -57,6 +58,18 @@ function decorateVerifiedRow(row) {
   };
 }
 
+function buildRetryAnchorMessage(assetLabel, block = {}) {
+  if (block.anchor_tx_hash && block.anchor_error) {
+    return `Đã gửi transaction ${assetLabel} lên blockchain thật, nhưng RPC chưa xác nhận kịp. Bạn có thể mở link explorer để kiểm tra.`;
+  }
+
+  if (block.anchor_tx_hash) {
+    return `Đã ghi ${assetLabel} lên blockchain thật.`;
+  }
+
+  return `Đã tạo ledger nội bộ cho ${assetLabel}, nhưng chưa ghi được lên blockchain thật.`;
+}
+
 function normalizeText(value) {
   return String(value || '').trim();
 }
@@ -105,17 +118,23 @@ async function notarizeCv(user, rawCvId) {
     const currentPayloadHash = hashPayload(payload);
 
     if (latestBlock && latestBlock.payload_hash === currentPayloadHash) {
+      const block = (!latestBlock.anchor_tx_hash && latestBlock.anchor_error)
+        ? await anchorBlockchainBlock(latestBlock, client)
+        : latestBlock;
+
       return {
         status: 200,
         body: {
-          message: 'CV này đã được xác thực blockchain với nội dung hiện tại.',
+          message: latestBlock.anchor_tx_hash
+            ? 'CV này đã được xác thực blockchain với nội dung hiện tại.'
+            : buildRetryAnchorMessage('CV', block),
           data: {
-            verification_code: latestBlock.verification_code,
-            block_hash: latestBlock.block_hash,
-            payload_hash: latestBlock.payload_hash,
-            ...buildAnchorData(latestBlock),
-            notarized_at: latestBlock.created_at,
-            public_url: buildPublicVerificationUrl(latestBlock.verification_code),
+            verification_code: block.verification_code,
+            block_hash: block.block_hash,
+            payload_hash: block.payload_hash,
+            ...buildAnchorData(block),
+            notarized_at: block.created_at,
+            public_url: buildPublicVerificationUrl(block.verification_code),
           },
         },
       };
@@ -201,6 +220,34 @@ async function getCertificates(user) {
   return { data: (await repository.findCertificates(user.id)).map(decorateVerifiedRow) };
 }
 
+async function anchorCertificate(user, rawCertificateId) {
+  assertSeeker(user);
+  const certificateId = parsePositiveId(rawCertificateId, 'Mã chứng chỉ không hợp lệ');
+  await prepareSchemas();
+
+  return repository.withTransaction(async (client) => {
+    const certificate = await repository.findCertificateForOwner(certificateId, user.id, client);
+    if (!certificate?.verification_code) {
+      throw new AppError('Không tìm thấy chứng chỉ để ghi lại blockchain', 404, 'CERTIFICATE_NOT_FOUND');
+    }
+
+    const block = await repository.findBlockByVerificationCode(certificate.verification_code, client);
+    if (!block || block.owner_user_id !== user.id) {
+      throw new AppError('Không tìm thấy block xác thực của chứng chỉ', 404, 'BLOCK_NOT_FOUND');
+    }
+
+    const anchoredBlock = await anchorBlockchainBlock(block, client);
+    return {
+      message: buildRetryAnchorMessage('chứng chỉ', anchoredBlock),
+      data: {
+        ...certificate,
+        ...buildAnchorData(anchoredBlock),
+        public_url: buildPublicVerificationUrl(anchoredBlock.verification_code),
+      },
+    };
+  });
+}
+
 async function revokeCertificate(user, rawCertificateId) {
   assertSeeker(user);
   const certificateId = parsePositiveId(rawCertificateId, 'Mã chứng chỉ không hợp lệ');
@@ -273,6 +320,34 @@ async function getWorkHistories(user) {
   assertSeeker(user);
   await prepareSchemas();
   return { data: (await repository.findWorkHistories(user.id)).map(decorateVerifiedRow) };
+}
+
+async function anchorWorkHistory(user, rawWorkHistoryId) {
+  assertSeeker(user);
+  const workHistoryId = parsePositiveId(rawWorkHistoryId, 'Mã lịch sử làm việc không hợp lệ');
+  await prepareSchemas();
+
+  return repository.withTransaction(async (client) => {
+    const workHistory = await repository.findWorkHistoryForOwner(workHistoryId, user.id, client);
+    if (!workHistory?.verification_code) {
+      throw new AppError('Không tìm thấy lịch sử làm việc để ghi lại blockchain', 404, 'WORK_HISTORY_NOT_FOUND');
+    }
+
+    const block = await repository.findBlockByVerificationCode(workHistory.verification_code, client);
+    if (!block || block.owner_user_id !== user.id) {
+      throw new AppError('Không tìm thấy block xác thực của lịch sử làm việc', 404, 'BLOCK_NOT_FOUND');
+    }
+
+    const anchoredBlock = await anchorBlockchainBlock(block, client);
+    return {
+      message: buildRetryAnchorMessage('lịch sử làm việc', anchoredBlock),
+      data: {
+        ...workHistory,
+        ...buildAnchorData(anchoredBlock),
+        public_url: buildPublicVerificationUrl(anchoredBlock.verification_code),
+      },
+    };
+  });
 }
 
 async function revokeWorkHistory(user, rawWorkHistoryId) {
@@ -413,6 +488,8 @@ async function getPublicVerification(rawVerificationCode) {
 }
 
 module.exports = {
+  anchorCertificate,
+  anchorWorkHistory,
   createCertificate,
   createWorkHistory,
   getCertificates,

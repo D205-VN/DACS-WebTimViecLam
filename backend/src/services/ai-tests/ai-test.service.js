@@ -13,7 +13,10 @@ const DEFAULT_GEMINI_QUESTION_MODEL = process.env.GEMINI_MODEL || 'gemini-2.0-fl
 
 function addLmStudioModelHints(prompt = '') {
   const modelId = String(process.env.LMSTUDIO_MODEL || '').toLowerCase();
-  return modelId.includes('qwen3') ? `${prompt}\n/no_think` : prompt;
+  const noThinkHint = 'Không dùng <think>, không giải thích quá trình suy luận. Chỉ trả về JSON hợp lệ theo format yêu cầu.';
+  return modelId.includes('qwen3')
+    ? `${prompt}\n\n${noThinkHint}\n/no_think`
+    : `${prompt}\n\n${noThinkHint}`;
 }
 
 function parseBooleanEnv(value, fallback = false) {
@@ -696,7 +699,12 @@ function buildUniqueFallbackQuestion(type, index, context, usedFingerprints) {
 }
 
 function parseGeneratedQuestionList(responseText) {
-  const cleaned = compactText(responseText)
+  const rawText = String(responseText || '')
+    .replace(/<think>[\s\S]*?<\/think>/gi, '')
+    .replace(/```(?:json)?/gi, '')
+    .replace(/```/g, '')
+    .trim();
+  const cleaned = compactText(rawText)
     .replace(/^```json/i, '')
     .replace(/^```/i, '')
     .replace(/```$/i, '')

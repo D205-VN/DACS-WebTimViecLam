@@ -63,20 +63,37 @@ function resolvePublicUrl(publicUrl, verificationCode) {
   return `${window.location.origin}${basePath.startsWith('/') ? basePath : `/${basePath}`}`;
 }
 
+function formatAnchorError(message) {
+  const text = String(message || '').trim();
+  if (/too many requests/i.test(text)) {
+    return 'RPC blockchain đang giới hạn tần suất (Too Many Requests). Hãy thử ghi lại sau vài phút hoặc đổi RPC sang endpoint ổn định hơn.';
+  }
+
+  return text.length > 260 ? `${text.slice(0, 260)}...` : text;
+}
+
 function AnchorStatus({ item }) {
   if (!item?.verification_code) return null;
 
   if (item.anchor_tx_hash) {
+    const hasAnchorWarning = Boolean(item.anchor_error);
     const label = item.anchor_network
-      ? `Đã ghi on-chain: ${item.anchor_network}${item.chain_id ? ` #${item.chain_id}` : ''}`
-      : 'Đã ghi on-chain';
+      ? `${hasAnchorWarning ? 'Đã gửi on-chain' : 'Đã ghi on-chain'}: ${item.anchor_network}${item.chain_id ? ` #${item.chain_id}` : ''}`
+      : hasAnchorWarning ? 'Đã gửi on-chain, đang chờ xác nhận' : 'Đã ghi on-chain';
+    const tone = hasAnchorWarning
+      ? 'border-amber-100 bg-amber-50 text-amber-700'
+      : 'border-emerald-100 bg-emerald-50 text-emerald-700';
+    const linkTone = hasAnchorWarning
+      ? 'text-amber-800 hover:text-amber-900'
+      : 'text-emerald-800 hover:text-emerald-900';
 
     return (
-      <div className="mt-3 rounded-lg border border-emerald-100 bg-emerald-50 px-3 py-2 text-xs text-emerald-700">
+      <div className={`mt-3 rounded-lg border px-3 py-2 text-xs ${tone}`}>
         <p className="font-semibold">{label}</p>
         <p className="mt-1 break-all font-mono">{item.anchor_tx_hash}</p>
+        {hasAnchorWarning ? <p className="mt-2">{formatAnchorError(item.anchor_error)}</p> : null}
         {item.explorer_url ? (
-          <a href={item.explorer_url} target="_blank" rel="noreferrer" className="mt-2 inline-flex items-center gap-1 font-semibold text-emerald-800 hover:text-emerald-900">
+          <a href={item.explorer_url} target="_blank" rel="noreferrer" className={`mt-2 inline-flex items-center gap-1 font-semibold ${linkTone}`}>
             <ExternalLink className="h-3.5 w-3.5" /> Xem transaction
           </a>
         ) : null}
@@ -88,7 +105,7 @@ function AnchorStatus({ item }) {
     return (
       <div className="mt-3 rounded-lg border border-amber-100 bg-amber-50 px-3 py-2 text-xs text-amber-700">
         <p className="font-semibold">Chưa ghi được lên mạng blockchain thật</p>
-        <p className="mt-1">{item.anchor_error}</p>
+        <p className="mt-1">{formatAnchorError(item.anchor_error)}</p>
       </div>
     );
   }
@@ -115,6 +132,8 @@ export default function BlockchainVerificationPage() {
   const [submittingCertificate, setSubmittingCertificate] = useState(false);
   const [submittingWorkHistory, setSubmittingWorkHistory] = useState(false);
   const [notarizingCvId, setNotarizingCvId] = useState(null);
+  const [anchoringCertificateId, setAnchoringCertificateId] = useState(null);
+  const [anchoringWorkHistoryId, setAnchoringWorkHistoryId] = useState(null);
   const [revokingCertificateId, setRevokingCertificateId] = useState(null);
   const [revokingWorkHistoryId, setRevokingWorkHistoryId] = useState(null);
   const backRoute = getDefaultRouteByRole(user?.role_code);
@@ -209,6 +228,27 @@ export default function BlockchainVerificationPage() {
     }
   };
 
+  const handleAnchorCertificate = async (id) => {
+    setAnchoringCertificateId(id);
+    setError('');
+    setNotice('');
+
+    try {
+      const res = await fetch(`${API}/certificates/${id}/anchor`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'Không thể ghi lại chứng chỉ lên blockchain');
+      setNotice(data.message || 'Đã thử ghi lại chứng chỉ lên blockchain.');
+      await fetchOverview();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setAnchoringCertificateId(null);
+    }
+  };
+
   const handleCreateWorkHistory = async (event) => {
     event.preventDefault();
     setSubmittingWorkHistory(true);
@@ -233,6 +273,27 @@ export default function BlockchainVerificationPage() {
       setError(err.message);
     } finally {
       setSubmittingWorkHistory(false);
+    }
+  };
+
+  const handleAnchorWorkHistory = async (id) => {
+    setAnchoringWorkHistoryId(id);
+    setError('');
+    setNotice('');
+
+    try {
+      const res = await fetch(`${API}/work-history/${id}/anchor`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'Không thể ghi lại lịch sử làm việc lên blockchain');
+      setNotice(data.message || 'Đã thử ghi lại lịch sử làm việc lên blockchain.');
+      await fetchOverview();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setAnchoringWorkHistoryId(null);
     }
   };
 
@@ -387,7 +448,7 @@ export default function BlockchainVerificationPage() {
                         className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-gradient-to-r from-indigo-600 to-violet-600 disabled:opacity-70"
                       >
                         {notarizingCvId === cv.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldEllipsis className="h-4 w-4" />}
-                        {cv.verification_code ? 'Cập nhật blockchain' : 'Ghi lên blockchain'}
+                        {cv.anchor_error && !cv.anchor_tx_hash ? 'Thử ghi lại' : cv.verification_code ? 'Cập nhật blockchain' : 'Ghi lên blockchain'}
                       </button>
                       {cv.public_url ? (
                         <>
@@ -543,6 +604,17 @@ export default function BlockchainVerificationPage() {
                               <Link2 className="h-4 w-4" /> Xem public
                             </a>
                           </>
+                        ) : null}
+                        {item.anchor_error && !item.anchor_tx_hash && item.status !== 'revoked' ? (
+                          <button
+                            type="button"
+                            onClick={() => handleAnchorCertificate(item.id)}
+                            disabled={anchoringCertificateId === item.id}
+                            className="inline-flex items-center gap-2 rounded-lg bg-amber-50 px-4 py-2.5 text-sm font-semibold text-amber-700 transition-colors hover:bg-amber-100 disabled:opacity-70"
+                          >
+                            {anchoringCertificateId === item.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldEllipsis className="h-4 w-4" />}
+                            Thử ghi lại
+                          </button>
                         ) : null}
                         {item.status !== 'revoked' ? (
                           <button
@@ -706,6 +778,17 @@ export default function BlockchainVerificationPage() {
                               <ExternalLink className="h-4 w-4" /> Xem public
                             </a>
                           </>
+                        ) : null}
+                        {item.anchor_error && !item.anchor_tx_hash && item.status !== 'revoked' ? (
+                          <button
+                            type="button"
+                            onClick={() => handleAnchorWorkHistory(item.id)}
+                            disabled={anchoringWorkHistoryId === item.id}
+                            className="inline-flex items-center gap-2 rounded-lg bg-amber-50 px-4 py-2.5 text-sm font-semibold text-amber-700 transition-colors hover:bg-amber-100 disabled:opacity-70"
+                          >
+                            {anchoringWorkHistoryId === item.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShieldEllipsis className="h-4 w-4" />}
+                            Thử ghi lại
+                          </button>
                         ) : null}
                         {item.status !== 'revoked' ? (
                           <button

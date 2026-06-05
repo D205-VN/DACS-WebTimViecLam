@@ -42,6 +42,14 @@ async function getCertificates(req, res) {
   }
 }
 
+async function anchorCertificate(req, res) {
+  try {
+    res.json(await verificationService.anchorCertificate(req.user, req.params.id));
+  } catch (err) {
+    sendControllerError(res, err, 'Không thể ghi lại chứng chỉ lên blockchain', 'Anchor certificate verification error:');
+  }
+}
+
 async function revokeCertificate(req, res) {
   try {
     res.json(await verificationService.revokeCertificate(req.user, req.params.id));
@@ -66,6 +74,14 @@ async function getWorkHistories(req, res) {
   }
 }
 
+async function anchorWorkHistory(req, res) {
+  try {
+    res.json(await verificationService.anchorWorkHistory(req.user, req.params.id));
+  } catch (err) {
+    sendControllerError(res, err, 'Không thể ghi lại lịch sử làm việc lên blockchain', 'Anchor work history verification error:');
+  }
+}
+
 async function revokeWorkHistory(req, res) {
   try {
     res.json(await verificationService.revokeWorkHistory(req.user, req.params.id));
@@ -83,6 +99,8 @@ async function getPublicVerification(req, res) {
 }
 
 module.exports = {
+  anchorCertificate,
+  anchorWorkHistory,
   createCertificate,
   createWorkHistory,
   getCertificates,

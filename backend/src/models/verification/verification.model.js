@@ -267,6 +267,72 @@ async function getLatestAssetBlock({ assetType, assetId, ownerUserId }, client =
   return result.rows[0] || null;
 }
 
+function formatAnchorError(err) {
+  const message = String(err?.shortMessage || err?.reason || err?.message || 'Không thể ghi transaction lên blockchain thật');
+  if (/too many requests/i.test(message)) {
+    return 'RPC blockchain đang giới hạn tần suất (Too Many Requests). Hãy thử lại sau hoặc đổi EVM_RPC_URL sang endpoint riêng ổn định hơn.';
+  }
+
+  return message.length > 320 ? `${message.slice(0, 320)}...` : message;
+}
+
+async function updateBlockAnchor(block, anchor, client = pool) {
+  const anchoredResult = await client.query(
+    `UPDATE blockchain_blocks
+     SET anchor_network = $1,
+         chain_id = $2,
+         anchor_tx_hash = $3,
+         anchor_address = $4,
+         anchor_error = $5,
+         anchored_at = NOW()
+     WHERE id = $6
+     RETURNING id, block_index, asset_type, asset_id, owner_user_id, verification_code,
+               payload_hash, previous_hash, block_hash, anchor_network, chain_id,
+               anchor_tx_hash, anchor_address, anchor_error, anchored_at, metadata, created_at`,
+    [
+      anchor.network,
+      anchor.chain_id,
+      anchor.tx_hash,
+      anchor.anchor_address,
+      anchor.anchor_error || null,
+      block.id,
+    ]
+  );
+
+  return anchoredResult.rows[0];
+}
+
+async function markBlockAnchorFailed(block, err, client = pool) {
+  const failedResult = await client.query(
+    `UPDATE blockchain_blocks
+     SET anchor_error = $1
+     WHERE id = $2
+     RETURNING id, block_index, asset_type, asset_id, owner_user_id, verification_code,
+               payload_hash, previous_hash, block_hash, anchor_network, chain_id,
+               anchor_tx_hash, anchor_address, anchor_error, anchored_at, metadata, created_at`,
+    [formatAnchorError(err), block.id]
+  );
+
+  return failedResult.rows[0];
+}
+
+async function anchorBlockchainBlock(block, client = pool) {
+  if (!isBlockchainEnabled()) {
+    return block;
+  }
+
+  try {
+    const anchor = await anchorBlockOnChain(block);
+    return updateBlockAnchor(block, anchor, client);
+  } catch (err) {
+    if (isBlockchainRequired()) {
+      throw err;
+    }
+
+    return markBlockAnchorFailed(block, err, client);
+  }
+}
+
 async function createBlockchainBlock({
   assetType,
   assetId,
@@ -334,46 +400,7 @@ async function createBlockchainBlock({
   );
 
   const block = result.rows[0];
-
-  if (!isBlockchainEnabled()) {
-    return block;
-  }
-
-  try {
-    const anchor = await anchorBlockOnChain(block);
-    const anchoredResult = await client.query(
-      `UPDATE blockchain_blocks
-       SET anchor_network = $1,
-           chain_id = $2,
-           anchor_tx_hash = $3,
-           anchor_address = $4,
-           anchor_error = NULL,
-           anchored_at = NOW()
-       WHERE id = $5
-       RETURNING id, block_index, asset_type, asset_id, owner_user_id, verification_code,
-                 payload_hash, previous_hash, block_hash, anchor_network, chain_id,
-                 anchor_tx_hash, anchor_address, anchor_error, anchored_at, metadata, created_at`,
-      [anchor.network, anchor.chain_id, anchor.tx_hash, anchor.anchor_address, block.id]
-    );
-
-    return anchoredResult.rows[0];
-  } catch (err) {
-    if (isBlockchainRequired()) {
-      throw err;
-    }
-
-    const failedResult = await client.query(
-      `UPDATE blockchain_blocks
-       SET anchor_error = $1
-       WHERE id = $2
-       RETURNING id, block_index, asset_type, asset_id, owner_user_id, verification_code,
-                 payload_hash, previous_hash, block_hash, anchor_network, chain_id,
-                 anchor_tx_hash, anchor_address, anchor_error, anchored_at, metadata, created_at`,
-      [err.message, block.id]
-    );
-
-    return failedResult.rows[0];
-  }
+  return anchorBlockchainBlock(block, client);
 }
 
 function validateBlockchainRecord(block, previousBlock) {
@@ -407,6 +434,7 @@ module.exports = {
   buildCertificatePayload,
   buildCvPayload,
   buildWorkHistoryPayload,
+  anchorBlockchainBlock,
   buildExplorerUrl,
   createBlockchainBlock,
   ensureVerificationSchema,

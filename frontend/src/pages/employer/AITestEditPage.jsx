@@ -149,7 +149,11 @@ const AITestEditPage = () => {
       fetchTestDetails();
     } catch (err) {
       console.error(err);
-      alert(err.message || 'Lỗi khi tạo câu hỏi');
+      const attempts = Array.isArray(err.data?.attempts) ? err.data.attempts : [];
+      const attemptSummary = attempts.length
+        ? `\n\nLần thử: ${attempts.map((attempt) => `${attempt.provider}: ${attempt.failed ? 'lỗi' : `${attempt.validCount || 0} câu hợp lệ`}`).join(', ')}`
+        : '';
+      alert(`${err.message || 'Lỗi khi tạo câu hỏi'}${attemptSummary}`);
     } finally {
       setGenLoading(false);
     }

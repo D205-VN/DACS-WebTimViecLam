@@ -69,6 +69,15 @@ function buildProvider(config) {
   );
 }
 
+function formatRpcError(err) {
+  const message = String(err?.shortMessage || err?.reason || err?.message || 'Không thể xác nhận transaction qua RPC');
+  if (/too many requests/i.test(message)) {
+    return 'RPC blockchain đang giới hạn tần suất (Too Many Requests).';
+  }
+
+  return message.length > 240 ? `${message.slice(0, 240)}...` : message;
+}
+
 async function anchorBlockOnChain(block) {
   const config = getBlockchainConfig();
   assertConfig(config);
@@ -85,18 +94,36 @@ async function anchorBlockOnChain(block) {
     data,
   });
 
-  const receipt = config.confirmations > 0
-    ? await tx.wait(config.confirmations)
-    : null;
-  const network = await provider.getNetwork();
+  let receipt = null;
+  let anchorError = null;
+  if (config.confirmations > 0) {
+    try {
+      receipt = await tx.wait(config.confirmations);
+    } catch (err) {
+      anchorError = `Đã gửi transaction nhưng chưa xác nhận được qua RPC: ${formatRpcError(err)}`;
+    }
+  }
+
   const txHash = receipt?.hash || tx.hash;
-  const chainId = Number(network.chainId);
+  let chainId = config.chainId || null;
+  if (!chainId) {
+    try {
+      const network = await provider.getNetwork();
+      chainId = Number(network.chainId);
+    } catch (err) {
+      anchorError = [
+        anchorError,
+        `Không đọc được chain id từ RPC: ${formatRpcError(err)}`,
+      ].filter(Boolean).join(' ');
+    }
+  }
 
   return {
     network: config.networkName,
     chain_id: chainId,
     tx_hash: txHash,
     anchor_address: to,
+    anchor_error: anchorError,
     explorer_url: buildExplorerUrl(txHash, config.explorerTxUrl),
   };
 }
