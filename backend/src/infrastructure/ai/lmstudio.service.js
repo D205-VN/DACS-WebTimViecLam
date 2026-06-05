@@ -18,6 +18,7 @@ function getLmStudioConfig(overrides = {}) {
   return {
     baseUrl: normalizeBaseUrl(overrides.baseUrl ?? process.env.LMSTUDIO_BASE_URL),
     model: String(overrides.model ?? process.env.LMSTUDIO_MODEL ?? 'local-model').trim(),
+    apiKey: String(overrides.apiKey ?? process.env.LMSTUDIO_API_KEY ?? process.env.LM_API_TOKEN ?? '').trim(),
     timeoutMs: parseNumberEnv(overrides.timeoutMs ?? process.env.LMSTUDIO_TIMEOUT_MS, 120000, 5000, 300000),
     maxTokens: parseNumberEnv(overrides.maxTokens ?? process.env.LMSTUDIO_MAX_TOKENS, 4096, 512, 12000),
     temperature: parseNumberEnv(overrides.temperature ?? process.env.LMSTUDIO_TEMPERATURE, 0.35, 0, 2),
@@ -31,15 +32,21 @@ async function generateTextWithLmStudio(prompt, {
   temperature,
   maxTokens,
   timeoutMs,
+  apiKey,
 } = {}) {
   const config = getLmStudioConfig({ baseUrl, model, temperature, maxTokens, timeoutMs });
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), config.timeoutMs);
 
   try {
+    const headers = { 'Content-Type': 'application/json' };
+    if (apiKey || config.apiKey) {
+      headers.Authorization = `Bearer ${apiKey || config.apiKey}`;
+    }
+
     const response = await fetch(`${config.baseUrl}/chat/completions`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers,
       signal: controller.signal,
       body: JSON.stringify({
         model: config.model,
